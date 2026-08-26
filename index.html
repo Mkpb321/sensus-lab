@@ -2032,88 +2032,110 @@ function primaryDepthForProp(propId,layoutById){
   }
   return max;
 }
+function computeAdaptiveBracketGeometry(data){
+  const maxDepth=Math.max(1,...data.map(x=>x.depth));
+  const relationMetricsById=new Map();
+  const roleDataByKey=new Map();
+  const relationThicknessByDepth=Array(maxDepth+1).fill(0);
+  const maxRoleWidthByDepth=Array(maxDepth+1).fill(0);
+  const maxRoleWidthByNode=new Map();
+
+  // Zuerst werden ausschließlich die tatsächlich vorkommenden Beschriftungen vermessen.
+  // Die Bahnbreiten entstehen anschließend aus diesen Messwerten, nicht aus einem festen Raster.
+  for(const item of data){
+    const {node}=item;
+    const {rel}=relationStrokeInfo(node);
+    const title=rel?rel.label:"Offene Gruppe";
+    const displayTitle=compactRelation(title);
+    const relationLines=wrapBracketText(displayTitle,14,3);
+    const relationMetrics=bracketTextMetrics(relationLines,{minWidth:44,maxWidth:96,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.3});
+    relationMetricsById.set(node.id,{title,displayTitle,lines:relationLines,metrics:relationMetrics});
+    // Nach der 90°-Drehung entspricht die sichtbare horizontale Dicke der ursprünglichen Höhe.
+    relationThicknessByDepth[item.depth]=Math.max(relationThicknessByDepth[item.depth],relationMetrics.height);
+
+    if(!rel || rel.primary==="all") continue;
+    let nodeMaxRoleWidth=0;
+    (node.children||[]).forEach((childId,i)=>{
+      const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
+      const displayRole=compactRole(fullRole);
+      const roleLines=wrapBracketText(displayRole,13,2);
+      const roleMetrics=bracketTextMetrics(roleLines,{minWidth:34,maxWidth:94,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.1});
+      roleDataByKey.set(`${node.id}:${i}`,{fullRole,displayRole,lines:roleLines,metrics:roleMetrics});
+      nodeMaxRoleWidth=Math.max(nodeMaxRoleWidth,roleMetrics.width);
+      maxRoleWidthByDepth[item.depth]=Math.max(maxRoleWidthByDepth[item.depth],roleMetrics.width);
+    });
+    maxRoleWidthByNode.set(node.id,nodeMaxRoleWidth);
+  }
+
+  // Korridor d liegt zwischen der Stamm-Linie der Tiefe d und der nächstinneren Bahn.
+  // Er wird nur so breit wie nötig. Dabei werden berücksichtigt:
+  //  - die sichtbare Dicke der vertikalen Beziehungs-Badges an beiden Korridorrändern,
+  //  - ein möglicher Stern direkt nach der Elternlinie,
+  //  - die breiteste horizontale Rollenbeschriftung dieser Tiefe,
+  //  - Sicherheitsabstände, damit kein Badge eine Linie oder ein Nachbar-Badge berührt.
+  const laneWidths=Array(maxDepth+1).fill(0);
+  for(let d=1;d<=maxDepth;d++){
+    const parentHalf=relationThicknessByDepth[d]/2;
+    const innerHalf=d===1?0:relationThicknessByDepth[d-1]/2;
+    const labelOnlyNeed=parentHalf+innerHalf+22;
+    const roleWidth=maxRoleWidthByDepth[d];
+    const roleLeftClear=Math.max(parentHalf+10,22); // Badge + Stern + Luft
+    const roleNeed=roleWidth?roleLeftClear+roleWidth+innerHalf+12:0;
+    laneWidths[d]=Math.ceil(Math.max(46,labelOnlyNeed,roleNeed));
+  }
+
+  const cumulative=Array(maxDepth+1).fill(0);
+  for(let d=1;d<=maxDepth;d++) cumulative[d]=cumulative[d-1]+laneWidths[d];
+  const outerHalf=relationThicknessByDepth[maxDepth]/2;
+  const leftGutter=Math.ceil(Math.max(18,outerHalf+12));
+  const rightGutter=22;
+  const needed=leftGutter+rightGutter+cumulative[maxDepth]+8;
+
+  return {
+    maxDepth,laneWidths,cumulative,leftGutter,rightGutter,needed,
+    relationMetricsById,roleDataByKey,relationThicknessByDepth,maxRoleWidthByNode
+  };
+}
 function renderBracketSvg(anchorMap,height){
   const svg=els.bracketSvg;
   const clientWidth=Math.max(svg.parentElement.clientWidth,320);
   const data=relationLayoutData(anchorMap);
-  const maxDepth=Math.max(1,...data.map(x=>x.depth));
-
-  // Kompaktes, aber weiterhin kollisionsfreies Korridorprinzip:
-  // - 124 px pro Hierarchiestufe statt der früheren 164 px.
-  // - Jede Stufe besitzt einen exklusiven Korridor zwischen zwei Stamm-Linien.
-  // - Beziehungstitel bleiben vollständig innerhalb dieses Korridors.
-  // - Rollen belegen den Korridor direkt rechts der Elternlinie.
-  // - Horizontale Äste sperren ihre y-Position für Beziehungstitel.
-  // Damit wird die Darstellung enger, ohne Überlappungen durch Zusammenquetschen zu erzeugen.
-  const laneGap=124;
-  const rightGutter=22;
-  const leftGutter=124;
-  const labelMaxWidth=laneGap-28; // 14 px Sicherheitsabstand zu beiden Korridorrändern
-  const roleMaxWidth=laneGap-30;
-  const needed=leftGutter+rightGutter+maxDepth*laneGap+8;
+  const geometry=computeAdaptiveBracketGeometry(data);
+  const {maxDepth,cumulative,leftGutter,rightGutter,needed,relationMetricsById,roleDataByKey,maxRoleWidthByNode}=geometry;
   const w=Math.max(clientWidth,needed);
   const effectiveRight=w-rightGutter;
-  const xForDepth=(depth)=>relationLaneX(depth,w,laneGap,rightGutter);
+  const xForDepth=(depth)=>effectiveRight-cumulative[depth];
   const xById=new Map(data.map(x=>[x.node.id,xForDepth(x.depth)]));
   const portMemo=new Map();
 
-  // Alle horizontalen Äste werden vorab erfasst. Für jeden Tiefenkorridor merken wir
-  // die y-Positionen der Linien, die diesen Korridor tatsächlich durchqueren.
-  const forbiddenYsByDepth=new Map();
-  const addForbidden=(depth,y)=>{
-    if(depth<1 || depth>maxDepth || !Number.isFinite(y)) return;
-    const arr=forbiddenYsByDepth.get(depth)||[];
-    arr.push(y); forbiddenYsByDepth.set(depth,arr);
-  };
-  for(const item of data){
-    const parentX=xById.get(item.node.id);
-    (item.node.children||[]).forEach((childId,i)=>{
-      const cy=bracketNodePortY(childId,anchorMap,portMemo);
-      if(!Number.isFinite(cy)) return;
-      const child=getNode(childId);
-      const targetX=child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
-      const minX=Math.min(parentX,targetX), maxX=Math.max(parentX,targetX);
-      for(let d=1;d<=maxDepth;d++){
-        const stemX=xForDepth(d);
-        const corridorLeft=stemX-laneGap+8;
-        const corridorRight=stemX-8;
-        if(maxX>=corridorLeft && minX<=corridorRight) addForbidden(d,cy);
-      }
-    });
-  }
-
-  // Rollen werden immer in den ersten Korridor rechts der Elternlinie gesetzt.
-  // Deren Rechtecke werden bereits vor dem Zeichnen als belegte Bereiche für den
-  // Beziehungstitel des angrenzenden inneren Korridors reserviert.
-  const labelOccupancyByDepth=new Map();
+  // Rollen derselben Beziehung erhalten weiterhin exakt dieselbe x-Position.
+  // Anders als zuvor wird diese Position aus der real benötigten Badge-Breite berechnet.
   const rolePlacementByKey=new Map();
   for(const item of data){
     const {node}=item;
     const {rel}=relationStrokeInfo(node);
     if(!rel || rel.primary==="all") continue;
     const x=xById.get(node.id);
+    const relationInfo=relationMetricsById.get(node.id);
+    const parentHalf=(relationInfo?.metrics.height||0)/2;
+    const nodeMaxRoleWidth=maxRoleWidthByNode.get(node.id)||0;
+    const commonRoleX=x+Math.max(parentHalf+10,22)+nodeMaxRoleWidth/2;
     const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
     const childTargets=(node.children||[]).map(childId=>{
       const child=getNode(childId);
       return child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
     });
-    const usableSegments=childTargets.map(targetX=>Math.abs(targetX-x)).filter(v=>Number.isFinite(v) && v>=58);
-    // Alle Rollen derselben Beziehung teilen dieselbe x-Position. Sie stehen dadurch
-    // sauber untereinander. Maßgeblich ist der kürzeste gemeinsame Ast, nicht die
-    // individuelle Mitte jedes Astes.
-    const commonRoleX=usableSegments.length ? x+Math.min(...usableSegments)/2 : x+laneGap/2;
     (node.children||[]).forEach((childId,i)=>{
       const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
+      const roleInfo=roleDataByKey.get(`${node.id}:${i}`); if(!roleInfo) return;
       const targetX=childTargets[i];
-      const segment=Math.abs(targetX-x);
-      if(segment<58) return;
-      const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
-      const displayRole=compactRole(fullRole);
-      const roleLines=wrapBracketText(displayRole,13,2);
-      const roleMetrics=bracketTextMetrics(roleLines,{minWidth:34,maxWidth:roleMaxWidth,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.1});
-      const rx=Math.min(commonRoleX,targetX-roleMetrics.width/2-5);
-      const roleCenterY=cy;
-      rolePlacementByKey.set(`${node.id}:${i}`,{rx,roleCenterY,roleLines,roleMetrics,fullRole});
+      const {lines:roleLines,metrics:roleMetrics,fullRole}=roleInfo;
+      // Defensive Begrenzung für importierte/ungewöhnliche Bäume. Im Normalfall greift
+      // sie nicht, weil die adaptive Bahnbreite den benötigten Platz bereits garantiert.
+      const maxX=targetX-roleMetrics.width/2-8;
+      const minX=x+Math.max(parentHalf+10,22)+roleMetrics.width/2;
+      const rx=Math.max(minX,Math.min(commonRoleX,maxX));
+      rolePlacementByKey.set(`${node.id}:${i}`,{rx,roleCenterY:cy,roleLines,roleMetrics,fullRole});
     });
   }
 
@@ -2136,14 +2158,14 @@ function renderBracketSvg(anchorMap,height){
     const portY=bracketNodePortY(node.id,anchorMap,portMemo);
     const dashAttr=dash?` stroke-dasharray="${dash}"`:"";
     const isSelected=selectedRelationId===node.id;
-    const title=rel?rel.label:"Offene Gruppe";
-    const displayTitle=compactRelation(title);
-    const relationLines=wrapBracketText(displayTitle,14,3);
-    const relationMetrics=bracketTextMetrics(relationLines,{minWidth:44,maxWidth:labelMaxWidth,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.3});
+    const relationInfo=relationMetricsById.get(node.id);
+    const title=relationInfo?.title||(rel?rel.label:"Offene Gruppe");
+    const relationLines=relationInfo?.lines||[compactRelation(title)];
+    const relationMetrics=relationInfo?.metrics||bracketTextMetrics(relationLines,{minWidth:44,maxWidth:96,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.3});
 
     pieces.push(`<g class="svg-rel" data-relation-id="${node.id}">`);
 
-    // Beziehungsname immer exakt in der geometrischen Mitte der vertikalen Stamm-Linie.
+    // Beziehungsname exakt in der geometrischen Mitte der vertikalen Stamm-Linie.
     const relationLabelScreenHeight=relationMetrics.width;
     const relationLabelScreenWidth=relationMetrics.height;
     const labelY=(topY+bottomY)/2;
@@ -2185,14 +2207,11 @@ function renderBracketSvg(anchorMap,height){
       }
 
       if(primary && rel && rel.primary!=="all"){
-        const sx=x+10;
+        const sx=branchStartX+10;
         pieces.push(`<circle cx="${sx}" cy="${cy}" r="5.1" fill="#fff" stroke="${color}" stroke-width="1.2"/><text x="${sx}" y="${cy}" class="svg-star" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
       }
     });
 
-    // Der Beziehungstitel sitzt jetzt vertikal direkt auf der verbindenden Stamm-Linie.
-    // Dafür wird das Badge um 90° gedreht und die Stamm-Linie ober- und unterhalb
-    // des Badges gezeichnet, sodass Titel und Linie eine gemeinsame visuelle Einheit bilden.
     const labelX=x;
     const relX=labelX-relationMetrics.width/2, relY=labelY-relationMetrics.height/2;
     labelPieces.push(`<g class="diagram-label-box diagram-relation-label" transform="rotate(-90 ${labelX} ${labelY})">`);
@@ -2208,14 +2227,14 @@ function renderBracketSvg(anchorMap,height){
     }
   }
 
-  // Labels werden als eigener letzter SVG-Layer gerendert. Dadurch liegen alle Linien
-  // garantiert hinter den horizontalen und vertikalen Kästchen.
+  // Labels liegen immer über sämtlichen Linien.
   svg.innerHTML=pieces.join("")+`<g class="svg-label-layer">${labelPieces.join("")}</g>`;
 
   els.bracketEmpty.textContent="";
   els.bracketEmpty.style.display=data.length?"none":"flex";
-  if(!data.length) els.bracketEmpty.textContent=state.propositions.length<2?"Teile den Text in mindestens zwei Propositionen, um Klammern anzulegen.":"Verbinde benachbarte Einheiten. Jede Verschachtelung erhält automatisch eine eigene kollisionsfreie Bahn.";
+  if(!data.length) els.bracketEmpty.textContent=state.propositions.length<2?"Teile den Text in mindestens zwei Propositionen, um Klammern anzulegen.":"Verbinde benachbarte Einheiten. Die Klammerbreite passt sich automatisch an den benötigten Platz an.";
 }
+
 function measureAndRenderSvgs(){
   const height=Math.max(260,els.propList.scrollHeight);
   const anchors=getAnchorMap();
@@ -2664,10 +2683,8 @@ function buildPublicationExportSvg(){
   const propFontSize=18;
   const propLineH=27;
   const propMinH=50;
-  const laneGap=112;
   const labelMaxWidth=94;
   const roleMaxWidth=90;
-  const leftLabelReserve=104;
   const bracketTextGap=28;
   const titleFontSize=24;
   const titleLineH=31;
@@ -2695,37 +2712,18 @@ function buildPublicationExportSvg(){
   }
   const contentBottom=Math.max(headerH+80,cursorY-rowGap);
   const data=relationLayoutData(anchorMap);
-  const maxDepth=data.length?Math.max(...data.map(x=>x.depth)):0;
-  const bracketRight=data.length?pageLeft+leftLabelReserve+maxDepth*laneGap:pageLeft;
+  const exportGeometry=computeAdaptiveBracketGeometry(data);
+  const maxDepth=data.length?exportGeometry.maxDepth:0;
+  const outerReserve=data.length?Math.max(20,Math.ceil((exportGeometry.relationThicknessByDepth[maxDepth]||0)/2+10)):0;
+  const bracketRight=data.length?pageLeft+outerReserve+exportGeometry.cumulative[maxDepth]:pageLeft;
   const textStart=data.length?bracketRight+bracketTextGap:pageLeft;
   const canvasW=Math.ceil(textStart+propTextWidth+pageRight);
   const canvasH=Math.ceil(contentBottom+28);
-  const xForDepth=(depth)=>bracketRight-depth*laneGap;
+  const xForDepth=(depth)=>bracketRight-exportGeometry.cumulative[depth];
   const xById=new Map(data.map(item=>[item.node.id,xForDepth(item.depth)]));
   const portMemo=new Map();
 
-  // Beziehungsnamen erhalten pro Tiefenbahn reservierte, kollisionsfreie Flächen.
-  const forbiddenYsByDepth=new Map();
-  const addForbidden=(depth,y)=>{
-    if(depth<1 || depth>maxDepth || !Number.isFinite(y)) return;
-    const arr=forbiddenYsByDepth.get(depth)||[]; arr.push(y); forbiddenYsByDepth.set(depth,arr);
-  };
-  for(const item of data){
-    const x=xById.get(item.node.id);
-    (item.node.children||[]).forEach(childId=>{
-      const cy=bracketNodePortY(childId,anchorMap,portMemo);
-      const child=getNode(childId);
-      const targetX=child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
-      const minX=Math.min(x,targetX),maxX=Math.max(x,targetX);
-      for(let d=1;d<=maxDepth;d++){
-        const stemX=xForDepth(d);
-        if(maxX>=stemX-laneGap+9 && minX<=stemX-9) addForbidden(d,cy);
-      }
-    });
-  }
-
   const rolePlacementByKey=new Map();
-  const labelOccupancyByDepth=new Map();
   for(const item of data){
     const {node}=item;
     const {rel}=exportRelationStyle(node);
@@ -2735,17 +2733,19 @@ function buildPublicationExportSvg(){
       const child=getNode(childId);
       return child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
     });
-    const usableSegments=targets.map(targetX=>Math.abs(targetX-x)).filter(v=>Number.isFinite(v)&&v>=52);
-    const commonRoleX=usableSegments.length?x+Math.min(...usableSegments)/2:x+laneGap/2;
+    const parentHalf=(exportGeometry.relationMetricsById.get(node.id)?.metrics.height||0)/2;
+    const nodeMaxRoleWidth=Math.min(roleMaxWidth,exportGeometry.maxRoleWidthByNode.get(node.id)||0);
+    const commonRoleX=x+Math.max(parentHalf+8,20)+nodeMaxRoleWidth/2;
     (node.children||[]).forEach((childId,i)=>{
       const cy=bracketNodePortY(childId,anchorMap,portMemo); if(!Number.isFinite(cy)) return;
       const targetX=targets[i];
-      const segment=Math.abs(targetX-x); if(segment<52) return;
       const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
       const displayRole=compactRole(fullRole);
       const lines=wrapBracketText(displayRole,13,2);
       const metrics=bracketTextMetrics(lines,{minWidth:32,maxWidth:roleMaxWidth,charWidth:4.25,lineHeight:9.2,padX:4.5,padY:2.8});
-      const rx=Math.min(commonRoleX,targetX-metrics.width/2-4);
+      const minX=x+Math.max(parentHalf+8,20)+metrics.width/2;
+      const maxX=targetX-metrics.width/2-6;
+      const rx=Math.max(minX,Math.min(commonRoleX,maxX));
       const centerY=cy;
       rolePlacementByKey.set(`${node.id}:${i}`,{rx,centerY,lines,metrics,fullRole});
     });
@@ -2825,7 +2825,7 @@ function buildPublicationExportSvg(){
         boxOverlays.push(`</g>`);
       }
       if(primary && rel && rel.primary!=="all"){
-        const sx=x+9;
+        const sx=branchStartX+9;
         pieces.push(`<circle cx="${sx}" cy="${cy}" r="4.8" fill="#fff" stroke="${color}" stroke-width="1.15"/><text x="${sx}" y="${cy}" text-anchor="middle" font-size="6.8" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
       }
     });
