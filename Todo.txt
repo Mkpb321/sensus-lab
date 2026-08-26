@@ -1,0 +1,18 @@
+
+
+automatischer aufteuler bei allen Satzzeichen und Konjunktionen
+aus dem pdf könnte man sogar relations vorschlagen per moseover oder so
+klick der Konjunktionen highlitet in farben die immer gleich sind. das wird später auch für andere Tools sinvoll. eigene art farbe z.b. pastel und jedes wort anders oder unterstrichen unterwellt irgendwas, nur schriftfarbe oder so
+Fragezeichen sind auch ein indikator
+
+
+vielleicht bei solchen die horizontale Beschriftungen haben braucht man das vertikale label garnicht bei schlauer Benennung, so macht es biblearc. bei biblearc haben manche sogar nur ein horizontales lable z.b. bei vergleich. "There is no significance to this. It merely follows from the relationship names."
+
+schmaler machen
+
+
+
+Kurs Notizen
+Rethorische fragen nicht  Q/A sondern als Statements behandeln. diese haben keine Antwort. Auch Serien von Fragen ohne Antworten sind ein Hinweis.
+
+Aussage Erklährung auch bei Ankündigung direkter rede oder eines zitates
