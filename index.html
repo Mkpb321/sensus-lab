@@ -1,1 +1,3124 @@
-hello
+<!doctype html>
+<!--
+README – Sensus Lab
+Start: Diese Datei lokal in einem aktuellen Browser öffnen. Es gibt kein Backend und keine externen Bibliotheken.
+Datenmodell: Ein zentraler Analysezustand enthält Titel, rawText, Tokens, Schnittstellen (cuts), Propositionen, rootIds und einen hierarchischen Knotenbaum. Die Klammeransicht wird ausschließlich aus diesem Baum gerendert und nutzt exklusive Tiefenbahnen sowie pixelgenaue Breite statt SVG-Skalierung, damit Verschachtelungen und Beschriftungen nicht überlappen.
+Tastatur: Strg/Cmd+Z = Rückgängig; Strg/Cmd+Umschalt+Z = Wiederholen; Entf/Backspace = ausgewählte Verbindung auflösen; Escape = Auswahl/Dialog abbrechen; Leertaste = Bearbeiten/Ansicht umschalten, sofern kein Formularfeld/Dialog fokussiert ist; Pfeiltasten bewegen zwischen sichtbaren Einheiten.
+Export: JSON bleibt als editierbarer Analysezustand verfügbar. Der Bildexport erzeugt unabhängig von der Bedienoberfläche eine eigene, für statische Ausgabe optimierte Strukturgrafik.
+Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und logische Beziehungen werden bewusst durch die Benutzerin oder den Benutzer festgelegt.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sensus Lab</title>
+<style>
+:root{
+  --navy:#0f304d;
+  --navy-2:#173f62;
+  --blue:#236aa1;
+  --blue-soft:#eaf3fb;
+  --ink:#172230;
+  --muted:#5d6a78;
+  --line:#cbd5df;
+  --line-strong:#9fadb9;
+  --panel:#f7f9fb;
+  --panel-2:#eef3f7;
+  --white:#fff;
+  --danger:#b42318;
+  --danger-soft:#fef3f2;
+  --success:#147a55;
+  --success-soft:#ecfdf3;
+  --open:#77818c;
+  --selected:#1557d0;
+  --coord:#2e6e9e;
+  --support:#c95146;
+  --explain:#5d7a48;
+  --contrast:#7b5791;
+  --extended:#82643b;
+  --shadow:0 8px 24px rgba(20,37,55,.10);
+  --radius:10px;
+  --target:36px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  color:var(--ink);
+  background:#eaf0f5;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+}
+button,input,textarea,select{font:inherit}
+button{min-height:var(--target)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{
+  outline:3px solid rgba(21,87,208,.32);
+  outline-offset:2px;
+}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.48}
+.sr-only{
+  position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
+  overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+}
+.app-header{background:var(--white);border-bottom:1px solid var(--line);z-index:5}
+.topbar{
+  background:var(--navy);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:baseline;gap:8px;margin-right:auto;min-width:220px}
+.brand strong{font-size:17px;letter-spacing:.01em}
+.brand span{font-size:12px;color:#cbd8e5}
+.toolbar-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.toolbar-button,.seg-button{
+  border:1px solid rgba(255,255,255,.30);background:rgba(255,255,255,.10);color:#fff;border-radius:8px;
+  padding:7px 10px;line-height:1.1;
+}
+.toolbar-button:hover,.seg-button:hover{background:rgba(255,255,255,.18)}
+.seg-button[aria-pressed="true"]{background:#fff;color:var(--navy);border-color:#fff;font-weight:700}
+.toolbar-button.danger{border-color:#f2aaa5;color:#fff}
+.extended-toggle{display:flex;align-items:center;gap:7px;font-size:13px;padding:0 4px}
+.extended-toggle input{width:18px;height:18px}
+.statusbar{
+  min-height:48px;padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f6f9fc;
+}
+.status-pill{
+  border:1px solid var(--line);border-radius:999px;background:#fff;padding:6px 10px;font-size:13px;color:#39495a;
+}
+.status-pill.done{border-color:#7fd0ad;background:var(--success-soft);color:#0d6647;font-weight:700}
+.status-pill.problem{border-color:#f5b8b2;background:var(--danger-soft);color:#8f241b}
+.status-spacer{flex:1}
+.status-actions{display:flex;gap:6px;align-items:center}
+.status-actions button{
+  border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:6px 10px;
+}
+.validation-strip{
+  display:none;border-top:1px solid var(--line);padding:7px 14px;background:#fff;font-size:13px;color:#4a5867;
+}
+.validation-strip.show{display:block}
+.validation-strip ul{margin:3px 0 0 18px;padding:0}
+.workspace-scroll{min-height:0;overflow:auto;padding:14px}
+.unit-bar{
+  display:none;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:10px;margin-bottom:10px;box-shadow:0 1px 0 rgba(0,0,0,.02);
+}
+.unit-bar.show{display:block}
+.unit-bar-head{display:flex;align-items:center;gap:10px;margin-bottom:7px;flex-wrap:wrap}
+.unit-bar-head strong{font-size:13px}
+.unit-hint{font-size:12px;color:var(--muted)}
+.unit-buttons{display:flex;gap:6px;flex-wrap:wrap}
+.unit-chip{
+  min-height:36px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:5px 10px;font-size:12px;
+}
+.unit-chip:hover{border-color:#7a9dbc;background:#f5faff}
+.unit-chip.selected{border-color:var(--selected);box-shadow:0 0 0 2px rgba(21,87,208,.14);color:#0b49bb;font-weight:700}
+.unit-chip.open{border-style:dashed;color:#5e6872}
+.canvas-grid{
+  display:grid;grid-template-columns:minmax(360px,.95fr) minmax(460px,1.25fr);
+  gap:10px;align-items:start;min-width:840px;
+}
+.column{
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:0 2px 9px rgba(25,42,58,.04);
+  min-width:0;
+}
+.column-title{
+  height:46px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);
+  background:#f8fafc;font-size:13px;font-weight:800;letter-spacing:.025em;text-transform:uppercase;color:#32465a;
+}
+.column-title .mini{font-size:11px;text-transform:none;font-weight:500;color:var(--muted);letter-spacing:0}
+.svg-wrap{position:relative;min-height:260px}
+.diagram-svg{display:block;width:100%;min-height:260px;overflow:visible}
+.diagram-empty{
+  position:absolute;inset:20px;display:flex;align-items:center;justify-content:center;text-align:center;color:#74818e;font-size:13px;pointer-events:none;
+}
+.prop-list{position:relative;min-height:260px;padding:12px;display:flex;flex-direction:column;gap:12px}
+.empty-center{
+  min-height:236px;border:1px dashed var(--line-strong);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-direction:column;
+  text-align:center;padding:24px;color:var(--muted);background:#fbfcfd;
+}
+.empty-center h2{font-size:18px;margin:0 0 6px;color:var(--ink)}
+.empty-center p{margin:0 0 14px;max-width:420px;line-height:1.5}
+.primary-action{
+  border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:8px;padding:8px 14px;font-weight:700;
+}
+.prop-wrap{position:relative}
+.prop-card{
+  display:grid;grid-template-columns:38px minmax(0,1fr) 38px;align-items:stretch;border:1px solid var(--line);border-radius:9px;background:#fff;
+  min-height:56px;box-shadow:0 1px 4px rgba(10,30,50,.05);position:relative;
+}
+.prop-card.selected{border-color:var(--selected);box-shadow:0 0 0 2px rgba(21,87,208,.13)}
+.prop-id{
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#3c5872;background:#f2f6f9;border-right:1px solid var(--line);
+  border-radius:9px 0 0 9px;
+}
+.prop-content{padding:10px 10px;line-height:1.55;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.anchor-cell{display:flex;align-items:center;justify-content:center}
+.unit-anchor{
+  width:36px;height:36px;min-height:36px;padding:0;border-radius:999px;border:1px solid #8fa4b7;background:#fff;color:#22557c;font-weight:800;
+}
+.unit-anchor:hover{background:#edf6fd;border-color:#3f7dab}
+.word-token{white-space:pre-wrap}
+.split-word{
+  min-height:36px;display:inline-block;vertical-align:middle;position:relative;border:0;background:transparent;color:inherit;padding:0;margin:0;border-radius:2px;line-height:inherit;text-align:left;
+}
+.split-word::after{
+  content:"";position:absolute;left:50%;top:50%;width:max(100%,36px);height:36px;transform:translate(-50%,-50%);
+}
+.split-word::before{
+  content:"";display:inline-block;width:0;border-left:2px solid transparent;height:1.15em;vertical-align:-.18em;margin-left:0;
+}
+.split-word:hover::before,.split-word:focus-visible::before{border-left-color:var(--selected)}
+.merge-button{
+  position:absolute;left:50%;top:-8px;transform:translate(-50%,-50%);z-index:2;width:36px;height:36px;min-height:36px;border-radius:999px;
+  border:1px solid #b5c0ca;background:#fff;color:#64717d;font-weight:800;line-height:1;
+}
+.merge-button:hover{border-color:var(--danger);color:var(--danger);background:#fff7f6}
+dialog{
+  border:0;border-radius:14px;padding:0;max-width:min(900px,calc(100vw - 30px));width:min(900px,calc(100vw - 30px));
+  box-shadow:0 20px 70px rgba(13,30,47,.28);color:var(--ink);
+}
+dialog::backdrop{background:rgba(13,27,41,.52)}
+.dialog-shell{display:grid;grid-template-rows:auto minmax(0,1fr) auto;max-height:min(86vh,760px);background:#fff;border-radius:14px;overflow:hidden}
+.dialog-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:#f8fafc}
+.dialog-head h2{font-size:17px;margin:0;flex:1}
+.close-button{border:1px solid var(--line);background:#fff;border-radius:8px;width:38px;padding:0;font-size:20px}
+.dialog-body{padding:16px;overflow:auto}
+.dialog-foot{padding:12px 16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;background:#fbfcfd}
+.dialog-foot .left-actions{margin-right:auto;display:flex;gap:6px;flex-wrap:wrap}
+.secondary{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:7px 12px}
+.danger-button{border:1px solid #e5a29c;background:#fff7f6;color:#9b241b;border-radius:8px;padding:7px 12px}
+textarea{
+  width:100%;min-height:230px;resize:vertical;border:1px solid var(--line-strong);border-radius:9px;padding:12px;line-height:1.5;color:var(--ink);
+}
+.summary-input{min-height:88px}
+.summary-input + .field-label{margin-top:16px}
+.field-label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}
+.field-label .mini{font-size:11px;font-weight:500;color:var(--muted)}
+.text-input{
+  width:100%;min-height:42px;border:1px solid var(--line-strong);border-radius:9px;padding:9px 11px;color:var(--ink);background:#fff;
+}
+.text-input + .field-label{margin-top:16px}
+.form-help{font-size:12px;color:var(--muted);line-height:1.45;margin-top:7px}
+.document-heading{
+  margin:0 0 10px;padding:2px 2px 4px;font-size:20px;font-weight:760;line-height:1.25;letter-spacing:-.015em;color:var(--ink);
+}
+.document-heading[hidden]{display:none}
+.relationship-layout{display:grid;grid-template-columns:minmax(320px,1.1fr) minmax(260px,.9fr);gap:14px;min-height:420px}
+.relationship-list-pane{min-width:0}
+.relationship-controls{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.relationship-controls input[type=search]{
+  flex:1 1 190px;min-width:170px;border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;
+}
+.relationship-controls select{
+  flex:0 1 210px;min-width:165px;max-width:250px;border:1px solid var(--line-strong);border-radius:8px;padding:8px 30px 8px 10px;background:#fff;color:var(--ink);font:inherit;
+}
+.relationship-controls select:focus{outline:2px solid rgba(37,99,235,.14);outline-offset:1px;border-color:#84a9dc}
+.conjunction-filter-info{margin:-2px 0 10px;font-size:11px;line-height:1.45;color:#667085}
+.conjunction-filter-info strong{color:#344054;font-weight:700}
+.check-inline{display:flex;align-items:center;gap:6px;font-size:12px}
+.check-inline input{width:18px;height:18px}
+.rel-category{margin:11px 0 5px;font-size:11px;color:#53687a;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+.rel-list{display:grid;gap:6px}
+.rel-card{
+  min-height:44px;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 9px;display:grid;
+  grid-template-columns:68px minmax(0,1fr) auto;gap:8px;align-items:start;
+}
+.rel-card:hover:not(:disabled){border-color:#739cbc;background:#f9fcff}
+.rel-card.selected{border-color:var(--selected);box-shadow:0 0 0 2px rgba(21,87,208,.11);background:#f6f9ff}
+.rel-code{font-weight:900;color:#254d6f}
+.rel-name{display:block;font-weight:700;font-size:13px;line-height:1.3}
+.rel-desc{display:block;font-size:11px;color:var(--muted);margin-top:4px;line-height:1.42}
+.rel-card .cardinality{font-size:10px;color:#65717c;white-space:nowrap}
+.rel-card:disabled .rel-name{text-decoration:line-through;text-decoration-thickness:1px}
+.rel-details{border:1px solid var(--line);border-radius:9px;background:#f9fbfd;padding:13px;align-self:start;position:sticky;top:0}
+.rel-details h3{font-size:16px;margin:0 0 9px;line-height:1.3}
+.rel-meta{font-size:11px;color:#647381;margin-bottom:13px;line-height:1.4}
+.rel-details dl{margin:0;display:grid;grid-template-columns:96px 1fr;gap:7px 8px;font-size:12px;line-height:1.4}
+.rel-details dt{font-weight:800;color:#42576a}
+.rel-details dd{margin:0}
+.rel-current{
+  margin-bottom:12px;padding:9px;border-radius:8px;background:#fff;border:1px solid var(--line);font-size:12px;line-height:1.4;
+}
+.help-grid{display:grid;grid-template-columns:minmax(260px,.7fr) minmax(420px,1.3fr);gap:18px}
+.help-grid h3{margin:0 0 8px;font-size:15px}
+.help-grid p,.help-grid li{font-size:13px;line-height:1.5}
+.help-grid ol,.help-grid ul{padding-left:20px}
+.signal-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px;max-height:55vh}
+.signal-table{border-collapse:collapse;width:100%;min-width:680px;font-size:11px}
+.signal-table th,.signal-table td{border-bottom:1px solid #dde4ea;padding:7px 8px;text-align:left;vertical-align:top}
+.signal-table th{position:sticky;top:0;background:#eff4f8;z-index:1;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.status-dialog-list{margin:0;padding-left:20px;line-height:1.55}
+.small-note{font-size:12px;color:var(--muted)}
+.svg-rel{cursor:pointer}
+.svg-role{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:9.75px;fill:#3f4c5f;font-weight:400;pointer-events:none;text-anchor:middle;text-rendering:auto;font-kerning:normal;-webkit-font-smoothing:antialiased;dominant-baseline:middle;alignment-baseline:middle}
+.svg-role-bg{fill:#fff;stroke:#e4e9ef;stroke-width:.7;pointer-events:none;transition:stroke-width .12s ease,filter .12s ease}
+.svg-code{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:9.75px;font-weight:500;text-anchor:middle;pointer-events:none;letter-spacing:.005em;text-rendering:auto;font-kerning:normal;-webkit-font-smoothing:antialiased;dominant-baseline:middle;alignment-baseline:middle}
+.svg-code-bg{fill:#fff;stroke-width:1;pointer-events:none;transition:stroke-width .12s ease,filter .12s ease}
+.svg-star{font-size:8px;text-anchor:middle;dominant-baseline:middle;alignment-baseline:middle;pointer-events:none}
+.svg-label-bg{fill:#fff;stroke-width:1}
+.svg-tree-line{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.svg-hit-line{fill:none;stroke:transparent;stroke-width:16;vector-effect:non-scaling-stroke;pointer-events:stroke}
+.svg-primary-line{stroke-width:2.35!important}
+.svg-selected-halo{fill:none;stroke:#2563eb;stroke-width:5;opacity:.11;vector-effect:non-scaling-stroke}
+
+/* Beschriftungs-Kästchen: sichtbare Form und Hitbox sind bewusst getrennt. */
+.diagram-label-box{pointer-events:none}
+.diagram-label-hit{fill:transparent;stroke:none;pointer-events:all}
+.diagram-role-label .diagram-label-hit{cursor:default}
+.diagram-relation-label .diagram-label-hit{cursor:default}
+.diagram-role-label:hover .svg-role-bg,
+.diagram-relation-label:hover .svg-code-bg{stroke-width:1.8;filter:drop-shadow(0 1px 3px rgba(15,23,42,.16))}
+.diagram-role-label:hover .svg-role{font-weight:500}
+.diagram-relation-label:hover .svg-code{font-weight:600}
+/* Nur Bearbeiten → Verbinden macht das VERTIKALE Beziehungskästchen klickbar. */
+body[data-mode="bearbeiten"][data-tool="verbinden"] .diagram-relation-label .diagram-label-hit{cursor:pointer}
+
+.diagram-tooltip{
+  position:fixed;z-index:9999;pointer-events:none;max-width:280px;padding:6px 8px;border-radius:7px;
+  background:#111827;color:#fff;font:500 12px/1.25 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  box-shadow:0 6px 18px rgba(15,23,42,.18);opacity:0;transform:translateY(2px);transition:opacity .08s ease,transform .08s ease;
+  white-space:normal;visibility:hidden;
+}
+.diagram-tooltip.visible{opacity:1;transform:translateY(0);visibility:visible}
+.project-menu-wrap{position:relative;display:flex;align-items:center;margin-left:2px}
+.project-menu-button{
+  width:40px;height:38px;min-height:38px;padding:0;border:1px solid #e2e8f0;background:#fff;color:#344054;
+  border-radius:10px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(16,24,40,.025)
+}
+.project-menu-button:hover,.project-menu-button[aria-expanded="true"]{background:#f8fafc;border-color:#cbd5e1}
+.project-menu-icon{width:18px;height:14px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.project-menu-icon span{height:1.5px;border-radius:999px;background:currentColor;width:100%}
+.project-menu{
+  position:absolute;right:0;top:calc(100% + 8px);width:min(220px,calc(100vw - 24px));padding:6px;background:#fff;
+  border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 18px 52px rgba(15,23,42,.18);z-index:80
+}
+.project-menu[hidden]{display:none}
+.project-menu-entry{
+  width:100%;min-height:38px;border:0;background:#fff;color:#253045;border-radius:8px;padding:9px 10px;text-align:left;font-weight:650
+}
+.project-menu-entry:hover{background:#f8fafc}
+.project-manager-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.project-manager-current{min-width:0;font-size:12px;color:#667085;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-new-button{
+  flex:0 0 auto;border:1px solid #dbe6f4;background:#f8fbff;color:#1d4ed8;border-radius:9px;padding:8px 11px;font-weight:700
+}
+.project-new-button:hover{background:#eff6ff;border-color:#bfdbfe}
+.project-list{display:flex;flex-direction:column;gap:7px;max-height:min(470px,58vh);overflow:auto}
+.project-item{
+  width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid #e8edf3;
+  background:#fff;color:#344054;border-radius:11px;padding:8px 9px
+}
+.project-item.active{background:#f8fbff;border-color:#bfdbfe}
+.project-item-open{min-width:0;border:0;background:transparent;padding:3px 4px;text-align:left;border-radius:7px;color:inherit}
+.project-item-open:hover{background:rgba(15,23,42,.035)}
+.project-item-main{min-width:0}
+.project-item-title{display:block;font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#253045}
+.project-item-meta{display:block;margin-top:2px;font-size:10.5px;color:#98a2b3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.project-item-actions{display:flex;align-items:center;gap:4px}
+.project-item-action{min-height:32px;padding:5px 8px;border:1px solid #e2e8f0;background:#fff;border-radius:7px;color:#475467;font-size:11px}
+.project-item-action:hover{background:#f8fafc;border-color:#cbd5e1}
+.project-item-action.delete{color:#b42318}
+.project-item-action.delete:hover{background:#fff7f6;border-color:#f0b5af}
+.project-item-state{font-size:10px;font-weight:700;color:#2563eb;background:#eff6ff;border-radius:999px;padding:3px 6px;margin-left:4px}
+#projectsDialog{width:min(700px,calc(100vw - 30px))}
+@media (max-width:1099px){
+  .canvas-grid{min-width:0;grid-template-columns:minmax(0,1fr) minmax(420px,1.35fr)}
+}
+@media (max-width:760px){
+  .workspace-scroll{padding:8px}
+  .canvas-grid{grid-template-columns:1fr}
+  .center-column{grid-row:1}
+  .left-column{grid-row:2}
+  .brand{min-width:0;width:100%}
+  .statusbar{align-items:flex-start}
+  .relationship-layout{grid-template-columns:1fr}
+  .rel-details{position:static}
+  .help-grid{grid-template-columns:1fr}
+}
+@media (max-width:699px){
+  dialog{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}
+  .dialog-shell{height:100vh;max-height:100vh;border-radius:0}
+  .topbar{padding:9px 8px}
+  .toolbar-button,.seg-button{padding:6px 8px;font-size:12px}
+  .extended-toggle{width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* ===== Visual refresh 2026-08: cleaner hierarchy, calmer controls, clearer bracket lanes ===== */
+:root{
+  --navy:#111827;
+  --navy-2:#1f2937;
+  --blue:#2563eb;
+  --blue-soft:#eff6ff;
+  --ink:#172033;
+  --muted:#667085;
+  --line:#e3e8ef;
+  --line-strong:#cbd5e1;
+  --panel:#f8fafc;
+  --panel-2:#f1f5f9;
+  --white:#ffffff;
+  --danger:#dc2626;
+  --danger-soft:#fff5f5;
+  --success:#15803d;
+  --success-soft:#f0fdf4;
+  --open:#94a3b8;
+  --selected:#2563eb;
+  --coord:#2878b8;
+  --support:#d35e52;
+  --explain:#668a4f;
+  --contrast:#8060a2;
+  --extended:#9a6b32;
+  --shadow:0 12px 36px rgba(15,23,42,.07);
+  --radius:16px;
+  --target:38px;
+}
+html{background:#f5f7fb}
+body{
+  background:
+    radial-gradient(circle at 18% -10%,rgba(37,99,235,.055),transparent 28rem),
+    linear-gradient(180deg,#f8fafc 0%,#f4f6f9 100%);
+  color:var(--ink);
+}
+.app-header{
+  position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:saturate(160%) blur(14px);
+  border-bottom:1px solid rgba(226,232,240,.95);box-shadow:0 1px 0 rgba(15,23,42,.025);z-index:20;
+}
+.topbar{
+  background:transparent;color:var(--ink);padding:12px 18px;gap:12px;border-bottom:1px solid #eef2f6;
+}
+.brand{gap:10px;align-items:center}
+.brand strong{font-size:16px;letter-spacing:-.015em;color:#101828}
+.brand span{font-size:11px;color:#98a2b3;background:#f2f4f7;border:1px solid #eaecf0;padding:3px 7px;border-radius:999px}
+.toolbar-group{gap:7px}
+.toolbar-button,.seg-button{
+  min-height:38px;border:1px solid #e2e8f0;background:#fff;color:#344054;border-radius:10px;
+  padding:8px 11px;font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.025);
+}
+.toolbar-button:hover,.seg-button:hover{background:#f8fafc;border-color:#cbd5e1}
+.seg-button[aria-pressed="true"]{background:#101828;color:#fff;border-color:#101828;font-weight:700;box-shadow:none}
+.toolbar-button.danger{border-color:#fecaca;color:#b42318;background:#fff}
+.toolbar-button.danger:hover{background:#fff5f5;border-color:#fda4af}
+.extended-toggle{color:#475467;font-size:12px;padding:0 2px 0 5px}
+.extended-toggle input{accent-color:#2563eb}
+.statusbar{min-height:50px;padding:8px 18px;background:rgba(248,250,252,.88);gap:7px}
+.status-pill{
+  border:1px solid #e4e7ec;border-radius:999px;background:#fff;padding:5px 9px;font-size:11.5px;color:#667085;
+  box-shadow:0 1px 2px rgba(16,24,40,.02);
+}
+.status-pill.done{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
+.status-pill.problem{border-color:#fecaca;background:#fff7f7;color:#b42318}
+.selection-status{border-color:#bfdbfe!important;background:#eff6ff!important;color:#1d4ed8!important;font-weight:700}
+.status-actions button{border-color:#e2e8f0;border-radius:9px;color:#475467;font-size:12px;min-height:34px;background:#fff}
+.validation-strip{border-color:#eef2f6;background:#fff;color:#667085}
+.workspace-scroll{padding:18px 18px 28px}
+.unit-bar{
+  border-color:#e4e7ec;border-radius:14px;padding:11px 12px;margin-bottom:12px;box-shadow:0 8px 24px rgba(15,23,42,.035);
+}
+.unit-bar-head{margin-bottom:8px}
+.unit-bar-head strong{font-size:12px;color:#344054}
+.unit-hint{font-size:11.5px;color:#7a8699}
+.unit-chip{border-color:#e3e8ef;color:#475467;background:#fff;font-size:11.5px;box-shadow:0 1px 2px rgba(16,24,40,.025)}
+.unit-chip:hover{border-color:#93c5fd;background:#f8fbff}
+.unit-chip.selected{border-color:#60a5fa;background:#eff6ff;color:#1d4ed8;box-shadow:0 0 0 2px rgba(37,99,235,.09)}
+.unit-chip.open{border-style:dashed;color:#64748b}
+.canvas-grid{
+  grid-template-columns:minmax(380px,.95fr) minmax(500px,1.25fr);
+  gap:12px;min-width:900px;
+}
+.column{
+  border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:var(--shadow);background:rgba(255,255,255,.98);
+}
+.column-title{
+  height:48px;padding:0 14px;background:#fbfcfe;border-bottom:1px solid #edf1f5;
+  font-size:11.5px;font-weight:800;letter-spacing:.055em;color:#475467;
+}
+.column-title .mini{font-size:10.5px;color:#98a2b3}
+.svg-wrap{min-height:300px;background:linear-gradient(180deg,#fff 0%,#fdfefe 100%);overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+.left-column .svg-wrap{scrollbar-gutter:stable both-edges}
+.svg-wrap::-webkit-scrollbar{height:8px}
+.svg-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px;border:2px solid #fff}
+.svg-wrap::-webkit-scrollbar-track{background:transparent}
+.diagram-svg{min-height:300px;shape-rendering:geometricPrecision}
+#bracketSvg{width:auto;max-width:none}
+.prop-list{min-height:300px;padding:14px;gap:10px;background:#fbfcfe}
+.prop-card{
+  grid-template-columns:42px minmax(0,1fr);min-height:60px;border-color:#e3e8ef;border-radius:12px;
+  box-shadow:0 2px 8px rgba(15,23,42,.035);transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+.prop-card:hover{border-color:#cbd5e1;box-shadow:0 5px 14px rgba(15,23,42,.055)}
+.prop-card.selected{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(37,99,235,.09)}
+.prop-id{background:#f8fafc;border-color:#e8edf3;border-radius:12px 0 0 12px;color:#667085;font-size:11px}
+.prop-content{padding:12px 13px;font-size:13.5px;line-height:1.6;color:#253045}
+.unit-anchor{width:30px;height:30px;min-height:30px;border-color:#cbd5e1;color:#64748b;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+.unit-anchor:hover{background:#eff6ff;border-color:#93c5fd;color:#2563eb}
+.merge-button{
+  top:-5px;width:30px;height:30px;min-height:30px;border-color:#e2e8f0;color:#94a3b8;box-shadow:0 2px 8px rgba(15,23,42,.06)
+}
+.merge-button:hover{border-color:#fca5a5;color:#dc2626;background:#fff7f7}
+.primary-action{border-radius:10px;background:#2563eb;border-color:#2563eb;box-shadow:0 2px 5px rgba(37,99,235,.18)}
+.secondary,.danger-button,.close-button{border-radius:10px}
+dialog{border-radius:18px;box-shadow:0 28px 90px rgba(15,23,42,.28)}
+dialog::backdrop{background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}
+.dialog-shell{border-radius:18px}
+.dialog-head{background:#fbfcfe;border-color:#edf1f5;padding:15px 17px}
+.dialog-head h2{font-size:16px;letter-spacing:-.01em}
+.dialog-foot{border-color:#edf1f5;background:#fbfcfe}
+.relationship-layout{gap:16px}
+.rel-card{border-color:#e4e7ec;border-radius:11px;padding:10px 10px}
+.rel-card:hover:not(:disabled){border-color:#93c5fd;background:#f8fbff}
+.rel-card.selected{border-color:#60a5fa;background:#eff6ff;box-shadow:0 0 0 2px rgba(37,99,235,.08)}
+.rel-details{border-color:#e4e7ec;border-radius:12px;background:#fbfcfe;padding:15px}
+.rel-card{border-left-width:4px;border-left-style:solid;border-left-color:var(--rel-color,#e4e7ec)}
+.rel-code{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:5px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--rel-color,#475467) 32%, white);background:color-mix(in srgb,var(--rel-color,#475467) 10%, white);color:var(--rel-color,#254d6f);font-weight:800;letter-spacing:-.01em}
+.rel-card:disabled .rel-code{opacity:.62}
+.rel-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rel-color-chip{display:inline-block;width:10px;height:10px;border-radius:999px;vertical-align:middle;background:var(--chip-color,#475467);box-shadow:0 0 0 1px rgba(16,24,40,.08) inset}
+.svg-rel{cursor:default}
+body[data-mode="bearbeiten"][data-tool="verbinden"] [data-unit-id]{cursor:pointer}
+@media (max-width:1099px){
+  .canvas-grid{min-width:0;grid-template-columns:minmax(300px,.92fr) minmax(420px,1.35fr)}
+}
+@media (max-width:760px){
+  .workspace-scroll{padding:10px}
+  .canvas-grid{grid-template-columns:1fr}
+  .topbar{padding:10px}
+  .statusbar{padding:8px 10px}
+}
+
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="topbar">
+    <div class="brand"><strong>Sensus Lab</strong><span>Textstrukturanalyse</span></div>
+    <div class="toolbar-group">
+      <button class="toolbar-button" id="textButton" type="button">Text einfügen</button>
+      <button class="seg-button" id="editModeButton" type="button" aria-pressed="true">Bearbeiten</button>
+      <button class="seg-button" id="viewModeButton" type="button" aria-pressed="false">Ansicht</button>
+    </div>
+    <div class="toolbar-group" id="toolGroup">
+      <button class="seg-button" id="splitToolButton" type="button" aria-pressed="true">Teilen</button>
+      <button class="seg-button" id="connectToolButton" type="button" aria-pressed="false">Verbinden</button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-button" id="undoButton" type="button" title="Rückgängig (Strg/Cmd+Z)">Rückgängig</button>
+      <button class="toolbar-button" id="redoButton" type="button" title="Wiederholen (Strg/Cmd+Umschalt+Z)">Wiederholen</button>
+      <button class="toolbar-button" id="helpButton" type="button">Hilfe</button>
+      <button class="toolbar-button danger" id="resetButton" type="button">Zurücksetzen</button>
+    </div>
+    <label class="extended-toggle"><input id="extendedToggle" type="checkbox"> Erweiterte Beziehungen einbeziehen</label>
+    <div class="project-menu-wrap" id="projectMenuWrap">
+      <button class="project-menu-button" id="projectMenuButton" type="button" aria-label="Projekte öffnen" aria-haspopup="menu" aria-expanded="false">
+        <span class="project-menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
+      <div class="project-menu" id="projectMenu" role="menu" hidden>
+        <button class="project-menu-entry" id="projectManagerButton" type="button" role="menuitem">Projekte</button>
+      </div>
+    </div>
+  </div>
+  <div class="statusbar">
+    <span class="status-pill" id="finishPill">Noch keine Analyse</span>
+    <span class="status-pill" id="propStatus">0 Propositionen</span>
+    <span class="status-pill" id="openStatus">0 offene Gruppen</span>
+    <span class="status-pill" id="rootStatus">0 Wurzeln</span>
+    <span class="status-pill" id="errorStatus">0 Fehler</span>
+    <span class="status-pill" id="saveStatus">Nicht gespeichert</span>
+    <span class="status-pill selection-status" id="selectionStatus" hidden></span>
+    <div class="status-spacer"></div>
+    <div class="status-actions">
+      <button id="statusDetailsButton" type="button">Statusdetails</button>
+      <button id="exportButton" type="button" title="Für den Export optimiertes PNG-Bild erzeugen">Bild exportieren</button>
+      <button id="jsonExportButton" type="button" title="Analysezustand als JSON-Datei exportieren">JSON exportieren</button>
+      <button id="importButton" type="button">JSON importieren</button>
+      <input id="importInput" type="file" accept="application/json,.json" hidden>
+    </div>
+  </div>
+  <div class="validation-strip" id="validationStrip" aria-live="polite"></div>
+</header>
+
+<main class="workspace-scroll" id="workspaceScroll">
+  <div class="document-heading" id="documentHeading" hidden></div>
+  <section class="unit-bar" id="unitBar" aria-label="Verfügbare Einheiten">
+    <div class="unit-bar-head">
+      <strong>Verfügbare Einheiten</strong>
+      <span class="unit-hint" id="unitHint">Wähle im Werkzeug „Verbinden“ zuerst eine Einheit und danach das Ende eines zusammenhängenden Geschwisterbereichs.</span>
+    </div>
+    <div class="unit-buttons" id="unitButtons"></div>
+  </section>
+  <div class="canvas-grid">
+    <section class="column left-column" aria-label="Klammeransicht">
+      <div class="column-title"><span>Klammern</span><span class="mini">hierarchische Analyse</span></div>
+      <div class="svg-wrap">
+        <svg id="bracketSvg" class="diagram-svg" aria-hidden="true"></svg>
+        <div class="diagram-empty" id="bracketEmpty"></div>
+      </div>
+    </section>
+
+    <section class="column center-column" aria-label="Propositionen">
+      <div class="column-title"><span>Propositionen</span><span class="mini" id="centerModeLabel">Bearbeiten · Teilen</span></div>
+      <div class="prop-list" id="propList"></div>
+    </section>
+  </div>
+  <div id="treeSummary" class="sr-only" aria-live="polite"></div>
+</main>
+
+<div id="liveRegion" class="sr-only" aria-live="assertive"></div>
+
+<dialog id="projectsDialog" aria-labelledby="projectsDialogTitle">
+  <div class="dialog-shell">
+    <div class="dialog-head">
+      <h2 id="projectsDialogTitle">Projekte</h2>
+      <button class="close-button" type="button" data-close-dialog="projectsDialog" aria-label="Dialog schließen">×</button>
+    </div>
+    <div class="dialog-body">
+      <div class="project-manager-toolbar">
+        <div class="project-manager-current" id="projectMenuCurrent"></div>
+        <button class="project-new-button" id="newProjectButton" type="button">+ Neues Projekt</button>
+      </div>
+      <div class="project-list" id="projectList" aria-label="Gespeicherte Projekte"></div>
+    </div>
+    <div class="dialog-foot"><button class="primary-action" type="button" data-close-dialog="projectsDialog">Schließen</button></div>
+  </div>
+</dialog>
+
+<dialog id="textDialog" aria-labelledby="textDialogTitle">
+  <form method="dialog" class="dialog-shell" id="textForm">
+    <div class="dialog-head">
+      <h2 id="textDialogTitle">Text einfügen</h2>
+      <button class="close-button" type="button" data-close-dialog="textDialog" aria-label="Dialog schließen">×</button>
+    </div>
+    <div class="dialog-body">
+      <label class="field-label" for="textTitleInput">Titel <span class="mini">(optional)</span></label>
+      <input class="text-input" id="textTitleInput" type="text" maxlength="180" placeholder="z. B. Röm 1,2–5" autocomplete="off">
+      <label class="field-label" for="mainPointSummaryInput">Hauptaussage des Textes <span class="mini">(optional)</span></label>
+      <textarea class="summary-input" id="mainPointSummaryInput" maxlength="1200" placeholder="Die zentrale Aussage des Textes in eigenen Worten zusammenfassen …"></textarea>
+      <label class="field-label" for="rawTextInput">Eigener Text</label>
+      <textarea id="rawTextInput" placeholder="Hier eigenen Text einfügen …"></textarea>
+      <p class="form-help">Titel, Hauptaussage und Analyse werden pro Projekt gespeichert. Der Text wird nicht automatisch segmentiert und erscheint nach dem Übernehmen zunächst als genau eine Proposition.</p>
+    </div>
+    <div class="dialog-foot">
+      <button class="secondary" type="button" data-close-dialog="textDialog">Abbrechen</button>
+      <button class="primary-action" id="applyTextButton" type="submit">Analyse starten</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="relationshipDialog" aria-labelledby="relationshipDialogTitle">
+  <div class="dialog-shell">
+    <div class="dialog-head">
+      <h2 id="relationshipDialogTitle">Beziehung wählen</h2>
+      <button class="close-button" type="button" data-close-dialog="relationshipDialog" aria-label="Dialog schließen">×</button>
+    </div>
+    <div class="dialog-body">
+      <div class="relationship-layout">
+        <section class="relationship-list-pane">
+          <div class="relationship-controls">
+            <input id="relationshipSearch" type="search" placeholder="Beziehung suchen …" aria-label="Beziehung suchen">
+            <select id="conjunctionLookupSelect" aria-label="Konjunktion auswählen"></select>
+            <label class="check-inline"><input id="dialogExtendedToggle" type="checkbox"> Erweiterte Beziehungen</label>
+          </div>
+          <div class="conjunction-filter-info" id="conjunctionFilterInfo" hidden></div>
+          <div id="relationshipList"></div>
+        </section>
+        <aside class="rel-details" id="relationshipDetails" aria-live="polite"></aside>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <div class="left-actions">
+        <button class="secondary" id="swapRolesButton" type="button">Rollen tauschen</button>
+        <button class="secondary" id="changePrimaryButton" type="button">Hauptteil ändern</button>
+        <button class="secondary" id="dissolveGroupButton" type="button" title="Nur diese Verbindung entfernen; Untergruppen bleiben erhalten">Verbindung löschen</button>
+        <button class="danger-button" id="deleteSubtreeButton" type="button">Teilbaum löschen</button>
+      </div>
+      <button class="secondary" id="leaveOpenButton" type="button">Offen lassen</button>
+      <button class="primary-action" id="applyRelationshipButton" type="button">Übernehmen</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="helpDialog" aria-labelledby="helpDialogTitle">
+  <div class="dialog-shell">
+    <div class="dialog-head">
+      <h2 id="helpDialogTitle">Hilfe: Teilen, verbinden, prüfen</h2>
+      <button class="close-button" type="button" data-close-dialog="helpDialog" aria-label="Dialog schließen">×</button>
+    </div>
+    <div class="dialog-body">
+      <div class="help-grid">
+        <section>
+          <h3>Arbeitsablauf</h3>
+          <ol>
+            <li>Optional einen Titel setzen und eigenen Text einfügen. Der Text startet als P1.</li>
+            <li>Im Werkzeug <strong>Teilen</strong> vor einem Wort klicken, das eine neue Proposition beginnen soll.</li>
+            <li>Im Werkzeug <strong>Verbinden</strong> eine Einheit und anschließend das Ende eines zusammenhängenden Geschwisterbereichs wählen.</li>
+            <li>Eine Klammer anklicken, um die Verbindung auszuwählen. Ein Klick direkt auf den ausgeschriebenen Beziehungsnamen in der Grafik öffnet die Beziehungsauswahl zum Bearbeiten. Mit <strong>Entf</strong> oder <strong>Backspace</strong> wird genau die ausgewählte Verbindung aufgelöst; Untergruppen bleiben erhalten.</li>
+            <li>Eine logische Beziehung auswählen oder die Gruppe zunächst offen lassen.</li>
+            <li>Schrittweise weiter verbinden, bis genau eine beschriftete Wurzel den ganzen Text umfasst.</li>
+          </ol>
+          <h3>Fachliche Orientierung</h3>
+          <ul>
+            <li>Eine Proposition ist eine verbale Idee; Grammatik wird nicht automatisch geprüft.</li>
+            <li>Nur benachbarte, lückenlose Einheiten derselben Ebene werden verbunden.</li>
+            <li>Mit klaren Verbindungen beginnen, oft zunächst innerhalb eines Satzes.</li>
+            <li>Ist die Struktur klar, die Beziehung aber noch unklar, darf eine offene graue Gruppe bestehen bleiben.</li>
+            <li>Signalwörter sind Hinweise, keine automatische Klassifikation.</li>
+          </ul>
+          <p class="small-note"><strong>Hinweis:</strong> Besonders „und“, „aber“, „so“, „dass“, „wenn/als“ und „während“ sind mehrdeutig. Kontext, Grammatik und Inhalt entscheiden.</p>
+        </section>
+        <section>
+          <h3>Deutsche Signalwörter</h3>
+          <div class="signal-table-wrap">
+            <table class="signal-table">
+              <thead><tr><th>Wort / Muster</th><th>Mögliche Beziehungen</th><th>Typischer Test</th><th>Hinweis</th></tr></thead>
+              <tbody id="signalTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div class="dialog-foot"><button class="primary-action" type="button" data-close-dialog="helpDialog">Schließen</button></div>
+  </div>
+</dialog>
+
+<dialog id="statusDialog" aria-labelledby="statusDialogTitle">
+  <div class="dialog-shell">
+    <div class="dialog-head">
+      <h2 id="statusDialogTitle">Statusdetails</h2>
+      <button class="close-button" type="button" data-close-dialog="statusDialog" aria-label="Dialog schließen">×</button>
+    </div>
+    <div class="dialog-body" id="statusDialogBody"></div>
+    <div class="dialog-foot"><button class="primary-action" type="button" data-close-dialog="statusDialog">Schließen</button></div>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+const RELATIONSHIPS = Object.freeze({"reihe":{"label":"Reihe","uiCode":"R","compatibilityCode":"S","category":"koordination","min":2,"max":null,"definition":"Jeder Teil trägt einen selbstständigen Punkt zu einem gemeinsamen Ganzen bei; keiner stützt den anderen.","test":"Lassen sich die Teile natürlich mit „und außerdem“ verbinden?","signals":["und","auch","außerdem","zudem","ferner","ebenso","weder … noch","noch"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":false,"reversal":"Keine Richtungsumkehr; die Reihenfolge des Textes bleibt erhalten.","note":"„Und“ allein beweist keine Reihe; es kann fast jede Beziehung verdecken."},"steigerung":{"label":"Abfolge","uiCode":"Abf","compatibilityCode":"P","category":"koordination","min":2,"max":null,"definition":"Jeder Teil ist ein weiterer Schritt hin zu einem Höhepunkt oder einer stärkeren Aussage.","test":"Bildet die Reihenfolge echte Schritte oder eine Zuspitzung?","signals":["zuerst … dann … schließlich","und dann","dann","mehr noch","darüber hinaus","schließlich"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":false,"reversal":"Nicht umkehren; die Abfolge folgt der Textreihenfolge.","note":"Eine bloße Liste ist eine Reihe, keine Abfolge."},"alternative":{"label":"Alternative","uiCode":"A","compatibilityCode":"A","category":"koordination","min":2,"max":null,"definition":"Die Teile nennen verschiedene Möglichkeiten, die aus derselben Situation entstehen.","test":"Sind dies echte Optionen oder nur gegensätzliche Aussagen?","signals":["oder","entweder … oder","andernfalls","andererseits","während","wohingegen"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":false,"reversal":"Keine semantische Haupt-/Nebenrichtung.","note":"Kontrast allein ist häufig Verneinung–Bejahung oder Einräumung."},"begruendung":{"label":"Begründung","uiCode":"Bg","compatibilityCode":"G","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Eine Aussage wird durch einen nachfolgenden Grund oder ein Argument gestützt.","test":"Kann zwischen den Seiten „denn/weil“ stehen?","signals":["denn","weil","da","zumal","aufgrund dessen","wegen","nämlich"],"roles":["Aussage","Grund"],"primary":0,"allowRoleSwap":false,"extended":false,"reversal":"Die Textreihenfolge ist wesentlich. Liegt der Grund zuerst, ist „Folgerung“ zu wählen.","note":"Nicht mit Zweck verwechseln: Begründung blickt auf die Ursache zurück."},"folgerung":{"label":"Folgerung","uiCode":"Fg","compatibilityCode":"∴","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Ein vorausgehender Grund oder ein Argument führt zu einer nachfolgenden Schlussfolgerung.","test":"Kann vor dem zweiten Teil „deshalb/also“ stehen?","signals":["deshalb","daher","darum","folglich","dementsprechend","also","somit","demnach","infolgedessen"],"roles":["Grund","Folgerung"],"primary":1,"allowRoleSwap":false,"extended":false,"reversal":"Die Textreihenfolge ist wesentlich. Liegt der Grund danach, ist „Begründung“ zu wählen.","note":"„Dann“ kann zeitlich oder als Abfolge gemeint sein und ist nicht automatisch eine Folgerung."},"beidseitige_begruendung":{"label":"Beidseitige Begründung","uiCode":"BB","compatibilityCode":"BL","category":"eigenstaendige_stuetze","min":3,"max":3,"definition":"Der mittlere Teil liefert den Grund für zwei Aussagen – eine davor und eine danach.","test":"Ergibt das Muster „Schluss – denn Grund – deshalb Schluss“ Sinn?","signals":["denn","weil","da","deshalb","daher","also","so"],"roles":["Schluss","Grund","Schluss"],"primary":[0,2],"allowRoleSwap":false,"extended":false,"reversal":"Keine binäre Umkehr; die mittlere Position ist zwingend der stützende Grund.","note":"Nicht als gewöhnliche Zweierbeziehung modellieren; drei benachbarte Einheiten sind erforderlich."},"handlung_ergebnis":{"label":"Handlung–Ergebnis","uiCode":"H/Erg","compatibilityCode":"Ac/Res","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Eine Handlung und die tatsächliche Folge oder das Ergebnis, das mit ihr eintritt.","test":"Ist der zweite Sachverhalt eingetreten – im Unterschied zu einer bloßen Absicht?","signals":["sodass","so dass","mit dem Ergebnis, dass","weshalb","dadurch"],"roles":["Handlung","Ergebnis"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden, wenn das Ergebnis im Text vor der Handlung steht.","note":"Nicht mit Handlung–Zweck verwechseln: Ergebnis ist tatsächlich, Zweck ist beabsichtigt."},"handlung_zweck":{"label":"Handlung–Zweck","uiCode":"H/Z","compatibilityCode":"Ac/Pur","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Eine Handlung und ihr beabsichtigtes Ziel.","test":"Antwortet der zweite Teil auf „wozu?“ oder „mit welcher Absicht?“","signals":["damit","um … zu","auf dass","zum Zweck, dass","damit nicht"],"roles":["Handlung","Zweck"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen entsprechend der Textreihenfolge vertauscht werden.","note":"Ein Zweck muss nicht eintreten; genau das unterscheidet ihn vom Ergebnis."},"bedingung_folge":{"label":"Bedingung–Folge","uiCode":"B/F","compatibilityCode":"If/Th","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Die mögliche Folge hängt davon ab, dass eine Bedingung erfüllt wird.","test":"Lässt sich „wenn …, dann …“ einsetzen?","signals":["wenn … dann","falls","sofern","vorausgesetzt, dass","außer wenn","es sei denn","wenn nicht"],"roles":["Bedingung","Folge"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Bedingung und Folge dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Eine tatsächlich eingetretene Folge ist eher Handlung–Ergebnis."},"zeit":{"label":"Zeit","uiCode":"Zt","compatibilityCode":"T","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Ein Teil bezeichnet den Zeitpunkt oder Zeitraum, in dem der andere wahr ist oder eintreten kann.","test":"Antwortet ein Teil auf „wann?“","signals":["wenn","als","immer wenn","nachdem","bevor","während","seit","sobald","bis"],"roles":["Zeit","Hauptaussage"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden.","note":"„Während“ kann zeitlich oder als Gegensatz („wohingegen“) gebraucht sein."},"ort":{"label":"Ort","uiCode":"O","compatibilityCode":"L","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Ein Teil bezeichnet den Ort oder Bereich, in dem der andere wahr ist oder eintreten kann.","test":"Antwortet ein Teil auf „wo/wohin/woher?“","signals":["wo","wo immer","überall, wo","wohin","woher","an dem Ort, an dem"],"roles":["Ort","Hauptaussage"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden.","note":"Eine bloße kurze Präpositionalgruppe wird nur abgeteilt, wenn sie die Logik sichtbar prägt."},"handlung_art_weise":{"label":"Handlung–Art und Weise","uiCode":"H/AW","compatibilityCode":"Ac/Mn","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Ein Teil nennt eine Handlung, der andere beschreibt, wie oder wodurch sie ausgeführt wird.","test":"Antwortet der stützende Teil auf „wie?“ oder „wodurch?“","signals":["indem","dadurch, dass","durch","mittels","auf diese Weise","so"],"roles":["Handlung","Art und Weise"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"„Durch“ kann Mittel, Ort/Bereich oder bloße Präposition sein."},"vergleich":{"label":"Vergleich","uiCode":"V","compatibilityCode":"Cf","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Ein Teil verdeutlicht den anderen, indem er zeigt, wie dieser ihm gleicht.","test":"Zeigt ein Teil, wie der andere ist?","signals":["wie","so wie","ebenso wie","genauso wie","auf dieselbe Weise","gleich","ähnlich","so auch","als ob"],"roles":["Hauptaussage","Vergleichsbild"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden.","note":"„Als“ kann ebenso eine Zeitbeziehung einleiten."},"verneinung_bejahung":{"label":"Verneinung–Bejahung","uiCode":"−/+","compatibilityCode":"-/+","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Eine Aussage wird verneint, damit die bejahte oder bevorzugte Aussage umso stärker hervortritt.","test":"Passt „nicht …, sondern …“ oder „nicht dies, vielmehr das“?","signals":["nicht … sondern","vielmehr","stattdessen","statt","nicht nur … sondern","wohingegen"],"roles":["Verneinung","Bejahung"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Nicht jeder Gegensatz ist eine ausdrückliche Verneinung–Bejahung."},"aussage_erklaerung":{"label":"Aussage–Erklärung","uiCode":"Aus/Erk","compatibilityCode":"Id/Exp","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Eine ursprüngliche Aussage wird durch einen weiteren Teil genauer erklärt oder inhaltlich entfaltet.","test":"Kann „das heißt/mit anderen Worten/nämlich“ eingesetzt werden?","signals":["das heißt","nämlich","mit anderen Worten","und zwar","genauer gesagt","das bedeutet","insofern als"],"roles":["Aussage","Erklärung"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Dies ist die breite Auffangkategorie; präzisere Beziehungen gehen vor."},"frage_antwort":{"label":"Frage–Antwort","uiCode":"Q/A","compatibilityCode":"Q/A","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Eine echte Frage eröffnet den Kontext für die darauf gegebene Antwort.","test":"Gibt es außer dem Fragezeichen auch eine tatsächliche Antwort?","signals":["Fragezeichen","wer","was","wie","warum","wo","wann"],"roles":["Frage","Antwort"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen bei nachgestellter Frage vertauscht werden.","note":"Rhetorische Fragen können als Aussagen paraphrasiert werden und brauchen nicht zwingend Q/A."},"einraeumung":{"label":"Einräumung","uiCode":"Einr","compatibilityCode":"Csv","category":"gegensaetzliche_stuetze","min":2,"max":2,"definition":"Eine Hauptaussage bleibt trotz eines entgegenstehenden oder erwartungswidrigen Umstands bestehen.","test":"Passt „obwohl X, gilt dennoch Y“?","signals":["obwohl","obgleich","wenngleich","auch wenn","selbst wenn","dennoch","trotzdem","gleichwohl","doch","jedoch","aber"],"roles":["Einräumung","Hauptaussage"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Alternative und Verneinung–Bejahung haben andere logische Funktionen."},"situation_reaktion":{"label":"Situation–Reaktion","uiCode":"Sit/Re","compatibilityCode":"Sit/R","category":"gegensaetzliche_stuetze","min":2,"max":2,"definition":"Auf eine Situation folgt eine überraschende, kontraintuitive oder unerwartete Reaktion.","test":"Ist die Reaktion gerade deshalb bemerkenswert, weil man das Gegenteil erwarten würde?","signals":["und","doch","aber","trotzdem"],"roles":["Situation","Reaktion"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen bei abweichender Textreihenfolge vertauscht werden.","note":"Die Überraschung muss inhaltlich begründet sein; „und“ reicht nicht."},"sowohl_als_auch":{"label":"Sowohl–als-auch","uiCode":"S/A","compatibilityCode":"Both-And","category":"erweitert","min":2,"max":null,"definition":"Zwei oder mehr Teile werden ausdrücklich gemeinsam als wahr oder gemeinsam als falsch hervorgehoben.","test":"Ist die Gemeinsamkeit ausdrücklich betont?","signals":["sowohl … als auch","beide","weder … noch"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":true,"reversal":"Keine Haupt-/Nebenrichtung.","note":"Ohne Betonung genügt meist die Beziehung Reihe."},"allgemein_spezifisch":{"label":"Allgemein–Spezifisch","uiCode":"All/Sp","compatibilityCode":"General-Specific","category":"erweitert","min":2,"max":2,"definition":"Ein Teil nennt das Ganze, der andere einen oder mehrere konkrete Teile davon.","test":"Nennt der zweite Teil Beispiele oder Bestandteile eines Ganzen?","signals":["zum Beispiel","beispielsweise","etwa","insbesondere","wie etwa"],"roles":["Allgemein","Spezifisch"],"primary":0,"allowRoleSwap":true,"extended":true,"reversal":"Rollen dürfen vertauscht werden.","note":"Ohne die erweiterte Liste fällt dies unter Aussage–Erklärung."},"tatsache_deutung":{"label":"Tatsache–Deutung","uiCode":"Tat/Deu","compatibilityCode":"Fact-Interpretation","category":"erweitert","min":2,"max":2,"definition":"Eine Tatsache wird nicht nur ergänzt, sondern ausdrücklich gedeutet.","test":"Sagt der zweite Teil, was die Tatsache bedeutet?","signals":["das heißt","was bedeutet","damit ist gemeint","gedeutet als"],"roles":["Tatsache","Deutung"],"primary":0,"allowRoleSwap":true,"extended":true,"reversal":"Rollen dürfen vertauscht werden.","note":"Bloße Zusatzinformation ist Aussage–Erklärung, nicht Deutung."},"ankuendigung_erfuellung":{"label":"Ankündigung–Erfüllung","uiCode":"Ank/Erf","compatibilityCode":"Anticipation-Fulfillment","category":"erweitert","min":2,"max":2,"definition":"Eine Ankündigung oder Verheißung steht mit ihrer späteren Erfüllung zusammen.","test":"Wird ein zuvor angekündigter Sachverhalt ausdrücklich erfüllt?","signals":["und so","daraufhin erfüllte sich","wie angekündigt","damit erfüllte sich"],"roles":["Ankündigung","Erfüllung"],"primary":1,"allowRoleSwap":true,"extended":true,"reversal":"Rollen dürfen vertauscht werden.","note":"Ein gewöhnliches Ergebnis ohne vorherige Ankündigung ist Handlung–Ergebnis."}});
+const EVERYDAY_EXAMPLES = Object.freeze({
+  reihe: "Auf der Feier sangen wir Geburtstagslieder, spielten Spiele und aßen Kuchen.",
+  steigerung: "Zuerst verbindest du die Augen, dann drehst du dich fünfmal im Kreis und schließlich schlägst du nach der Piñata.",
+  alternative: "Möchtest du zuerst deine Geschenke öffnen oder ein Spiel spielen?",
+  handlung_art_weise: "Er pustete die Kerzen aus, indem er kräftig über den Kuchen blies.",
+  vergleich: "Du willst wieder ein Ninja-Motto, so wie letztes Jahr?",
+  verneinung_bejahung: "Die Socken von Oma gefallen mir nicht, aber mein neuer Spielzeuglaster ist großartig.",
+  aussage_erklaerung: "Joseph wird heute dreizehn; damit ist er jetzt ein Teenager.",
+  frage_antwort: "Wie spät ist es? Zeit für den Kuchen!",
+  begruendung: "Können wir ein Video anmachen? Denn 25 Kinder im Haus machen mich wahnsinnig.",
+  folgerung: "Du bist mein bester Freund, also musst du zu meiner Feier kommen!",
+  beidseitige_begruendung: "Wir sollten alle einladen. Es ist sein zehnter Geburtstag! Deshalb machen wir dieses Jahr etwas Größeres.",
+  handlung_ergebnis: "Ich habe sieben Kekse gegessen, und jetzt bereue ich es.",
+  handlung_zweck: "Lass uns gemeinsam ein Geschenk kaufen, damit wir etwas Größeres schenken können.",
+  bedingung_folge: "Wenn du möchtest, können wir deinen Geburtstag im Park feiern.",
+  zeit: "Wenn ich ‚Los‘ sage, heben wir sie achtmal auf dem Stuhl hoch.",
+  ort: "Steck dem Esel den Schwanz dorthin, wo ein Esel normalerweise seinen Schwanz hat.",
+  einraeumung: "Obwohl heute nicht ihr Geburtstag ist, habe ich deinen Geschwistern auch kleine Geschenke mitgebracht.",
+  situation_reaktion: "Ihr Vater sagte, sie dürfe ihre Geschenke öffnen, und sie fing plötzlich an zu weinen.",
+
+  // Die bereitgestellte Beispielsammlung enthält nur die 18 Kernbeziehungen.
+  // Für die vier erweiterten Beziehungen ergänzen wir gleichartige deutsche Alltagsbeispiele.
+  sowohl_als_auch: "Sowohl Mia als auch Jonas bringen einen Kuchen mit.",
+  allgemein_spezifisch: "Wir brauchen noch Partyzubehör, zum Beispiel Becher, Servietten und Luftballons.",
+  tatsache_deutung: "Alle Gäste sind schon da; das bedeutet, dass wir anfangen können.",
+  ankuendigung_erfuellung: "Er hatte eine Zaubershow angekündigt, und später führte er sie tatsächlich vor."
+});
+
+const SIGNAL_WORDS = Object.freeze([["aber","A; −/+; Einr","Option, Korrektur oder Einräumung","Nur Kontext entscheidet."],["als","Zt; V","Zeitpunkt oder Vergleich","„Als er kam“ ≠ „als ein König“."],["also","Fg; R","Schluss oder Fortsetzung","Gesprochene Füllverwendung nicht überbewerten."],["andererseits","A","zweite Möglichkeit/Seite","Oft Teil eines Gegensatzpaares."],["auch","R","zusätzlicher selbstständiger Punkt","Kann bloße Betonung sein."],["auch wenn","Einr","eingeräumter Gegengrund","Test: „dennoch“ im Hauptsatz."],["auf diese Weise / so","H/AW; Aus/Erk","Art und Weise oder Erläuterung","„So“ ist stark mehrdeutig."],["aufgrund / wegen","Bg; Fg","Ursache/Grund","Grammatische Stellung prüfen."],["außerdem / überdies / zudem","R; Abf","Zusatz oder Abfolge","Frage: nur mehr oder wirklich stärker?"],["außer / ausgenommen","−/+; B/F","Ausschluss oder Bedingung","„außer wenn“ ist bedingt."],["beispielsweise / zum Beispiel","All/Sp","Spezifizierung","Nur bei aktivierter erweiterter Liste."],["bevor / vor","Zt; O","Zeit oder Ort","„vor dem Fest“ vs. „vor dem Thron“."],["dadurch, dass / indem","H/AW; Aus/Erk","Mittel/Weise oder Erklärung","Frage: Wie geschieht die Handlung?"],["daher / deshalb / darum","Fg","Schlussfolgerung","Grund steht gewöhnlich davor."],["dass","Aus/Erk; H/Z; H/Erg","Inhalt, Zweck oder Ergebnis","Grammatik und Absicht entscheiden."],["das heißt / mit anderen Worten","Aus/Erk; Tat/Deu","Erklärung oder Deutung","Erweiterte Deutung ist enger."],["damit","H/Z; H/Erg","Zweck oder – seltener – Folge","Absicht gegen tatsächliches Ergebnis testen."],["damit nicht","H/Z","vermeidender Zweck","Entspricht „auf dass nicht“."],["dann","Abf; Fg; B/F","Schritt, Folgerung oder bedingte Folge","Vorangehendes „wenn“ beachten."],["dementsprechend / demnach","Fg","Folgerung","Test: „Aus diesem Grund …“."],["denn","Bg","nachfolgender Grund","Kann stilistisch eine Erläuterung begleiten."],["dennoch / trotzdem / gleichwohl","Einr","Hauptaussage trotz Gegengrund","Signal für gegensätzliche Stütze."],["durch / mittels","H/AW; O","Mittel oder Bereich","Nicht jede Präpositionalgruppe abteilen."],["ebenso / gleichermaßen","R; V","Zusatz oder Vergleich","Vergleich braucht ein Bezugsstück."],["entweder … oder","A","Alternativen","Beide Seiten als Geschwister modellieren."],["es sei denn / außer wenn","B/F","negative Bedingung","Semantisch „wenn nicht“."],["falls / sofern","B/F","Bedingung","Eine Folge kann unausgesprochen sein."],["folglich / infolgedessen","Fg","Schlussfolgerung","Nicht mit bloßer zeitlicher Folge verwechseln."],["genauso wie / so wie","V","Vergleich","Vergleichsrichtung kann umgedreht werden."],["jedoch","−/+; Einr","Korrektur oder Einräumung","Prüfen, ob eine Seite verneint wird."],["mehr noch / darüber hinaus","Abf","Abfolge","Der spätere Teil muss einen Höhepunkt bilden."],["nämlich","Bg; Aus/Erk","Grund oder Erklärung","Test: „weil“ gegenüber „das heißt“."],["nachdem","Zt","vorzeitige Zeitangabe","Der andere Teil ist die Hauptaussage."],["nicht … sondern","−/+","Verneinung–Bejahung","Bejahte Seite standardmäßig primär."],["nicht nur … sondern auch","−/+; S/A","Korrektur plus gemeinsame Betonung","Erweiterte Liste ermöglicht größere Präzision."],["noch / weder … noch","R; A; S/A","Reihe, Optionen oder gemeinsame Verneinung","S/A nur bei ausdrücklicher Betonung."],["obgleich / obwohl / wenngleich","Einr","eingeräumter Gegengrund","Hauptsatz bleibt trotzdem wahr."],["oder","A; R","Möglichkeit oder lockere Reihung","Meist Alternative; Kontext prüfen."],["schließlich","Abf","letzter Schritt/Höhepunkt","Kann auch bloß zeitliche Schlussmarke sein."],["seit","Zt; Bg","Zeitbeginn oder – selten – Grund","„seitdem“ ist normalerweise zeitlich."],["sodass / so dass","H/Erg; H/Z","Ergebnis oder Zweck","Moderne Schreibweise „sodass“."],["sogar","Aus/Erk; Abf","Verdeutlichung oder Zuspitzung","Funktion statt Wortform bewerten."],["statt / stattdessen / vielmehr","−/+","abgelehnte und bejahte Alternative","Bevorzugte Seite primär."],["sowohl … als auch","S/A","gemeinsame Betonung","Erweiterte Beziehung."],["um … zu","H/Z","beabsichtigtes Ziel","Infinitivgruppe kann eine eigene Proposition bilden."],["und","R; Abf; Sit/Re; praktisch alle","unspezifischer Verbinder","Am stärksten mehrdeutig; nie allein entscheiden."],["und dann","Abf","weiterer Schritt","Kann in Erzählungen auch nur zeitlich sein."],["und so","Fg; Ank/Erf","Folgerung oder Erfüllung","Erweiterte Erfüllungsbeziehung braucht Ankündigung."],["und während","Zt","gleichzeitiger Zeitraum","„während/wohingegen“ kann auch Gegensatz sein."],["wenn / als","Zt; B/F","Zeit oder Bedingung","Frage: Zeitpunkt oder Voraussetzung?"],["wenn nicht","B/F","negative Bedingung","Entspricht oft „es sei denn“."],["wer / was / wie / warum / wo","F/A; O","Fragewort oder Ortsbezug","F/A verlangt eine Antwort."],["während / wohingegen","Zt; A; −/+","Zeit oder Kontrast","Bedeutung im Satz prüfen."],["weil / da","Bg","nachfolgender Grund","Häufigster Begründungstest."],["wie / ähnlich","V","Vergleich","„wie“ kann auch Art und Weise einleiten."],["wo / wo immer","O","Ort/Bereich","Bei echter Frage zusätzlich F/A prüfen."],["zuerst … dann … schließlich","Abf","gerichtete Abfolge","Musterbeispiel für Abfolge."]]);
+
+// Deutsche Übertragung der im bereitgestellten Konjunktions-PDF aufgeführten
+// englischen Konjunktionen/Konjunktionaladverbien. Die Beziehungszuordnungen
+// folgen der PDF-Tabelle; bei deutschen Übersetzungen mit getrennten Bedeutungen
+// (z. B. „da“/„seit“) werden die semantisch passenden Zuordnungen getrennt.
+const CONJUNCTION_LOOKUP = Object.freeze([
+  {label:"aber",relations:["alternative","verneinung_bejahung","einraeumung"]},
+  {label:"als",relations:["vergleich","zeit"]},
+  {label:"andererseits",relations:["alternative"]},
+  {label:"auch",relations:["reihe"]},
+  {label:"auf dieselbe Weise",relations:["vergleich"]},
+  {label:"auf diese Weise",relations:["handlung_art_weise","aussage_erklaerung"]},
+  {label:"aufgrund",relations:["begruendung"]},
+  {label:"aufgrund dessen",relations:["begruendung","folgerung"]},
+  {label:"außerdem",relations:["aussage_erklaerung","reihe"]},
+  {label:"außer",relations:["verneinung_bejahung","bedingung_folge"]},
+  {label:"bevor",relations:["zeit"]},
+  {label:"da",relations:["begruendung"]},
+  {label:"damit",relations:["handlung_zweck"]},
+  {label:"damit nicht",relations:["handlung_zweck"]},
+  {label:"dann",relations:["steigerung","folgerung"]},
+  {label:"das heißt",relations:["aussage_erklaerung"]},
+  {label:"dass",relations:["aussage_erklaerung","handlung_zweck","handlung_ergebnis"]},
+  {label:"dementsprechend",relations:["folgerung"]},
+  {label:"denn",relations:["aussage_erklaerung","begruendung","handlung_ergebnis"]},
+  {label:"dennoch",relations:["einraeumung"]},
+  {label:"deshalb",relations:["folgerung"]},
+  {label:"doch",relations:["einraeumung"]},
+  {label:"durch",relations:["handlung_art_weise","ort"]},
+  {label:"ebenso",relations:["vergleich"]},
+  {label:"ebenso wie",relations:["vergleich"]},
+  {label:"es sei denn",relations:["bedingung_folge"]},
+  {label:"falls",relations:["folgerung","bedingung_folge"]},
+  {label:"folglich",relations:["folgerung"]},
+  {label:"genauso wie",relations:["vergleich"]},
+  {label:"immer wenn",relations:["zeit"]},
+  {label:"insofern als",relations:["aussage_erklaerung"]},
+  {label:"jedoch",relations:["verneinung_bejahung","einraeumung"]},
+  {label:"mehr noch",relations:["steigerung"]},
+  {label:"mittels",relations:["handlung_art_weise"]},
+  {label:"nachdem",relations:["zeit"]},
+  {label:"noch",relations:["reihe","alternative"]},
+  {label:"obgleich",relations:["einraeumung"]},
+  {label:"obwohl",relations:["einraeumung"]},
+  {label:"oder",relations:["reihe","alternative"]},
+  {label:"schließlich",relations:["steigerung"]},
+  {label:"seit",relations:["zeit"]},
+  {label:"so",relations:["reihe","folgerung"]},
+  {label:"so auch",relations:["vergleich"]},
+  {label:"sodass",relations:["handlung_ergebnis","handlung_zweck"]},
+  {label:"sogar",relations:["aussage_erklaerung"]},
+  {label:"stattdessen",relations:["verneinung_bejahung"]},
+  {label:"um … zu",relations:["handlung_zweck"]},
+  {label:"und",relations:["reihe","steigerung","situation_reaktion"],note:"Im PDF ist „and“ besonders mehrdeutig: Die Tabelle nennt Reihe, Abfolge und Situation–Reaktion; die Fußnote weist darauf hin, dass „und“ grundsätzlich auch andere Beziehungen ausdrücken kann."},
+  {label:"und dann",relations:["steigerung"]},
+  {label:"und während",relations:["zeit"]},
+  {label:"vielmehr",relations:["verneinung_bejahung"]},
+  {label:"vor",relations:["zeit","ort"]},
+  {label:"während",relations:["alternative","zeit"]},
+  {label:"weil",relations:["begruendung"]},
+  {label:"wenn",relations:["folgerung","bedingung_folge","zeit"]},
+  {label:"wie",relations:["vergleich"]},
+  {label:"wo",relations:["frage_antwort","ort"]},
+  {label:"wo immer",relations:["ort"]},
+  {label:"wohingegen",relations:["verneinung_bejahung"]},
+  {label:"weder",relations:["reihe"]},
+  {label:"zudem",relations:["reihe"]}
+].sort((a,b)=>a.label.localeCompare(b.label,"de",{sensitivity:"base"})));
+let selectedConjunctionLookup="";
+
+
+const CATEGORY_LABELS = Object.freeze({
+  koordination:"Beiordnend",
+  eigenstaendige_stuetze:"Unterordnend – eigenständige Stütze",
+  erlaeuternde_stuetze:"Unterordnend – erläuternde Stütze",
+  gegensaetzliche_stuetze:"Unterordnend – gegensätzliche Stütze",
+  erweitert:"Erweiterte Beziehungen"
+});
+const CATEGORY_COLORS = Object.freeze({
+  koordination:"#2878b8",
+  eigenstaendige_stuetze:"#d35e52",
+  erlaeuternde_stuetze:"#668a4f",
+  gegensaetzliche_stuetze:"#8060a2",
+  erweitert:"#9a6b32"
+});
+const STORAGE_KEY = "sensusLab.v1"; // alte Einzelanalyse, nur noch für Migration
+const LEGACY_STORAGE_KEY = "bracketingArcingMvp.v1"; // ältere Einzelanalyse, nur noch für Migration
+const PROJECTS_STORAGE_KEY = "sensusLab.projects.v1";
+const ACTIVE_PROJECT_STORAGE_KEY = "sensusLab.activeProject.v1";
+const PROJECTS_SCHEMA_VERSION = 1;
+const MAX_HISTORY = 100;
+
+const $ = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const els = {
+  textButton:$("#textButton"), editModeButton:$("#editModeButton"), viewModeButton:$("#viewModeButton"),
+  splitToolButton:$("#splitToolButton"), connectToolButton:$("#connectToolButton"), toolGroup:$("#toolGroup"),
+  undoButton:$("#undoButton"), redoButton:$("#redoButton"), helpButton:$("#helpButton"), resetButton:$("#resetButton"),
+  extendedToggle:$("#extendedToggle"), finishPill:$("#finishPill"), propStatus:$("#propStatus"), openStatus:$("#openStatus"),
+  rootStatus:$("#rootStatus"), errorStatus:$("#errorStatus"), saveStatus:$("#saveStatus"), selectionStatus:$("#selectionStatus"), validationStrip:$("#validationStrip"),
+  statusDetailsButton:$("#statusDetailsButton"), exportButton:$("#exportButton"), jsonExportButton:$("#jsonExportButton"), importButton:$("#importButton"), importInput:$("#importInput"),
+  projectMenuWrap:$("#projectMenuWrap"), projectMenuButton:$("#projectMenuButton"), projectMenu:$("#projectMenu"),
+  projectManagerButton:$("#projectManagerButton"), projectsDialog:$("#projectsDialog"),
+  projectMenuCurrent:$("#projectMenuCurrent"), newProjectButton:$("#newProjectButton"), projectList:$("#projectList"),
+  unitBar:$("#unitBar"), unitButtons:$("#unitButtons"),
+  unitHint:$("#unitHint"), propList:$("#propList"), documentHeading:$("#documentHeading"), centerModeLabel:$("#centerModeLabel"), bracketSvg:$("#bracketSvg"),
+  bracketEmpty:$("#bracketEmpty"), treeSummary:$("#treeSummary"),
+  liveRegion:$("#liveRegion"), textDialog:$("#textDialog"), textForm:$("#textForm"), textDialogTitle:$("#textDialogTitle"),
+  textTitleInput:$("#textTitleInput"), mainPointSummaryInput:$("#mainPointSummaryInput"), rawTextInput:$("#rawTextInput"), applyTextButton:$("#applyTextButton"), relationshipDialog:$("#relationshipDialog"),
+  relationshipDialogTitle:$("#relationshipDialogTitle"), relationshipSearch:$("#relationshipSearch"), conjunctionLookupSelect:$("#conjunctionLookupSelect"), conjunctionFilterInfo:$("#conjunctionFilterInfo"),
+  dialogExtendedToggle:$("#dialogExtendedToggle"), relationshipList:$("#relationshipList"),
+  relationshipDetails:$("#relationshipDetails"), swapRolesButton:$("#swapRolesButton"),
+  changePrimaryButton:$("#changePrimaryButton"), dissolveGroupButton:$("#dissolveGroupButton"),
+  deleteSubtreeButton:$("#deleteSubtreeButton"), leaveOpenButton:$("#leaveOpenButton"),
+  applyRelationshipButton:$("#applyRelationshipButton"), helpDialog:$("#helpDialog"), signalTableBody:$("#signalTableBody"),
+  statusDialog:$("#statusDialog"), statusDialogBody:$("#statusDialogBody")
+};
+
+function makeId(prefix){
+  if (globalThis.crypto && typeof crypto.randomUUID === "function") return prefix+"_"+crypto.randomUUID();
+  return prefix+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2);
+}
+function defaultSettings(){ return {includeExtended:false,mode:"bearbeiten"}; }
+function createEmptyState(){
+  return {schemaVersion:1,title:"",mainPointSummary:"",rawText:"",tokens:[],cuts:[],propositions:[],rootIds:[],nodesById:{},settings:defaultSettings(),updatedAt:new Date().toISOString()};
+}
+let state = createEmptyState();
+let history = [];
+let future = [];
+let activeTool = "teilen";
+let selectionStartId = null;
+let selectedRelationId = null;
+let activeRelationId = null;
+let chosenRelationshipId = null;
+let lastValidation = null;
+let saveTimer = null;
+let saveStateText = "Nicht gespeichert";
+let resizeObserver = null;
+let projects = [];
+let activeProjectId = null;
+
+function cloneDocument(doc){ return JSON.parse(JSON.stringify(doc)); }
+function createProject(documentState=createEmptyState()){
+  const now=new Date().toISOString();
+  return {id:makeId("project"),createdAt:now,updatedAt:now,document:cloneDocument(documentState)};
+}
+function activeProject(){ return projects.find(p=>p.id===activeProjectId)||null; }
+function projectDisplayName(project){
+  // Projekttitel und Texttitel sind absichtlich ein und dasselbe Feld.
+  const title=String(project?.document?.title||"").trim();
+  return title || "Unbenanntes Projekt";
+}
+function projectMeta(project){
+  const doc=project?.document||{};
+  if(!doc.rawText) return "Noch kein Text";
+  const count=Array.isArray(doc.propositions)?doc.propositions.length:0;
+  return `${count} ${count===1?"Proposition":"Propositionen"}`;
+}
+function serializeProjects(){ return JSON.stringify({schemaVersion:PROJECTS_SCHEMA_VERSION,projects}); }
+function storeProjectsNow(){
+  localStorage.setItem(PROJECTS_STORAGE_KEY,serializeProjects());
+  if(activeProjectId) localStorage.setItem(ACTIVE_PROJECT_STORAGE_KEY,activeProjectId);
+}
+function syncStateIntoActiveProject(){
+  let project=activeProject();
+  if(!project){
+    project=createProject(state);
+    projects.push(project);
+    activeProjectId=project.id;
+  }
+  project.document=cloneDocument(state);
+  project.updatedAt=new Date().toISOString();
+  return project;
+}
+function resetTransientUiForProject(){
+  history=[]; future=[]; selectionStartId=null; selectedRelationId=null; activeRelationId=null; chosenRelationshipId=null;
+  activeTool="teilen";
+  if(els.relationshipDialog?.open) closeRelationshipDialog();
+  if(els.textDialog?.open) closeDialog(els.textDialog);
+}
+function activateProject(projectId,{persistCurrent=true,announceChange=true,keepManagerOpen=false}={}){
+  const target=projects.find(p=>p.id===projectId);
+  if(!target){ closeProjectMenu(); return false; }
+  if(target.id===activeProjectId){
+    closeProjectMenu();
+    if(!keepManagerOpen && els.projectsDialog?.open) closeDialog(els.projectsDialog);
+    return true;
+  }
+  clearTimeout(saveTimer);
+  if(persistCurrent && activeProjectId){
+    try{ syncStateIntoActiveProject(); storeProjectsNow(); }catch(err){ console.warn("Aktuelles Projekt konnte vor dem Wechsel nicht gespeichert werden:",err); }
+  }
+  hydrateState(cloneDocument(target.document));
+  activeProjectId=target.id;
+  resetTransientUiForProject();
+  saveStateText="Lokal gespeichert";
+  try{ localStorage.setItem(ACTIVE_PROJECT_STORAGE_KEY,activeProjectId); }catch(_){ }
+  closeProjectMenu();
+  render();
+  if(els.projectsDialog?.open) renderProjectManager();
+  if(!keepManagerOpen && els.projectsDialog?.open) closeDialog(els.projectsDialog);
+  if(announceChange) announce(`Projekt geöffnet: ${projectDisplayName(target)}`);
+  return true;
+}
+function createNewProject(){
+  clearTimeout(saveTimer);
+  try{
+    if(activeProjectId) syncStateIntoActiveProject();
+    const project=createProject(createEmptyState());
+    projects.push(project);
+    activeProjectId=project.id;
+    hydrateState(cloneDocument(project.document));
+    resetTransientUiForProject();
+    saveStateText="Lokal gespeichert";
+    storeProjectsNow();
+    closeProjectMenu();
+    if(els.projectsDialog?.open) closeDialog(els.projectsDialog);
+    render();
+    announce("Neues, leeres Projekt erstellt");
+    requestAnimationFrame(()=>els.textButton.focus());
+  }catch(err){ alert(`Neues Projekt konnte nicht erstellt werden: ${err.message||err}`); }
+}
+function renameProject(projectId){
+  const project=projects.find(p=>p.id===projectId);
+  if(!project) return;
+  const current=String(project.document?.title||"");
+  const input=prompt("Projekttitel ändern. Dieser Titel ist zugleich der Texttitel:",current);
+  if(input===null) return;
+  const title=String(input).trim();
+  if(project.id===activeProjectId){
+    if(title===(state.title||"")) return;
+    performAction("Titel geändert",()=>{ state.title=title; });
+    syncStateIntoActiveProject();
+  }else{
+    project.document={...project.document,title};
+    project.updatedAt=new Date().toISOString();
+    try{ storeProjectsNow(); }catch(_){ }
+  }
+  renderProjectManager();
+  announce(title?`Projekt umbenannt: ${title}`:"Projekttitel entfernt");
+}
+function deleteProject(projectId){
+  const project=projects.find(p=>p.id===projectId);
+  if(!project) return;
+  const name=projectDisplayName(project);
+  if(!confirm(`Projekt „${name}“ wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
+  clearTimeout(saveTimer);
+  const wasActive=project.id===activeProjectId;
+  projects=projects.filter(p=>p.id!==projectId);
+  if(!projects.length) projects.push(createProject(createEmptyState()));
+  if(wasActive){
+    activeProjectId=projects[0].id;
+    hydrateState(cloneDocument(projects[0].document));
+    resetTransientUiForProject();
+    saveStateText="Lokal gespeichert";
+  }
+  try{ storeProjectsNow(); }catch(_){ saveStateText="Nur für diese Sitzung gespeichert"; }
+  render();
+  if(els.projectsDialog?.open) renderProjectManager();
+  announce(`Projekt gelöscht: ${name}`);
+}
+function renderProjectManager(){
+  if(!els.projectList) return;
+  const current=activeProject();
+  els.projectMenuCurrent.textContent=current?`Aktuell: ${projectDisplayName(current)}`:"";
+  els.projectList.innerHTML=projects.map(project=>{
+    const active=project.id===activeProjectId;
+    const id=escapeHtml(project.id);
+    return `<div class="project-item${active?" active":""}" data-project-row="${id}">`
+      +`<button class="project-item-open" type="button" data-project-open="${id}"${active?' aria-current="true"':''}>`
+      +`<span class="project-item-main"><span class="project-item-title">${escapeHtml(projectDisplayName(project))}</span><span class="project-item-meta">${escapeHtml(projectMeta(project))}</span></span></button>`
+      +`<span class="project-item-actions">${active?'<span class="project-item-state">Aktiv</span>':''}`
+      +`<button class="project-item-action" type="button" data-project-rename="${id}">Umbenennen</button>`
+      +`<button class="project-item-action delete" type="button" data-project-delete="${id}">Löschen</button></span></div>`;
+  }).join("");
+}
+function openProjectManager(){
+  try{ syncStateIntoActiveProject(); storeProjectsNow(); }catch(_){ }
+  closeProjectMenu();
+  renderProjectManager();
+  showDialog(els.projectsDialog);
+}
+function openProjectMenu(){
+  els.projectMenu.hidden=false;
+  els.projectMenuButton.setAttribute("aria-expanded","true");
+}
+function closeProjectMenu(){
+  if(!els.projectMenu) return;
+  els.projectMenu.hidden=true;
+  els.projectMenuButton.setAttribute("aria-expanded","false");
+}
+function toggleProjectMenu(){ if(els.projectMenu.hidden) openProjectMenu(); else closeProjectMenu(); }
+
+function loadProjects(){
+  try{
+    const raw=localStorage.getItem(PROJECTS_STORAGE_KEY);
+    if(raw){
+      const parsed=JSON.parse(raw);
+      if(!parsed || parsed.schemaVersion!==PROJECTS_SCHEMA_VERSION || !Array.isArray(parsed.projects)) throw new Error("Projektdatei hat ein unbekanntes Format.");
+      projects=parsed.projects.filter(p=>p && typeof p.id==="string" && p.document && typeof p.document==="object").map(p=>({
+        id:p.id,
+        createdAt:typeof p.createdAt==="string"?p.createdAt:new Date().toISOString(),
+        updatedAt:typeof p.updatedAt==="string"?p.updatedAt:new Date().toISOString(),
+        document:p.document
+      }));
+    }
+    if(!projects.length){
+      let legacyRaw=localStorage.getItem(STORAGE_KEY);
+      if(!legacyRaw) legacyRaw=localStorage.getItem(LEGACY_STORAGE_KEY);
+      if(legacyRaw){
+        const legacyDoc=JSON.parse(legacyRaw);
+        const empty=createEmptyState();
+        hydrateState(legacyDoc);
+        const migratedDoc=cloneDocument(state);
+        state=empty;
+        projects=[createProject(migratedDoc)];
+      }
+    }
+    if(!projects.length) projects=[createProject(createEmptyState())];
+    const preferred=localStorage.getItem(ACTIVE_PROJECT_STORAGE_KEY);
+    activeProjectId=projects.some(p=>p.id===preferred)?preferred:projects[0].id;
+    hydrateState(cloneDocument(activeProject().document));
+    resetTransientUiForProject();
+    storeProjectsNow();
+    try{ localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(LEGACY_STORAGE_KEY); }catch(_){ }
+    saveStateText="Lokal gespeichert";
+    return true;
+  }catch(err){
+    console.warn("Projekte konnten nicht geladen werden:",err);
+    projects=[createProject(createEmptyState())];
+    activeProjectId=projects[0].id;
+    hydrateState(cloneDocument(projects[0].document));
+    saveStateText="Nur für diese Sitzung gespeichert";
+    return false;
+  }
+}
+
+function normalizeRawText(input){
+  const normalized = String(input ?? "").replace(/\r\n?/g,"\n");
+  const lines = normalized.split("\n");
+  while(lines.length && lines[0].trim()==="") lines.shift();
+  while(lines.length && lines[lines.length-1].trim()==="") lines.pop();
+  return lines.join("\n");
+}
+function tokenize(raw){ return raw ? (raw.match(/\s+|[^\s]+/gu) || []) : []; }
+function isWhitespaceToken(t){ return /^\s+$/u.test(t); }
+function firstContentToken(tokens=state.tokens){ return tokens.findIndex(t=>!isWhitespaceToken(t)); }
+function rangeKey(a,b){ return a+":"+b; }
+
+function deriveRanges(tokens,cuts){
+  if(!tokens.length || !cuts.length) return [];
+  const sorted=[...new Set(cuts)].sort((a,b)=>a-b);
+  return sorted.map((start,i)=>({tokenStart:start,tokenEnd:(i+1<sorted.length?sorted[i+1]-1:tokens.length-1)}));
+}
+function rebuildPropositions(options={}){
+  const oldProps = state.propositions || [];
+  const oldExact = new Map(oldProps.map(p=>[rangeKey(p.tokenStart,p.tokenEnd),p.id]));
+  const oldContainer = options.splitToken==null ? null : oldProps.find(p=>p.tokenStart < options.splitToken && p.tokenEnd >= options.splitToken);
+  const ranges = deriveRanges(state.tokens,state.cuts);
+  const newProps = [];
+  const propNodes = {};
+  for(const r of ranges){
+    let id = oldExact.get(rangeKey(r.tokenStart,r.tokenEnd));
+    if(!id && oldContainer && r.tokenStart===oldContainer.tokenStart) id=oldContainer.id;
+    if(!id) id=makeId("p");
+    const node={kind:"proposition",id,tokenStart:r.tokenStart,tokenEnd:r.tokenEnd};
+    newProps.push(node); propNodes[id]=node;
+  }
+  const relationNodes = Object.fromEntries(Object.entries(state.nodesById||{}).filter(([,n])=>n && n.kind==="relation"));
+  state.propositions=newProps;
+  state.nodesById={...relationNodes,...propNodes};
+  return newProps;
+}
+function initializeText(raw,title=state.title||"",mainPointSummary=state.mainPointSummary||""){
+  state.title=String(title||"").trim();
+  state.mainPointSummary=String(mainPointSummary||"").trim();
+  state.rawText=raw;
+  state.tokens=tokenize(raw);
+  const first=firstContentToken(state.tokens);
+  state.cuts=first>=0?[first]:[];
+  state.nodesById={};
+  state.propositions=[];
+  rebuildPropositions();
+  state.rootIds=state.propositions.map(p=>p.id);
+  rebuildParentIds();
+}
+function resetRelationsKeepSegmentation(){
+  const propMap={};
+  for(const p of state.propositions) propMap[p.id]=p;
+  state.nodesById=propMap;
+  state.rootIds=state.propositions.map(p=>p.id);
+}
+function assertSafeStateShape(s){
+  if(typeof s.title!=="string") throw new Error("Ungültiger Zustand: Titel muss Text sein.");
+  if(typeof s.mainPointSummary!=="string") throw new Error("Ungültiger Zustand: Hauptaussage muss Text sein.");
+  if(typeof s.rawText!=="string") throw new Error("Ungültiger Zustand: rawText muss Text sein.");
+  if(!Array.isArray(s.tokens) || s.tokens.some(t=>typeof t!=="string")) throw new Error("Ungültiger Zustand: Tokenliste fehlt oder ist beschädigt.");
+  if(s.tokens.join("")!==s.rawText) throw new Error("Ungültiger Zustand: Tokenisierung passt nicht zum Text.");
+  if(!Array.isArray(s.cuts) || s.cuts.some(x=>!Number.isInteger(x) || x<0 || x>=s.tokens.length)) throw new Error("Ungültiger Zustand: Teilungsgrenzen sind beschädigt.");
+  if(new Set(s.cuts).size!==s.cuts.length || s.cuts.some((x,i)=>i>0 && s.cuts[i-1]>=x)) throw new Error("Ungültiger Zustand: Teilungsgrenzen müssen eindeutig und sortiert sein.");
+  if(s.rawText.trim()){
+    const first=s.tokens.findIndex(t=>!/^\s+$/u.test(t));
+    if(first<0 || s.cuts[0]!==first) throw new Error("Ungültiger Zustand: Die erste Proposition beginnt nicht am Textanfang.");
+  }else if(s.cuts.length || s.propositions.length || s.rootIds.length){
+    throw new Error("Ungültiger Zustand: Leerer Text darf keine Analyse enthalten.");
+  }
+  if(!Array.isArray(s.propositions) || !Array.isArray(s.rootIds) || !s.nodesById || typeof s.nodesById!=="object" || Array.isArray(s.nodesById)) throw new Error("Ungültiger Zustand: Baumdaten fehlen.");
+  const ids=new Set();
+  for(const p of s.propositions){
+    if(!p || p.kind!=="proposition" || typeof p.id!=="string" || !p.id || !Number.isInteger(p.tokenStart) || !Number.isInteger(p.tokenEnd) || p.tokenStart<0 || p.tokenEnd<p.tokenStart || p.tokenEnd>=s.tokens.length) throw new Error("Ungültiger Zustand: Proposition ist beschädigt.");
+    if(ids.has(p.id)) throw new Error("Ungültiger Zustand: Doppelte Proposition-ID.");
+    ids.add(p.id);
+  }
+  const ranges=deriveRanges(s.tokens,s.cuts);
+  if(ranges.length!==s.propositions.length || ranges.some((r,i)=>r.tokenStart!==s.propositions[i].tokenStart || r.tokenEnd!==s.propositions[i].tokenEnd)) throw new Error("Ungültiger Zustand: Propositionen passen nicht zu den Teilungsgrenzen.");
+  for(const [id,n] of Object.entries(s.nodesById)){
+    if(!n || typeof n!=="object" || n.id!==id || (n.kind!=="proposition" && n.kind!=="relation")) throw new Error("Ungültiger Zustand: Knoten ist beschädigt.");
+    if(n.kind==="relation"){
+      if(!Array.isArray(n.children) || n.children.length<2 || new Set(n.children).size!==n.children.length) throw new Error("Ungültiger Zustand: Eine Verbindung besitzt ungültige Kinder.");
+      if(n.relationshipId!==null && typeof n.relationshipId!=="string") throw new Error("Ungültiger Zustand: Beziehungs-ID ist beschädigt.");
+      if(!Array.isArray(n.roleOrder) || !Array.isArray(n.primaryChildIds)) throw new Error("Ungültiger Zustand: Rollen oder Hauptteile sind beschädigt.");
+      if(n.preferredPrimaryChildId!=null && (typeof n.preferredPrimaryChildId!=="string" || !n.children.includes(n.preferredPrimaryChildId))) throw new Error("Ungültiger Zustand: Bevorzugter Hauptpunkt ist beschädigt.");
+    }
+  }
+  for(const p of s.propositions){
+    const n=s.nodesById[p.id];
+    if(!n || n.kind!=="proposition" || n.tokenStart!==p.tokenStart || n.tokenEnd!==p.tokenEnd) throw new Error("Ungültiger Zustand: Proposition fehlt im Knotenbaum.");
+  }
+  const allIds=new Set(Object.keys(s.nodesById));
+  if(new Set(s.rootIds).size!==s.rootIds.length || s.rootIds.some(id=>typeof id!=="string" || !allIds.has(id))) throw new Error("Ungültiger Zustand: Wurzelverweise sind beschädigt.");
+  for(const n of Object.values(s.nodesById)){
+    if(n.kind==="relation" && n.children.some(id=>!allIds.has(id))) throw new Error("Ungültiger Zustand: Eine Verbindung verweist auf eine fehlende Einheit.");
+  }
+  // Strukturelle Baum-Invarianten: Jeder Knoten hat genau einen Platz im Baum,
+  // Wurzeln sind wirklich wurzeln, Kinder sind textlich geordnet/lückenlos und
+  // alle Propositionen werden exakt einmal in Originalreihenfolge erreicht.
+  const parentCount=new Map();
+  for(const n of Object.values(s.nodesById)){
+    if(n.kind!=="relation") continue;
+    for(const childId of n.children) parentCount.set(childId,(parentCount.get(childId)||0)+1);
+  }
+  const rootSet=new Set(s.rootIds);
+  for(const id of allIds){
+    const count=parentCount.get(id)||0;
+    if(rootSet.has(id)){
+      if(count!==0) throw new Error("Ungültiger Zustand: Eine Wurzel ist zugleich Kind einer anderen Verbindung.");
+    }else if(count!==1){
+      throw new Error(count===0?"Ungültiger Zustand: Ein Knoten ist verwaist.":"Ungültiger Zustand: Ein Knoten besitzt mehrere Elternverbindungen.");
+    }
+  }
+
+  const visiting=new Set(),done=new Set(),leafMemo=new Map();
+  const leavesOf=id=>{
+    if(leafMemo.has(id)) return leafMemo.get(id);
+    if(visiting.has(id)) throw new Error("Ungültiger Zustand: Der Beziehungsbaum enthält einen Zyklus.");
+    visiting.add(id);
+    const n=s.nodesById[id];
+    let leaves;
+    if(n.kind==="proposition") leaves=[id];
+    else{
+      leaves=[];
+      for(const childId of n.children) leaves.push(...leavesOf(childId));
+    }
+    visiting.delete(id);done.add(id);leafMemo.set(id,leaves);
+    return leaves;
+  };
+  const propIndex=new Map(s.propositions.map((p,i)=>[p.id,i]));
+  for(const n of Object.values(s.nodesById)){
+    if(n.kind!=="relation") continue;
+    let previousEnd=null;
+    for(const childId of n.children){
+      const leaves=leavesOf(childId);
+      if(!leaves.length) throw new Error("Ungültiger Zustand: Eine Verbindung enthält ein leeres Kind.");
+      const idxs=leaves.map(id=>propIndex.get(id));
+      if(idxs.some(i=>!Number.isInteger(i))) throw new Error("Ungültiger Zustand: Eine Verbindung enthält eine unbekannte Proposition.");
+      for(let i=1;i<idxs.length;i++) if(idxs[i]!==idxs[i-1]+1) throw new Error("Ungültiger Zustand: Ein Unterbaum ist nicht lückenlos.");
+      if(previousEnd!==null && idxs[0]!==previousEnd+1) throw new Error("Ungültiger Zustand: Kinder einer Verbindung sind nicht direkt benachbart.");
+      previousEnd=idxs[idxs.length-1];
+    }
+  }
+  const rootLeaves=s.rootIds.flatMap(leavesOf);
+  const expectedLeaves=s.propositions.map(p=>p.id);
+  if(rootLeaves.length!==expectedLeaves.length || rootLeaves.some((id,i)=>id!==expectedLeaves[i])){
+    throw new Error("Ungültiger Zustand: Wurzeln decken den Text nicht exakt und in Reihenfolge ab.");
+  }
+  for(const id of allIds) leavesOf(id);
+}
+function hydrateState(raw){
+  const s=raw && typeof raw==="object" ? raw : createEmptyState();
+  if(s.schemaVersion!==1) throw new Error("Unbekannte schemaVersion. Erwartet wird Version 1.");
+  s.settings={...defaultSettings(),...(s.settings||{})};
+  s.title=typeof s.title==="string"?s.title:"";
+  s.mainPointSummary=typeof s.mainPointSummary==="string"?s.mainPointSummary:"";
+  s.rawText=typeof s.rawText==="string"?s.rawText:"";
+  s.tokens=Array.isArray(s.tokens)?s.tokens:tokenize(s.rawText);
+  s.cuts=Array.isArray(s.cuts)?s.cuts:[];
+  s.propositions=Array.isArray(s.propositions)?s.propositions:[];
+  s.rootIds=Array.isArray(s.rootIds)?s.rootIds:[];
+  s.nodesById=(s.nodesById && typeof s.nodesById==="object" && !Array.isArray(s.nodesById))?s.nodesById:{};
+  for(const p of s.propositions){ if(p && typeof p.id==="string") s.nodesById[p.id]=p; }
+  assertSafeStateShape(s);
+  state=s;
+  rebuildParentIds();
+  return state;
+}
+function snapshot(){ return JSON.stringify(state); }
+function restoreSnapshot(json){
+  hydrateState(JSON.parse(json));
+  selectionStartId=null;
+  selectedRelationId=null;
+  activeRelationId=null;
+  chosenRelationshipId=null;
+}
+function pushHistorySnapshot(json){
+  history.push(json);
+  if(history.length>MAX_HISTORY) history.shift();
+  future=[];
+}
+function performAction(label,mutator){
+  const before=snapshot();
+  try{
+    const result=mutator();
+    rebuildParentIds();
+    // Jede Änderung wird atomar geprüft. Ein fehlerhafter Zwischenzustand gelangt
+    // weder in UI/LocalStorage noch in den Undo-Verlauf.
+    assertSafeStateShape(state);
+    state.updatedAt=new Date().toISOString();
+    pushHistorySnapshot(before);
+    render();
+    schedulePersist();
+    announce(label);
+    return result;
+  }catch(err){
+    console.error("Aktion zurückgerollt:",label,err);
+    restoreSnapshot(before);
+    render();
+    announce(`Aktion nicht ausgeführt: ${err?.message||"ungültiger Zustand"}`);
+    return null;
+  }
+}
+function undo(){
+  if(!history.length) return;
+  future.push(snapshot());
+  const prev=history.pop();
+  restoreSnapshot(prev);
+  render(); schedulePersist(); announce("Rückgängig");
+}
+function redo(){
+  if(!future.length) return;
+  history.push(snapshot());
+  const next=future.pop();
+  restoreSnapshot(next);
+  render(); schedulePersist(); announce("Wiederholen");
+}
+function announce(text){
+  els.liveRegion.textContent="";
+  requestAnimationFrame(()=>{els.liveRegion.textContent=text;});
+}
+
+function getNode(id){ return state.nodesById[id] || null; }
+function relationNodes(){ return Object.values(state.nodesById).filter(n=>n && n.kind==="relation"); }
+function hasRelations(){ return relationNodes().length>0; }
+function rebuildParentIds(){
+  for(const n of relationNodes()) n.parentId=null;
+  for(const n of relationNodes()){
+    for(const childId of n.children||[]){
+      const c=getNode(childId);
+      if(c && c.kind==="relation") c.parentId=n.id;
+    }
+  }
+}
+function findParentInfo(nodeId){
+  for(const rel of relationNodes()){
+    const idx=(rel.children||[]).indexOf(nodeId);
+    if(idx>=0) return {parentId:rel.id,siblings:rel.children,index:idx};
+  }
+  const idx=state.rootIds.indexOf(nodeId);
+  if(idx>=0) return {parentId:null,siblings:state.rootIds,index:idx};
+  return null;
+}
+function propIndexMap(){ return new Map(state.propositions.map((p,i)=>[p.id,i])); }
+function collectLeaves(nodeId,seen=new Set()){
+  if(seen.has(nodeId)) return [];
+  seen.add(nodeId);
+  const n=getNode(nodeId);
+  if(!n) return [];
+  if(n.kind==="proposition") return [n.id];
+  return (n.children||[]).flatMap(id=>collectLeaves(id,seen));
+}
+function nodeSpan(nodeId){
+  const map=propIndexMap();
+  const leaves=collectLeaves(nodeId).map(id=>map.get(id)).filter(i=>Number.isInteger(i));
+  if(!leaves.length) return {start:-1,end:-1};
+  return {start:Math.min(...leaves),end:Math.max(...leaves)};
+}
+function nodeDepth(nodeId,memo=new Map()){
+  if(memo.has(nodeId)) return memo.get(nodeId);
+  const n=getNode(nodeId);
+  if(!n || n.kind==="proposition"){memo.set(nodeId,0);return 0;}
+  const d=1+Math.max(0,...(n.children||[]).map(id=>nodeDepth(id,memo)));
+  memo.set(nodeId,d); return d;
+}
+function nodeLabel(nodeId){
+  const n=getNode(nodeId);
+  if(!n) return "Unbekannte Einheit";
+  if(n.kind==="proposition"){
+    const i=state.propositions.findIndex(p=>p.id===nodeId);
+    return i>=0?"P"+(i+1):"Proposition";
+  }
+  const s=nodeSpan(nodeId);
+  const rel=RELATIONSHIPS[n.relationshipId];
+  const relationName=rel?rel.label:(n.relationshipId==null?"offen":"Unbekannte Beziehung");
+  return s.start===s.end ? `Gruppe P${s.start+1} · ${relationName}` : `Gruppe P${s.start+1}–P${s.end+1} · ${relationName}`;
+}
+function nodeText(nodeId){
+  const s=nodeSpan(nodeId);
+  if(s.start<0) return "";
+  const first=state.propositions[s.start], last=state.propositions[s.end];
+  if(!first || !last) return "";
+  return state.tokens.slice(first.tokenStart,last.tokenEnd+1).join("");
+}
+function descendantsContain(nodeId,propId){
+  const n=getNode(nodeId);
+  if(!n) return false;
+  if(n.kind==="proposition") return n.id===propId;
+  return (n.children||[]).some(id=>descendantsContain(id,propId));
+}
+
+function cardinalityOk(rel,count){
+  if(!rel) return false;
+  return count>=rel.min && (rel.max==null || count<=rel.max);
+}
+function cardinalityText(rel){
+  if(rel.max==null) return `mindestens ${rel.min}`;
+  if(rel.min===rel.max) return rel.min===2?"genau zwei":rel.min===3?"genau drei":`genau ${rel.min}`;
+  return `${rel.min} bis ${rel.max}`;
+}
+function defaultRoleOrder(rel,count){
+  if(rel.primary==="all") return Array(count).fill("Hauptteil");
+  if(Array.isArray(rel.roles) && rel.roles.length===count) return [...rel.roles];
+  if(Array.isArray(rel.roles) && rel.roles.length) return Array.from({length:count},(_,i)=>rel.roles[i]||`Teil ${i+1}`);
+  return Array.from({length:count},(_,i)=>`Teil ${i+1}`);
+}
+function defaultPrimaryIds(rel,children){
+  if(rel.primary==="all") return [...children];
+  if(Array.isArray(rel.primary)) return rel.primary.map(i=>children[i]).filter(Boolean);
+  return children[rel.primary]!=null?[children[rel.primary]]:[];
+}
+function orientedRelationDefaults(rel,children,preferredPrimaryChildId=null){
+  const roleOrder=defaultRoleOrder(rel,children.length);
+  const primaryChildIds=defaultPrimaryIds(rel,children);
+
+  // Die Klickreihenfolge bestimmt bei binären unterordnenden Beziehungen die
+  // Leserichtung: Die zuerst gewählte Einheit soll Hauptpunkt werden. Die
+  // Textreihenfolge der Kinder bleibt unverändert; nur Rollen und Hauptpunkt
+  // werden bei Bedarf gespiegelt.
+  if(rel && rel.primary!=="all" && !Array.isArray(rel.primary) && children.length===2 && preferredPrimaryChildId && children.includes(preferredPrimaryChildId)){
+    const defaultPrimary=primaryChildIds[0]||null;
+    if(defaultPrimary!==preferredPrimaryChildId){
+      return {
+        roleOrder:[...roleOrder].reverse(),
+        primaryChildIds:[preferredPrimaryChildId]
+      };
+    }
+    return {roleOrder,primaryChildIds:[preferredPrimaryChildId]};
+  }
+  return {roleOrder,primaryChildIds};
+}
+function canModifyRelations(){
+  return state.settings.mode==="bearbeiten" && activeTool==="verbinden";
+}
+function normalizeRelationAfterChildChange(node){
+  if(!node || node.kind!=="relation") return {opened:false};
+  if(node.preferredPrimaryChildId && !node.children.includes(node.preferredPrimaryChildId)) node.preferredPrimaryChildId=null;
+  if(node.relationshipId==null){
+    node.roleOrder=[];
+    node.primaryChildIds=[];
+    return {opened:false};
+  }
+  const rel=RELATIONSHIPS[node.relationshipId];
+  if(!rel || !cardinalityOk(rel,node.children.length)){
+    // Wenn das Auflösen einer Untergruppe die Kardinalität des Elternknotens
+    // verändert, bleibt die Gruppe bestehen, wird aber bewusst wieder "offen".
+    // So entsteht niemals still ein semantisch ungültiger Elternknoten.
+    node.relationshipId=null;
+    node.roleOrder=[];
+    node.primaryChildIds=[];
+    return {opened:true};
+  }
+  if(rel.primary==="all"){
+    node.roleOrder=defaultRoleOrder(rel,node.children.length);
+    node.primaryChildIds=[...node.children];
+  }else{
+    // Unterordnende Typen behalten bei unveränderter Kinderzahl ihre Rollen.
+    // Falls Daten unvollständig sind, werden sichere Standardwerte wiederhergestellt.
+    node.primaryChildIds=(node.primaryChildIds||[]).filter(id=>node.children.includes(id));
+    const preferred=node.primaryChildIds.length===1?node.primaryChildIds[0]:(node.preferredPrimaryChildId||null);
+    if(!Array.isArray(node.roleOrder) || node.roleOrder.length!==node.children.length || !node.primaryChildIds.length){
+      const oriented=orientedRelationDefaults(rel,node.children,preferred);
+      node.roleOrder=oriented.roleOrder;
+      node.primaryChildIds=oriented.primaryChildIds;
+    }
+  }
+  return {opened:false};
+}
+function siblingArray(parentId){
+  if(parentId==null) return state.rootIds;
+  const parent=getNode(parentId);
+  return parent&&parent.kind==="relation"?parent.children:null;
+}
+function validateContiguousSelection(selectedIds,parentId){
+  if(!Array.isArray(selectedIds) || selectedIds.length<2 || new Set(selectedIds).size!==selectedIds.length) return false;
+  const siblings=siblingArray(parentId);
+  if(!siblings) return false;
+  const first=siblings.indexOf(selectedIds[0]);
+  if(first<0 || first+selectedIds.length>siblings.length) return false;
+  for(let i=0;i<selectedIds.length;i++){
+    if(siblings[first+i]!==selectedIds[i] || !getNode(selectedIds[i])) return false;
+  }
+  return true;
+}
+function canGroupInside(parentId,selectedCount){
+  if(parentId==null) return selectedCount>=2;
+  const p=getNode(parentId);
+  if(!p || p.kind!=="relation") return false;
+  const newCount=p.children.length-selectedCount+1;
+  // Auch eine offene Gruppe muss nach dem Untergruppieren mindestens zwei Kinder behalten.
+  if(p.relationshipId==null) return newCount>=2;
+  const rel=RELATIONSHIPS[p.relationshipId];
+  if(!rel || rel.primary!=="all") return false;
+  return cardinalityOk(rel,newCount);
+}
+function connectOpen(selectedIds,parentId,preferredPrimaryChildId=null){
+  if(!validateContiguousSelection(selectedIds,parentId)) throw new Error("Nur ein direkt benachbarter Geschwisterbereich kann verbunden werden.");
+  if(!canGroupInside(parentId,selectedIds.length)) throw new Error("Diese Untergruppe würde die übergeordnete Verbindung ungültig machen.");
+  const siblings=siblingArray(parentId);
+  const firstIndex=siblings.indexOf(selectedIds[0]);
+  const id=makeId("r");
+  const node={kind:"relation",id,children:[...selectedIds],relationshipId:null,roleOrder:[],primaryChildIds:[],parentId,preferredPrimaryChildId:preferredPrimaryChildId&&selectedIds.includes(preferredPrimaryChildId)?preferredPrimaryChildId:null};
+  state.nodesById[id]=node;
+  siblings.splice(firstIndex,selectedIds.length,id);
+  for(const childId of selectedIds){
+    const c=getNode(childId);
+    if(c && c.kind==="relation") c.parentId=id;
+  }
+  if(parentId!=null) normalizeRelationAfterChildChange(getNode(parentId));
+  return id;
+}
+function removeRelationNode(id){
+  const node=getNode(id);
+  if(!node || node.kind!=="relation") throw new Error("Die Verbindung existiert nicht mehr.");
+  const parent=findParentInfo(id);
+  if(!parent) throw new Error("Die Verbindung ist nicht mehr im Analysebaum verankert.");
+  const arr=siblingArray(parent.parentId);
+  if(!arr) throw new Error("Die Elternstruktur der Verbindung ist beschädigt.");
+  const idx=arr.indexOf(id);
+  if(idx<0) throw new Error("Die Verbindung konnte in ihrer Ebene nicht gefunden werden.");
+  arr.splice(idx,1,...node.children);
+  for(const childId of node.children){
+    const c=getNode(childId);
+    if(c && c.kind==="relation") c.parentId=parent.parentId;
+  }
+  delete state.nodesById[id];
+  const parentNormalization=parent.parentId!=null?normalizeRelationAfterChildChange(getNode(parent.parentId)):{opened:false};
+  return {ok:true,parentOpened:!!parentNormalization.opened,parentId:parent.parentId};
+}
+function descendantRelationIds(id,out=[],seen=new Set()){
+  if(seen.has(id)) return out;
+  seen.add(id);
+  const n=getNode(id);
+  if(!n || n.kind!=="relation") return out;
+  out.push(id);
+  for(const c of n.children||[]) descendantRelationIds(c,out,seen);
+  return out;
+}
+function deleteRelationSubtree(id){
+  const node=getNode(id);
+  if(!node || node.kind!=="relation") throw new Error("Der Teilbaum existiert nicht mehr.");
+  const leaves=collectLeaves(id);
+  if(leaves.length<2) throw new Error("Der Teilbaum besitzt keinen gültigen Textbereich.");
+  const parent=findParentInfo(id);
+  if(!parent) throw new Error("Der Teilbaum ist nicht mehr im Analysebaum verankert.");
+  const arr=siblingArray(parent.parentId);
+  if(!arr) throw new Error("Die Elternstruktur des Teilbaums ist beschädigt.");
+  const idx=arr.indexOf(id);
+  if(idx<0) throw new Error("Der Teilbaum konnte in seiner Ebene nicht gefunden werden.");
+  arr.splice(idx,1,...leaves);
+  for(const rid of descendantRelationIds(id,[])) delete state.nodesById[rid];
+  const parentNormalization=parent.parentId!=null?normalizeRelationAfterChildChange(getNode(parent.parentId)):{opened:false};
+  return {ok:true,parentOpened:!!parentNormalization.opened,parentId:parent.parentId};
+}
+function relationErrorIds(validation){
+  return validation && validation.nodeErrors ? validation.nodeErrors : new Set();
+}
+
+function validateState(){
+  const errors=[],warnings=[],nodeErrors=new Set();
+  const addError=(message,...ids)=>{
+    if(!errors.includes(message)) errors.push(message);
+    ids.filter(Boolean).forEach(id=>nodeErrors.add(id));
+  };
+  if(!state.rawText || !state.rawText.trim()) return {errors,warnings,nodeErrors,openCount:0,complete:false};
+  if(state.propositions.length<2) addError("Teile den Text in mindestens zwei Propositionen, um Beziehungen anzulegen.");
+
+  const rels=relationNodes();
+  const parentUse=new Map();
+  for(const node of rels){
+    const children=Array.isArray(node.children)?node.children:[];
+    if(children.length<2 || new Set(children).size!==children.length){
+      addError(`${nodeLabel(node.id)} benötigt mindestens zwei unterschiedliche Kinder.`,node.id);
+    }
+    for(const childId of children){
+      parentUse.set(childId,(parentUse.get(childId)||0)+1);
+      if(!getNode(childId)) addError(`${nodeLabel(node.id)} verweist auf eine fehlende Einheit.`,node.id);
+    }
+    const spans=children.map(nodeSpan);
+    for(let i=0;i<spans.length;i++){
+      if(spans[i].start<0 || spans[i].end<spans[i].start){
+        addError(`${nodeLabel(node.id)}: Ein Kind besitzt keinen gültigen Textbereich.`,node.id); break;
+      }
+      if(i>0 && spans[i-1].end+1!==spans[i].start){
+        addError(`${nodeLabel(node.id)}: Kinder müssen direkt benachbart und lückenlos sein.`,node.id); break;
+      }
+    }
+
+    if(node.relationshipId==null){
+      addError(`Wähle noch eine logische Beziehung für die graue Verbindung ${nodeLabel(node.id)}.`,node.id);
+      continue;
+    }
+    const rel=RELATIONSHIPS[node.relationshipId];
+    if(!rel){
+      addError(`${nodeLabel(node.id)} verwendet eine unbekannte Beziehung.`,node.id);
+      continue;
+    }
+    if(!cardinalityOk(rel,children.length)){
+      addError(`${rel.label}: Diese Beziehung benötigt ${cardinalityText(rel)} Einheiten.`,node.id);
+    }
+
+    if(!Array.isArray(node.roleOrder) || node.roleOrder.length!==children.length){
+      addError(`${rel.label}: Rollenreihenfolge ist unvollständig.`,node.id);
+    }else{
+      let rolesValid=true;
+      if(rel.primary==="all"){
+        rolesValid=node.roleOrder.every(role=>role==="Hauptteil");
+      }else if(Array.isArray(rel.roles) && rel.roles.length===children.length){
+        const exact=rel.roles.every((role,i)=>node.roleOrder[i]===role);
+        const reversed=children.length===2 && !Array.isArray(rel.primary) && rel.primary!=="all" && rel.roles.every((role,i)=>node.roleOrder[children.length-1-i]===role);
+        rolesValid=exact||reversed;
+      }
+      if(!rolesValid) addError(`${rel.label}: Die Rollenreihenfolge passt nicht zum Beziehungstyp.`,node.id);
+    }
+
+    if(!Array.isArray(node.primaryChildIds)){
+      addError(`${rel.label}: Hauptteilmarkierung ist beschädigt.`,node.id);
+    }else if(rel.primary==="all"){
+      if(node.primaryChildIds.length!==children.length || children.some(id=>!node.primaryChildIds.includes(id))){
+        addError(`${rel.label}: Alle Kinder müssen gleichrangige Hauptteile sein.`,node.id);
+      }
+    }else if(Array.isArray(rel.primary)){
+      const required=rel.primary.map(i=>children[i]).filter(Boolean);
+      if(required.length!==node.primaryChildIds.length || required.some(id=>!node.primaryChildIds.includes(id))){
+        addError(`${rel.label}: Die Hauptteilmarkierung entspricht nicht der Beziehungsregel.`,node.id);
+      }
+    }else if(node.primaryChildIds.length!==1 || node.primaryChildIds.some(id=>!children.includes(id))){
+      addError(`${rel.label}: Es fehlt eine gültige Hauptteilmarkierung.`,node.id);
+    }
+    if(rel.extended && !state.settings.includeExtended){
+      warnings.push(`${rel.label} ist eine erweiterte Beziehung; zum Bearbeiten die erweiterten Beziehungen einschalten.`);
+    }
+  }
+
+  for(const [childId,count] of parentUse){
+    if(count>1){
+      const child=getNode(childId);
+      addError(`${child?.kind==="relation"?nodeLabel(childId):"Eine Proposition"} ist mehreren Elternverbindungen zugleich zugeordnet.`,child?.kind==="relation"?childId:null);
+    }
+  }
+  for(const rootId of state.rootIds){
+    if((parentUse.get(rootId)||0)>0) addError(`${nodeLabel(rootId)} ist zugleich Wurzel und Kind einer anderen Verbindung.`,getNode(rootId)?.kind==="relation"?rootId:null);
+  }
+
+  const relSpans=rels.map(n=>({id:n.id,...nodeSpan(n.id)}));
+  for(let i=0;i<relSpans.length;i++){
+    for(let j=i+1;j<relSpans.length;j++){
+      const a=relSpans[i],b=relSpans[j];
+      const overlap=Math.max(a.start,b.start)<=Math.min(a.end,b.end);
+      const aContains=a.start<=b.start && a.end>=b.end;
+      const bContains=b.start<=a.start && b.end>=a.end;
+      if(overlap && !aContains && !bContains){
+        addError("Diese Verbindung würde eine vorhandene Beziehung kreuzen.",a.id,b.id);
+      }
+    }
+  }
+
+  if(state.propositions.length>1 && state.rootIds.length!==1){
+    addError("Verbinde die verbleibenden Hauptgruppen zu einer Gesamtstruktur.");
+  }
+  const reached=new Set();
+  const walk=id=>{
+    if(reached.has(id)) return;
+    reached.add(id);
+    const n=getNode(id);
+    if(n && n.kind==="relation") for(const c of n.children||[]) walk(c);
+  };
+  for(const r of state.rootIds) walk(r);
+  const missingProps=state.propositions.filter(p=>!reached.has(p.id));
+  if(missingProps.length) addError("Mindestens eine Proposition ist verwaist und nicht Teil der Struktur.");
+  const orphanRelations=rels.filter(n=>!reached.has(n.id));
+  if(orphanRelations.length) addError("Mindestens eine Verbindung ist verwaist und nicht Teil der sichtbaren Gesamtstruktur.",...orphanRelations.map(n=>n.id));
+
+  const openCount=rels.filter(n=>n.relationshipId==null).length;
+  const complete=!!state.rawText && state.propositions.length>=2 && errors.length===0 && state.rootIds.length===1;
+  return {errors,warnings,nodeErrors,openCount,complete};
+}
+
+function escapeHtml(value){
+  return String(value ?? "").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[ch]));
+}
+function render(){
+  if(selectedRelationId && !getNode(selectedRelationId)) selectedRelationId=null;
+  lastValidation=validateState();
+  document.body.dataset.mode=state.settings.mode;
+  document.body.dataset.tool=activeTool;
+  els.extendedToggle.checked=!!state.settings.includeExtended;
+  els.editModeButton.setAttribute("aria-pressed",state.settings.mode==="bearbeiten");
+  els.viewModeButton.setAttribute("aria-pressed",state.settings.mode==="ansicht");
+  els.splitToolButton.setAttribute("aria-pressed",activeTool==="teilen");
+  els.connectToolButton.setAttribute("aria-pressed",activeTool==="verbinden");
+  els.toolGroup.style.display=state.settings.mode==="bearbeiten"?"flex":"none";
+  els.documentHeading.hidden=!state.title;
+  els.documentHeading.textContent=state.title||"";
+  els.textButton.textContent=state.rawText?"Text bearbeiten":"Text einfügen";
+  const currentProject=activeProject();
+  if(currentProject){
+    els.projectMenuButton.setAttribute("aria-label",`Projekte öffnen. Aktuell: ${projectDisplayName(currentProject)}`);
+    if(els.projectsDialog?.open) renderProjectManager();
+  }
+  els.centerModeLabel.textContent=state.settings.mode==="ansicht"?"Ansicht":`Bearbeiten · ${activeTool==="teilen"?"Teilen":"Verbinden"}`;
+  els.undoButton.disabled=!history.length;
+  els.redoButton.disabled=!future.length;
+  renderStatus();
+  renderPropositions();
+  renderUnitBar();
+  renderTreeSummary();
+  requestAnimationFrame(measureAndRenderSvgs);
+}
+function renderStatus(){
+  const v=lastValidation;
+  els.propStatus.textContent=`${state.propositions.length} ${state.propositions.length===1?"Proposition":"Propositionen"}`;
+  els.openStatus.textContent=`${v.openCount} ${v.openCount===1?"offene Gruppe":"offene Gruppen"}`;
+  els.rootStatus.textContent=`${state.rootIds.length} ${state.rootIds.length===1?"Wurzel":"Wurzeln"}`;
+  els.errorStatus.textContent=`${v.errors.length} ${v.errors.length===1?"Fehler":"Fehler"}`;
+  els.errorStatus.classList.toggle("problem",v.errors.length>0);
+  els.saveStatus.textContent=saveStateText;
+  if(selectedRelationId && getNode(selectedRelationId)?.kind==="relation") {
+    els.selectionStatus.hidden=false;
+    els.selectionStatus.textContent=`Ausgewählt: ${nodeLabel(selectedRelationId)} · Entf = löschen`;
+  } else {
+    els.selectionStatus.hidden=true;
+    els.selectionStatus.textContent="";
+  }
+  if(!state.rawText){
+    els.finishPill.textContent="Noch keine Analyse";
+    els.finishPill.className="status-pill";
+  }else if(v.complete){
+    els.finishPill.textContent="Analyse vollständig";
+    els.finishPill.className="status-pill done";
+  }else{
+    els.finishPill.textContent="Analyse unvollständig";
+    els.finishPill.className="status-pill problem";
+  }
+  const items=[...v.errors,...v.warnings];
+  if(items.length){
+    els.validationStrip.className="validation-strip show";
+    const shown=items.slice(0,3).map(x=>`<li>${escapeHtml(x)}</li>`).join("");
+    const more=items.length>3?`<li>… ${items.length-3} weitere Meldung${items.length-3===1?"":"en"} in den Statusdetails.</li>`:"";
+    els.validationStrip.innerHTML=`<strong>Prüfung:</strong><ul>${shown}${more}</ul>`;
+  }else{
+    els.validationStrip.className="validation-strip";
+    els.validationStrip.innerHTML="";
+  }
+}
+function propositionHtml(p,i){
+  const selected=selectionStartId===p.id?" selected":"";
+  const edit=state.settings.mode==="bearbeiten";
+  const connect=edit && activeTool==="verbinden";
+  const content=[];
+  for(let ti=p.tokenStart;ti<=p.tokenEnd;ti++){
+    const tok=state.tokens[ti] ?? "";
+    if(isWhitespaceToken(tok)){
+      content.push(escapeHtml(tok));
+      continue;
+    }
+    const canSplit=edit && activeTool==="teilen" && !state.cuts.includes(ti) && ti!==firstContentToken();
+    if(canSplit){
+      content.push(`<button class="split-word" type="button" data-split-token="${ti}" title="Neue Proposition vor „${escapeHtml(tok)}“ beginnen">${escapeHtml(tok)}</button>`);
+    }else{
+      content.push(`<span class="word-token">${escapeHtml(tok)}</span>`);
+    }
+  }
+  const anchor=connect?`<button class="unit-anchor" type="button" data-unit-id="${p.id}" aria-label="${nodeLabel(p.id)} zum Verbinden auswählen">•</button>`:"";
+  return `<div class="prop-wrap" data-prop-wrap="${p.id}">
+    ${edit && activeTool==="teilen" && i>0?`<button class="merge-button" type="button" data-merge-index="${i}" title="Grenze entfernen" aria-label="Grenze vor P${i+1} entfernen">×</button>`:""}
+    <article class="prop-card${selected}" data-prop-id="${p.id}">
+      <div class="anchor-cell">${anchor}</div>
+      <div class="prop-content"><span class="sr-only">P${i+1}: </span>${content.join("")}</div>
+    </article>
+  </div>`;
+}
+function renderPropositions(){
+  if(!state.rawText){
+    els.propList.innerHTML=`<div class="empty-center">
+      <h2>Noch kein Text</h2>
+      <p>Füge eigenen Text ein. Es wird kein Beispieltext und keine automatische Textquelle geladen.</p>
+      <button class="primary-action" type="button" data-empty-text>Text einfügen</button>
+    </div>`;
+    return;
+  }
+  els.propList.innerHTML=state.propositions.map(propositionHtml).join("");
+}
+function allSelectableUnits(){
+  const ids=[];
+  const add=id=>{if(id && getNode(id) && !ids.includes(id)) ids.push(id);};
+  state.rootIds.forEach(add);
+  for(const rel of relationNodes()){
+    if(rel.relationshipId==null || (RELATIONSHIPS[rel.relationshipId] && RELATIONSHIPS[rel.relationshipId].primary==="all")){
+      (rel.children||[]).forEach(add);
+    }
+    add(rel.id);
+  }
+  ids.sort((a,b)=>{
+    const sa=nodeSpan(a),sb=nodeSpan(b);
+    if(sa.start!==sb.start) return sa.start-sb.start;
+    if(sa.end!==sb.end) return sa.end-sb.end;
+    return getNode(a).kind==="proposition"?-1:1;
+  });
+  return ids;
+}
+function renderUnitBar(){
+  const show=state.rawText && state.settings.mode==="bearbeiten" && activeTool==="verbinden";
+  els.unitBar.classList.toggle("show",!!show);
+  if(!show){els.unitButtons.innerHTML="";return;}
+  const ids=allSelectableUnits();
+  els.unitHint.textContent=selectedRelationId
+    ? `${nodeLabel(selectedRelationId)} ausgewählt. Entf/Backspace löst genau diese Verbindung auf; Untergruppen bleiben erhalten.`
+    : activeTool==="verbinden"
+      ? (selectionStartId?`Start gewählt: ${nodeLabel(selectionStartId)}. Wähle nun eine Geschwistereinheit; der Bereich dazwischen wird gemeinsam gruppiert.`:"Wähle zuerst eine Einheit und danach das Ende eines zusammenhängenden Geschwisterbereichs. Klammern lassen sich anklicken und mit Entf löschen. Ein Klick auf den ausgeschriebenen Beziehungsnamen öffnet die Beziehungsauswahl.")
+      :"Im Werkzeug „Teilen“ liegen die Teilungspunkte direkt vor den Wörtern.";
+  els.unitButtons.innerHTML=ids.map(id=>{
+    const n=getNode(id);
+    const parent=findParentInfo(id);
+    const parentText=parent && parent.parentId?` · innerhalb ${nodeLabel(parent.parentId)}`:" · Wurzelebene";
+    const classes=["unit-chip"];
+    if(selectionStartId===id || selectedRelationId===id) classes.push("selected");
+    if(n.kind==="relation" && n.relationshipId==null) classes.push("open");
+    return `<button type="button" class="${classes.join(" ")}" data-unit-id="${id}" title="${escapeHtml(nodeLabel(id)+parentText)}">${escapeHtml(nodeLabel(id))}</button>`;
+  }).join("");
+}
+function renderTreeSummary(){
+  if(!state.rawText){els.treeSummary.textContent="Keine Analyse vorhanden.";return;}
+  const pMap=propIndexMap();
+  function describe(id){
+    const n=getNode(id);
+    if(!n) return "Unbekannte Einheit";
+    if(n.kind==="proposition") return `P${(pMap.get(id)??0)+1}`;
+    const rel=RELATIONSHIPS[n.relationshipId];
+    const name=rel?rel.label:"Offene Gruppe";
+    const children=(n.children||[]).map((cid,i)=>{
+      const role=n.roleOrder && n.roleOrder[i]?n.roleOrder[i]:"Teil";
+      const main=(n.primaryChildIds||[]).includes(cid)?" Hauptteil":"";
+      return `${role}${main}: ${describe(cid)}`;
+    }).join("; ");
+    return `${name}: ${children}`;
+  }
+  els.treeSummary.textContent=state.rootIds.map(describe).join(". ");
+}
+function openStatusDetails(){
+  const v=lastValidation||validateState();
+  const errors=v.errors.length?v.errors.map(e=>`<li>${escapeHtml(e)}</li>`).join(""):"<li>Keine Validierungsfehler.</li>";
+  const warnings=v.warnings.length?v.warnings.map(e=>`<li>${escapeHtml(e)}</li>`).join(""):"<li>Keine Hinweise.</li>";
+  els.statusDialogBody.innerHTML=`
+    <p><strong>${v.complete?"Analyse vollständig":"Analyse unvollständig"}</strong></p>
+    <p>${state.propositions.length} Propositionen · ${v.openCount} offene Gruppen · ${state.rootIds.length} Wurzeln · ${v.errors.length} Fehler.</p>
+    <h3>Fehler</h3><ul class="status-dialog-list">${errors}</ul>
+    <h3>Hinweise</h3><ul class="status-dialog-list">${warnings}</ul>
+    <p class="small-note">Vollständig ist die Analyse nur bei genau einer beschrifteten Wurzel über allen Propositionen, ohne offene Gruppen, ungültige Kardinalitäten oder verwaiste Teile.</p>`;
+  showDialog(els.statusDialog);
+}
+
+function getAnchorMap(){
+  const map=new Map();
+  const base=els.propList.getBoundingClientRect();
+  for(const card of $$("[data-prop-id]",els.propList)){
+    const rect=card.getBoundingClientRect();
+    map.set(card.dataset.propId,{top:rect.top-base.top,bottom:rect.bottom-base.top,center:(rect.top+rect.bottom)/2-base.top});
+  }
+  return map;
+}
+function relationLayoutData(anchorMap){
+  const depthMemo=new Map();
+  return relationNodes().map(node=>{
+    const leaves=collectLeaves(node.id);
+    const first=anchorMap.get(leaves[0]), last=anchorMap.get(leaves[leaves.length-1]);
+    if(!first || !last) return null;
+    return {
+      node,
+      depth:nodeDepth(node.id,depthMemo),
+      top:first.top,
+      bottom:last.bottom,
+      center:(first.top+last.bottom)/2,
+      childCenters:(node.children||[]).map(cid=>{
+        const cl=collectLeaves(cid);
+        const a=anchorMap.get(cl[0]),b=anchorMap.get(cl[cl.length-1]);
+        return a&&b?(a.center+b.center)/2:null;
+      })
+    };
+  }).filter(Boolean).sort((a,b)=>a.depth-b.depth || a.top-b.top);
+}
+function relationStrokeInfo(node){
+  const rel=RELATIONSHIPS[node.relationshipId];
+  let color=node.relationshipId==null?"#77818c":(rel?CATEGORY_COLORS[rel.category]:"#77818c");
+  let dash=node.relationshipId==null?"6 5":"";
+  let width=2;
+  if(lastValidation && lastValidation.nodeErrors.has(node.id)){color="#b42318";width=2.5;dash=node.relationshipId==null?"6 5":"";}
+  if(selectionStartId===node.id || selectedRelationId===node.id){color="#2563eb";width=2.6;}
+  return {rel,color,dash,width};
+}
+function safeSvgText(value){return escapeHtml(value).replace(/&#039;/g,"'");}
+
+function compactRole(role){
+  const map={
+    "Hauptaussage":"Hauptauss.",
+    "Art und Weise":"Art/Weise",
+    "Vergleichsbild":"Vergl.-bild",
+    "Spezifisch":"Spezif.",
+    "Allgemein":"Allg.",
+    "Ankündigung":"Ankünd.",
+    "Erfüllung":"Erfüll.",
+    "Einräumung":"Einräum.",
+    "Bedingung":"Beding.",
+    "Bejahung":"+",
+    "Verneinung":"-",
+    "Erklärung":"Erklär.",
+    "Folgerung":"Folg.",
+    "Frage":"Q",
+    "Antwort":"A",
+    "Handlung":"Handl.",
+    "Reaktion":"Reakt.",
+    "Situation":"Situat.",
+    "Tatsache":"Tats."
+  };
+  return map[role]||String(role||"");
+}
+function compactRelation(label){
+  const map={
+    "Abfolge":"Abf.",
+    "Alternative":"Altern.",
+    "Begründung":"Begr.",
+    "Folgerung":"Folg.",
+    "Beidseitige Begründung":"Beids. Begr.",
+    "Handlung–Ergebnis":"Handl.–Erg.",
+    "Handlung–Zweck":"Handl.–Zweck",
+    "Bedingung–Folge":"Beding.–Folge",
+    "Handlung–Art und Weise":"Handl.–Art/Weise",
+    "Verneinung–Bejahung":"+/−",
+    "Aussage–Erklärung":"Aussage–Erklär.",
+    "Frage–Antwort":"Q/A",
+    "Einräumung":"Einräum.",
+    "Situation–Reaktion":"Situat.–Reakt.",
+    "Allgemein–Spezifisch":"Allg.–Spez.",
+    "Tatsache–Deutung":"Tats.–Deutung",
+    "Ankündigung–Erfüllung":"Ankünd.–Erfüll.",
+    "Offene Gruppe":"Offen"
+  };
+  return map[label]||String(label||"");
+}
+function relationLaneX(depth,canvasWidth,gap=108,rightEdge=24){
+  // Tiefe 1 liegt direkt am Text. Jede weitere Verschachtelung bekommt eine
+  // vollständig eigene horizontale Bahn. Der Abstand ist absichtlich groß
+  // genug für Beziehungscode, Rollenbadge und Auswahlmarkierung.
+  return canvasWidth-rightEdge-depth*gap;
+}
+function wrapBracketText(text,maxChars=17,maxLines=4){
+  // Bereits verständlich gekürzte Beschriftungen dürfen bei Bedarf zusätzlich
+  // an Wort- bzw. Gedankenstrichgrenzen auf mehrere SVG-Zeilen verteilt werden.
+  const normalized=String(text||"").trim().replace(/–/g,"– ");
+  const words=normalized.split(/\s+/).filter(Boolean);
+  if(!words.length) return [""];
+  const lines=[];
+  let line="";
+  for(const word of words){
+    const candidate=line?`${line} ${word}`:word;
+    if(line && candidate.length>maxChars){
+      lines.push(line);
+      line=word;
+    }else{
+      line=candidate;
+    }
+  }
+  if(line) lines.push(line);
+  if(lines.length<=maxLines) return lines;
+  // Auch im Extremfall nicht kürzen: verbleibende Wörter werden in der letzten
+  // sichtbaren Zeile zusammengeführt, statt mit Ellipse abgeschnitten zu werden.
+  return [...lines.slice(0,maxLines-1),lines.slice(maxLines-1).join(" ")];
+}
+function bracketTextMetrics(lines,{minWidth=34,maxWidth=132,charWidth=5.55,lineHeight=12,padX=12,padY=7}={}){
+  const longest=Math.max(1,...lines.map(x=>String(x).length));
+  const width=Math.max(minWidth,Math.min(maxWidth,padX*2+longest*charWidth));
+  const height=padY*2+Math.max(1,lines.length)*lineHeight;
+  return {width,height,lineHeight,padX,padY};
+}
+function svgMultilineText(lines,x,centerY,className,fill,lineHeight=12){
+  const verticalOffset=((Math.max(1,lines.length)-1)*lineHeight)/2;
+  return `<text x="${x}" y="${centerY}" class="${className}" dominant-baseline="middle" alignment-baseline="middle"${fill?` fill="${fill}"`:""}>${lines.map((line,i)=>`<tspan x="${x}" dy="${i===0?-verticalOffset:lineHeight}">${safeSvgText(line)}</tspan>`).join("")}</text>`;
+}
+function chooseRelationLabelY({topY,bottomY,portY,labelHeight,canvasHeight,occupied,forbiddenYs=[]}){
+  const half=labelHeight/2;
+  const margin=6;
+  const portClearance=half+24; // Platz für die eingehende Elternlinie.
+  const center=(topY+bottomY)/2;
+  const candidates=[
+    topY+half+margin,
+    bottomY-half-margin,
+    center,
+    topY-half-10,
+    bottomY+half+10
+  ];
+  const valid=(y)=>{
+    if(!Number.isFinite(y) || y-half<4 || y+half>canvasHeight-4) return false;
+    if(Number.isFinite(portY) && Math.abs(y-portY)<portClearance) return false;
+    // Jede horizontale Klammerlinie, die den reservierten Label-Korridor quert,
+    // sperrt ihre y-Position. Damit kann ein Beziehungstitel keine Linie verdecken.
+    if(forbiddenYs.some(fy=>Number.isFinite(fy) && Math.abs(y-fy)<half+10)) return false;
+    return !occupied.some(([a,b])=>y+half+5>a && y-half-5<b);
+  };
+  for(const y of candidates){
+    if(valid(y)){occupied.push([y-half,y+half]);return y;}
+  }
+  // Deterministischer Fallback: die nächstgelegene freie Position derselben Bahn suchen.
+  const possible=[];
+  for(let y=half+4;y<=canvasHeight-half-4;y+=6){
+    if(valid(y)) possible.push(y);
+  }
+  const y=possible.length?possible.sort((a,b)=>Math.abs(a-center)-Math.abs(b-center))[0]:Math.max(half+4,Math.min(canvasHeight-half-4,center));
+  occupied.push([y-half,y+half]);
+  return y;
+}
+function bracketNodePortY(nodeId,anchorMap,memo=new Map()){
+  if(memo.has(nodeId)) return memo.get(nodeId);
+  const n=getNode(nodeId);
+  if(!n) return null;
+  if(n.kind==="proposition"){
+    const a=anchorMap.get(nodeId);
+    const y=a?a.center:null;
+    memo.set(nodeId,y);
+    return y;
+  }
+  const childPorts=(n.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,memo)).filter(v=>Number.isFinite(v));
+  if(!childPorts.length){memo.set(nodeId,null);return null;}
+  const primaryPorts=(n.primaryChildIds||[])
+    .map(cid=>bracketNodePortY(cid,anchorMap,memo))
+    .filter(v=>Number.isFinite(v));
+  let y;
+  if(primaryPorts.length===1) y=primaryPorts[0];
+  else if(primaryPorts.length>1) y=(Math.min(...primaryPorts)+Math.max(...primaryPorts))/2;
+  else y=(childPorts[0]+childPorts[childPorts.length-1])/2;
+  memo.set(nodeId,y);
+  return y;
+}
+function chooseBracketCodeY(childPorts){
+  const ys=[...new Set(childPorts.filter(Number.isFinite).map(v=>Math.round(v*10)/10))].sort((a,b)=>a-b);
+  if(!ys.length) return 0;
+  if(ys.length===1) return ys[0]-18;
+  const geometric=(ys[0]+ys[ys.length-1])/2;
+  const gaps=[];
+  for(let i=0;i<ys.length-1;i++){
+    const gap=ys[i+1]-ys[i];
+    // Ein Code-Badge ist 18 px hoch. 26 px Mindestlücke gibt auf beiden
+    // Seiten sichtbaren Abstand zu den horizontalen Ästen.
+    if(gap>=26) gaps.push({y:(ys[i]+ys[i+1])/2,gap});
+  }
+  if(gaps.length){
+    gaps.sort((a,b)=>Math.abs(a.y-geometric)-Math.abs(b.y-geometric) || b.gap-a.gap);
+    return gaps[0].y;
+  }
+  // Extrem dichter Sonderfall: außerhalb der Äste platzieren. Dadurch wird
+  // niemals eine Linie vom Label überdeckt.
+  return ys[0]-16;
+}
+function setBracketCanvasWidth(svg,width){
+  const wrap=svg.parentElement;
+  const previous=Number(svg.dataset.layoutWidth||0);
+  svg.dataset.layoutWidth=String(width);
+  svg.style.width=width+"px";
+  if(previous!==width){
+    requestAnimationFrame(()=>{
+      // Die textnahe Seite liegt rechts. Bei einer neuen Tiefe wird deshalb
+      // einmalig dorthin ausgerichtet; danach darf frei horizontal gescrollt werden.
+      wrap.scrollLeft=Math.max(0,wrap.scrollWidth-wrap.clientWidth);
+    });
+  }
+}
+
+function primaryDepthForProp(propId,layoutById){
+  let max=0;
+  for(const item of layoutById.values()){
+    const n=item.node;
+    const primary=n.primaryChildIds||[];
+    if(primary.some(cid=>descendantsContain(cid,propId))) max=Math.max(max,item.depth);
+  }
+  return max;
+}
+function computeAdaptiveBracketGeometry(data){
+  const maxDepth=Math.max(1,...data.map(x=>x.depth));
+  const relationMetricsById=new Map();
+  const roleDataByKey=new Map();
+  const relationThicknessByDepth=Array(maxDepth+1).fill(0);
+  const maxRoleWidthByDepth=Array(maxDepth+1).fill(0);
+  const maxRoleWidthByNode=new Map();
+
+  // Zuerst werden ausschließlich die tatsächlich vorkommenden Beschriftungen vermessen.
+  // Die Bahnbreiten entstehen anschließend aus diesen Messwerten, nicht aus einem festen Raster.
+  for(const item of data){
+    const {node}=item;
+    const {rel}=relationStrokeInfo(node);
+    const title=rel?rel.label:"Offene Gruppe";
+    const displayTitle=compactRelation(title);
+    const relationLines=wrapBracketText(displayTitle,14,3);
+    const relationMetrics=bracketTextMetrics(relationLines,{minWidth:44,maxWidth:96,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.3});
+    relationMetricsById.set(node.id,{title,displayTitle,lines:relationLines,metrics:relationMetrics});
+    // Nach der 90°-Drehung entspricht die sichtbare horizontale Dicke der ursprünglichen Höhe.
+    relationThicknessByDepth[item.depth]=Math.max(relationThicknessByDepth[item.depth],relationMetrics.height);
+
+    if(!rel || rel.primary==="all") continue;
+    let nodeMaxRoleWidth=0;
+    (node.children||[]).forEach((childId,i)=>{
+      const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
+      const displayRole=compactRole(fullRole);
+      const roleLines=wrapBracketText(displayRole,13,2);
+      const roleMetrics=bracketTextMetrics(roleLines,{minWidth:34,maxWidth:94,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.1});
+      roleDataByKey.set(`${node.id}:${i}`,{fullRole,displayRole,lines:roleLines,metrics:roleMetrics});
+      nodeMaxRoleWidth=Math.max(nodeMaxRoleWidth,roleMetrics.width);
+      maxRoleWidthByDepth[item.depth]=Math.max(maxRoleWidthByDepth[item.depth],roleMetrics.width);
+    });
+    maxRoleWidthByNode.set(node.id,nodeMaxRoleWidth);
+  }
+
+  // Korridor d liegt zwischen der Stamm-Linie der Tiefe d und der nächstinneren Bahn.
+  // Er wird nur so breit wie nötig. Dabei werden berücksichtigt:
+  //  - die sichtbare Dicke der vertikalen Beziehungs-Badges an beiden Korridorrändern,
+  //  - ein möglicher Stern direkt nach der Elternlinie,
+  //  - die breiteste horizontale Rollenbeschriftung dieser Tiefe,
+  //  - Sicherheitsabstände, damit kein Badge eine Linie oder ein Nachbar-Badge berührt.
+  const laneWidths=Array(maxDepth+1).fill(0);
+  for(let d=1;d<=maxDepth;d++){
+    const parentHalf=relationThicknessByDepth[d]/2;
+    const innerHalf=d===1?0:relationThicknessByDepth[d-1]/2;
+    const labelOnlyNeed=parentHalf+innerHalf+22;
+    const roleWidth=maxRoleWidthByDepth[d];
+    const roleLeftClear=Math.max(parentHalf+10,22); // Badge + Stern + Luft
+    const roleNeed=roleWidth?roleLeftClear+roleWidth+innerHalf+12:0;
+    laneWidths[d]=Math.ceil(Math.max(46,labelOnlyNeed,roleNeed));
+  }
+
+  const cumulative=Array(maxDepth+1).fill(0);
+  for(let d=1;d<=maxDepth;d++) cumulative[d]=cumulative[d-1]+laneWidths[d];
+  const outerHalf=relationThicknessByDepth[maxDepth]/2;
+  const leftGutter=Math.ceil(Math.max(18,outerHalf+12));
+  const rightGutter=22;
+  const needed=leftGutter+rightGutter+cumulative[maxDepth]+8;
+
+  return {
+    maxDepth,laneWidths,cumulative,leftGutter,rightGutter,needed,
+    relationMetricsById,roleDataByKey,relationThicknessByDepth,maxRoleWidthByNode
+  };
+}
+function renderBracketSvg(anchorMap,height){
+  const svg=els.bracketSvg;
+  const clientWidth=Math.max(svg.parentElement.clientWidth,320);
+  const data=relationLayoutData(anchorMap);
+  const geometry=computeAdaptiveBracketGeometry(data);
+  const {maxDepth,cumulative,leftGutter,rightGutter,needed,relationMetricsById,roleDataByKey,maxRoleWidthByNode}=geometry;
+  const w=Math.max(clientWidth,needed);
+  const effectiveRight=w-rightGutter;
+  const xForDepth=(depth)=>effectiveRight-cumulative[depth];
+  const xById=new Map(data.map(x=>[x.node.id,xForDepth(x.depth)]));
+  const portMemo=new Map();
+
+  // Rollen derselben Beziehung erhalten weiterhin exakt dieselbe x-Position.
+  // Anders als zuvor wird diese Position aus der real benötigten Badge-Breite berechnet.
+  const rolePlacementByKey=new Map();
+  for(const item of data){
+    const {node}=item;
+    const {rel}=relationStrokeInfo(node);
+    if(!rel || rel.primary==="all") continue;
+    const x=xById.get(node.id);
+    const relationInfo=relationMetricsById.get(node.id);
+    const parentHalf=(relationInfo?.metrics.height||0)/2;
+    const nodeMaxRoleWidth=maxRoleWidthByNode.get(node.id)||0;
+    const commonRoleX=x+Math.max(parentHalf+10,22)+nodeMaxRoleWidth/2;
+    const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
+    const childTargets=(node.children||[]).map(childId=>{
+      const child=getNode(childId);
+      return child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
+    });
+    (node.children||[]).forEach((childId,i)=>{
+      const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
+      const roleInfo=roleDataByKey.get(`${node.id}:${i}`); if(!roleInfo) return;
+      const targetX=childTargets[i];
+      const {lines:roleLines,metrics:roleMetrics,fullRole}=roleInfo;
+      // Defensive Begrenzung für importierte/ungewöhnliche Bäume. Im Normalfall greift
+      // sie nicht, weil die adaptive Bahnbreite den benötigten Platz bereits garantiert.
+      const maxX=targetX-roleMetrics.width/2-8;
+      const minX=x+Math.max(parentHalf+10,22)+roleMetrics.width/2;
+      const rx=Math.max(minX,Math.min(commonRoleX,maxX));
+      rolePlacementByKey.set(`${node.id}:${i}`,{rx,roleCenterY:cy,roleLines,roleMetrics,fullRole});
+    });
+  }
+
+  svg.setAttribute("viewBox",`0 0 ${w} ${height}`);
+  svg.setAttribute("height",String(height));
+  svg.style.height=height+"px";
+  setBracketCanvasWidth(svg,w);
+
+  const pieces=[];
+  const labelPieces=[];
+  for(const item of data){
+    const {node}=item;
+    const {rel,color,dash,width:strokeWidth}=relationStrokeInfo(node);
+    const x=xById.get(node.id);
+    const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
+    const validPorts=childPorts.filter(Number.isFinite);
+    if(!validPorts.length) continue;
+
+    const topY=Math.min(...validPorts), bottomY=Math.max(...validPorts);
+    const portY=bracketNodePortY(node.id,anchorMap,portMemo);
+    const dashAttr=dash?` stroke-dasharray="${dash}"`:"";
+    const isSelected=selectedRelationId===node.id;
+    const relationInfo=relationMetricsById.get(node.id);
+    const title=relationInfo?.title||(rel?rel.label:"Offene Gruppe");
+    const relationLines=relationInfo?.lines||[compactRelation(title)];
+    const relationMetrics=relationInfo?.metrics||bracketTextMetrics(relationLines,{minWidth:44,maxWidth:96,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.3});
+
+    pieces.push(`<g class="svg-rel" data-relation-id="${node.id}">`);
+
+    // Beziehungsname exakt in der geometrischen Mitte der vertikalen Stamm-Linie.
+    const relationLabelScreenHeight=relationMetrics.width;
+    const relationLabelScreenWidth=relationMetrics.height;
+    const labelY=(topY+bottomY)/2;
+    const labelTop=labelY-relationLabelScreenHeight/2;
+    const labelBottom=labelY+relationLabelScreenHeight/2;
+
+    if(topY!==bottomY){
+      const verticalSegments=[];
+      if(labelTop>topY+4) verticalSegments.push([topY,labelTop]);
+      if(labelBottom<bottomY-4) verticalSegments.push([labelBottom,bottomY]);
+      verticalSegments.forEach(([segTop,segBottom])=>{
+        pieces.push(`<path class="svg-hit-line" d="M ${x} ${segTop} V ${segBottom}"/>`);
+        if(isSelected) pieces.push(`<path class="svg-selected-halo" d="M ${x} ${segTop} V ${segBottom}"/>`);
+        pieces.push(`<path class="svg-tree-line" d="M ${x} ${segTop} V ${segBottom}" stroke="${color}" stroke-width="${strokeWidth}"${dashAttr}/>`);
+      });
+    }
+
+    (node.children||[]).forEach((childId,i)=>{
+      const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
+      const child=getNode(childId);
+      const targetX=child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
+      const primary=(node.primaryChildIds||[]).includes(childId);
+      const lineClass=primary?"svg-tree-line svg-primary-line":"svg-tree-line";
+
+      const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+relationLabelScreenWidth/2 : x;
+      pieces.push(`<path class="svg-hit-line" d="M ${branchStartX} ${cy} H ${targetX}"/>`);
+      if(isSelected) pieces.push(`<path class="svg-selected-halo" d="M ${branchStartX} ${cy} H ${targetX}"/>`);
+      pieces.push(`<path class="${lineClass}" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${strokeWidth}"${dashAttr}/>`);
+
+      const placement=rolePlacementByKey.get(`${node.id}:${i}`);
+      if(placement){
+        const {rx,roleCenterY,roleLines,roleMetrics,fullRole}=placement;
+        const roleX=rx-roleMetrics.width/2, roleY=roleCenterY-roleMetrics.height/2;
+        labelPieces.push(`<g class="diagram-label-box diagram-role-label">`);
+        labelPieces.push(`<rect class="svg-role-bg" x="${roleX}" y="${roleY}" width="${roleMetrics.width}" height="${roleMetrics.height}" rx="5"></rect>`);
+        labelPieces.push(svgMultilineText(roleLines,rx,roleCenterY,"svg-role",null,roleMetrics.lineHeight));
+        labelPieces.push(`<rect class="diagram-label-hit role-label-hit" data-diagram-tooltip="${escapeHtml(fullRole)}" x="${roleX}" y="${roleY}" width="${roleMetrics.width}" height="${roleMetrics.height}" rx="5"></rect>`);
+        labelPieces.push(`</g>`);
+      }
+
+      if(primary && rel && rel.primary!=="all"){
+        const sx=branchStartX+10;
+        pieces.push(`<circle cx="${sx}" cy="${cy}" r="5.1" fill="#fff" stroke="${color}" stroke-width="1.2"/><text x="${sx}" y="${cy}" class="svg-star" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
+      }
+    });
+
+    const labelX=x;
+    const relX=labelX-relationMetrics.width/2, relY=labelY-relationMetrics.height/2;
+    labelPieces.push(`<g class="diagram-label-box diagram-relation-label" transform="rotate(-90 ${labelX} ${labelY})">`);
+    labelPieces.push(`<rect class="svg-code-bg" x="${relX}" y="${relY}" width="${relationMetrics.width}" height="${relationMetrics.height}" rx="6" fill="#fff" stroke="${color}"${dashAttr}></rect>`);
+    labelPieces.push(svgMultilineText(relationLines,labelX,labelY,"svg-code",color,relationMetrics.lineHeight));
+    labelPieces.push(`<rect class="diagram-label-hit relation-label-hit" data-edit-relation-id="${node.id}" data-diagram-tooltip="${escapeHtml(title)}" x="${relX}" y="${relY}" width="${relationMetrics.width}" height="${relationMetrics.height}" rx="6"></rect>`);
+    labelPieces.push(`</g>`);
+    pieces.push(`</g>`);
+
+    if(state.settings.mode==="bearbeiten" && activeTool==="verbinden"){
+      const anchorY=Number.isFinite(portY)?portY:(topY+bottomY)/2;
+      pieces.push(`<circle data-unit-id="${node.id}" class="svg-rel" cx="${effectiveRight-1}" cy="${anchorY}" r="7" fill="#fff" stroke="${selectionStartId===node.id?"#2563eb":"#94a3b8"}" stroke-width="${selectionStartId===node.id?2.6:1.4}"/>`);
+    }
+  }
+
+  // Labels liegen immer über sämtlichen Linien.
+  svg.innerHTML=pieces.join("")+`<g class="svg-label-layer">${labelPieces.join("")}</g>`;
+
+  els.bracketEmpty.textContent="";
+  els.bracketEmpty.style.display=data.length?"none":"flex";
+  if(!data.length) els.bracketEmpty.textContent=state.propositions.length<2?"Teile den Text in mindestens zwei Propositionen, um Klammern anzulegen.":"Verbinde benachbarte Einheiten. Die Klammerbreite passt sich automatisch an den benötigten Platz an.";
+}
+
+function measureAndRenderSvgs(){
+  const height=Math.max(260,els.propList.scrollHeight);
+  const anchors=getAnchorMap();
+  renderBracketSvg(anchors,height);
+}
+
+function showDialog(dialog){
+  if(!dialog.open) dialog.showModal();
+  const focusable=$$('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex]:not([tabindex="-1"])',dialog);
+  if(focusable.length) requestAnimationFrame(()=>focusable[0].focus());
+}
+function closeDialog(dialog){
+  if(dialog && dialog.open) dialog.close();
+}
+function openTextDialog(){
+  els.textDialogTitle.textContent=state.rawText?"Text bearbeiten":"Text einfügen";
+  els.textTitleInput.value=state.title||"";
+  els.mainPointSummaryInput.value=state.mainPointSummary||"";
+  els.rawTextInput.value=state.rawText||"";
+  els.applyTextButton.textContent=state.rawText?"Text übernehmen":"Analyse starten";
+  els.applyTextButton.disabled=!els.rawTextInput.value.trim();
+  showDialog(els.textDialog);
+  requestAnimationFrame(()=>{
+    if(!state.rawText) els.textTitleInput.focus();
+    else els.rawTextInput.focus();
+  });
+}
+function applyTextFromDialog(){
+  const title=String(els.textTitleInput.value||"").trim();
+  const mainPointSummary=String(els.mainPointSummaryInput.value||"").trim();
+  const raw=normalizeRawText(els.rawTextInput.value);
+  if(!raw.trim()){announce("Bitte zuerst eigenen Text einfügen.");return;}
+  const textChanged=raw!==state.rawText;
+  const titleChanged=title!==(state.title||"");
+  const summaryChanged=mainPointSummary!==(state.mainPointSummary||"");
+  if(!textChanged && !titleChanged && !summaryChanged){closeDialog(els.textDialog);return;}
+  if(textChanged){
+    const hasAnalysisWork=state.propositions.length>1 || hasRelations();
+    if(hasAnalysisWork && !confirm("Das Ändern des Textes setzt die Segmentierung auf eine Proposition zurück und löscht vorhandene Beziehungen. Fortfahren?")) return;
+    selectionStartId=null;
+    selectedRelationId=null;
+    activeTool="teilen";
+    performAction(state.rawText?"Text geändert":"Text übernommen",()=>initializeText(raw,title,mainPointSummary));
+  }else{
+    performAction(titleChanged && summaryChanged?"Titel und Hauptaussage geändert":titleChanged?"Titel geändert":"Hauptaussage geändert",()=>{state.title=title;state.mainPointSummary=mainPointSummary;});
+  }
+  closeDialog(els.textDialog);
+}
+
+function selectedConjunctionEntry(){
+  return selectedConjunctionLookup ? CONJUNCTION_LOOKUP.find(item=>item.label===selectedConjunctionLookup)||null : null;
+}
+function relationshipEntriesForDialog(){
+  const node=getNode(activeRelationId);
+  if(!node || node.kind!=="relation") return [];
+  const q=els.relationshipSearch.value.trim().toLocaleLowerCase("de");
+  const conjunction=selectedConjunctionEntry();
+  const allowedByConjunction=conjunction?new Set(conjunction.relations):null;
+  return Object.entries(RELATIONSHIPS).filter(([id,rel])=>{
+    const visible=!rel.extended || state.settings.includeExtended || node.relationshipId===id;
+    if(!visible) return false;
+    if(allowedByConjunction && !allowedByConjunction.has(id)) return false;
+    if(!q) return true;
+    const hay=[rel.label,rel.uiCode,rel.compatibilityCode,rel.definition,rel.test,...rel.signals].join(" ").toLocaleLowerCase("de");
+    return hay.includes(q);
+  });
+}
+function renderRelationshipDialog(){
+  const node=getNode(activeRelationId);
+  if(!node || node.kind!=="relation") return;
+  els.relationshipDialogTitle.textContent=node.relationshipId?"Beziehung ändern":"Beziehung wählen";
+  els.dialogExtendedToggle.checked=!!state.settings.includeExtended;
+  renderConjunctionFilter();
+  const entries=relationshipEntriesForDialog();
+  const order=["koordination","eigenstaendige_stuetze","erlaeuternde_stuetze","gegensaetzliche_stuetze","erweitert"];
+  const grouped=new Map(order.map(c=>[c,[]]));
+  for(const entry of entries) grouped.get(entry[1].category)?.push(entry);
+  const html=[];
+  for(const cat of order){
+    const rows=grouped.get(cat)||[];
+    if(!rows.length) continue;
+    html.push(`<div class="rel-category">${escapeHtml(CATEGORY_LABELS[cat])}</div><div class="rel-list">`);
+    for(const [id,rel] of rows){
+      const ok=cardinalityOk(rel,node.children.length);
+      const selected=chosenRelationshipId===id?" selected":"";
+      const relColor=CATEGORY_COLORS[rel.category]||"#475467";
+      html.push(`<button type="button" class="rel-card${selected}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}" style="--rel-color:${relColor}">
+        <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
+        <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
+        <span class="cardinality">${escapeHtml(cardinalityText(rel))}</span>
+      </button>`);
+    }
+    html.push("</div>");
+  }
+  els.relationshipList.innerHTML=html.join("") || `<p class="small-note">Keine passende Beziehung gefunden.</p>`;
+  renderRelationshipDetails();
+}
+function relationRoleSummary(node){
+  if(!node.relationshipId) return "Noch keine Beziehung zugewiesen.";
+  const rel=RELATIONSHIPS[node.relationshipId];
+  if(!rel) return "Unbekannte Beziehung.";
+  return node.children.map((cid,i)=>{
+    const main=node.primaryChildIds.includes(cid)?" ★ Hauptteil":"";
+    return `${nodeLabel(cid)}: ${node.roleOrder[i]||"Teil"}${main}`;
+  }).join(" · ");
+}
+function conjunctionLookupOptions(){
+  return [`<option value="">Konjunktion auswählen …</option>`,...CONJUNCTION_LOOKUP.map(item=>`<option value="${escapeHtml(item.label)}"${selectedConjunctionLookup===item.label?" selected":""}>${escapeHtml(item.label)}</option>`)].join("");
+}
+function renderConjunctionFilter(){
+  if(!els.conjunctionLookupSelect || !els.conjunctionFilterInfo) return;
+  els.conjunctionLookupSelect.innerHTML=conjunctionLookupOptions();
+  const item=selectedConjunctionEntry();
+  if(!item){
+    els.conjunctionFilterInfo.hidden=true;
+    els.conjunctionFilterInfo.innerHTML="";
+    return;
+  }
+  const names=item.relations.map(id=>RELATIONSHIPS[id]?.label).filter(Boolean);
+  els.conjunctionFilterInfo.hidden=false;
+  els.conjunctionFilterInfo.innerHTML=`<strong>${escapeHtml(item.label)}</strong> → ${escapeHtml(names.join(" · "))}${item.note?`<br>${escapeHtml(item.note)}`:""}`;
+}
+function renderRelationshipDetails(){
+  const node=getNode(activeRelationId);
+  if(!node || node.kind!=="relation") return;
+  const current=RELATIONSHIPS[node.relationshipId];
+  const rel=RELATIONSHIPS[chosenRelationshipId];
+  els.relationshipDetails.innerHTML=`
+    <div class="rel-current"><strong>Ausgewählte Gruppe:</strong> ${escapeHtml(nodeLabel(node.id))}<br>
+      ${current?`Aktuell: ${escapeHtml(current.label)}`:"Aktuell: offene Gruppe"}<br>
+      <span class="small-note">${escapeHtml(relationRoleSummary(node))}</span>
+    </div>
+    ${rel?`<h3>${escapeHtml(rel.label)}</h3>
+      <div class="rel-meta"><span class="rel-color-chip" style="--chip-color:${CATEGORY_COLORS[rel.category]||"#475467"}"></span>${escapeHtml(CATEGORY_LABELS[rel.category])} · ${escapeHtml(cardinalityText(rel))}</div>
+      <dl>
+        <dt>Definition</dt><dd>${escapeHtml(rel.definition)}</dd>
+        <dt>Alltagsbeispiel</dt><dd class="rel-example">${escapeHtml(EVERYDAY_EXAMPLES[chosenRelationshipId]||"—")}</dd>
+        <dt>Prüffrage</dt><dd>${escapeHtml(rel.test)}</dd>
+        <dt>Signalwörter</dt><dd>${escapeHtml(rel.signals.join("; "))}</dd>
+        <dt>Rollen</dt><dd>${escapeHtml(rel.primary==="all"?"Alle Kinder gleichrangige Hauptteile":(rel.roles.join(" → ")||"—"))}</dd>
+        <dt>Umkehrung</dt><dd>${escapeHtml(rel.reversal||"—")}</dd>
+        <dt>Hinweis</dt><dd>${escapeHtml(rel.note||"—")}</dd>
+      </dl>`:
+      `<p class="small-note">Wähle links eine Beziehung. Nicht passende Kardinalitäten sind deaktiviert.</p>`}`;
+  const currentRel=current;
+  els.swapRolesButton.disabled=!(currentRel && currentRel.allowRoleSwap && node.children.length===2);
+  els.changePrimaryButton.disabled=!(currentRel && currentRel.primary!=="all" && !Array.isArray(currentRel.primary) && node.children.length>=2);
+  els.dissolveGroupButton.disabled=false;
+  els.deleteSubtreeButton.disabled=false;
+  els.leaveOpenButton.textContent=node.relationshipId?"Abbrechen":"Offen lassen";
+  els.applyRelationshipButton.disabled=!(rel && cardinalityOk(rel,node.children.length));
+}
+function openRelationshipDialog(nodeId){
+  if(!canModifyRelations()) return;
+  const node=getNode(nodeId);
+  if(!node || node.kind!=="relation") return;
+  activeRelationId=nodeId;
+  selectedRelationId=nodeId;
+  chosenRelationshipId=node.relationshipId || null;
+  selectedConjunctionLookup="";
+  els.relationshipSearch.value="";
+  renderRelationshipDialog();
+  showDialog(els.relationshipDialog);
+}
+function closeRelationshipDialog(){
+  closeDialog(els.relationshipDialog);
+  activeRelationId=null; chosenRelationshipId=null;
+}
+function applyRelationship(){
+  if(!canModifyRelations()) return;
+  const node=getNode(activeRelationId);
+  const rel=RELATIONSHIPS[chosenRelationshipId];
+  if(!node || node.kind!=="relation" || !rel || !cardinalityOk(rel,node.children.length)) return;
+  if(node.relationshipId===chosenRelationshipId && node.roleOrder.length===node.children.length){
+    closeRelationshipDialog(); return;
+  }
+  performAction(`Beziehung ${rel.label} übernommen`,()=>{
+    const existingPrimary=node.primaryChildIds&&node.primaryChildIds.length===1?node.primaryChildIds[0]:null;
+    const preferred=node.preferredPrimaryChildId||existingPrimary||null;
+    const oriented=orientedRelationDefaults(rel,node.children,preferred);
+    node.relationshipId=chosenRelationshipId;
+    node.roleOrder=oriented.roleOrder;
+    node.primaryChildIds=oriented.primaryChildIds;
+    // Nach der ersten Festlegung ist der Hauptpunkt bereits in primaryChildIds
+    // gespeichert; die temporäre Auswahlpräferenz wird nicht mehr benötigt.
+    node.preferredPrimaryChildId=null;
+  });
+  closeRelationshipDialog();
+}
+function swapRoles(){
+  if(!canModifyRelations()) return;
+  const node=getNode(activeRelationId),rel=node&&RELATIONSHIPS[node.relationshipId];
+  if(!node || !rel || !rel.allowRoleSwap || node.children.length!==2) return;
+  performAction("Rollen getauscht",()=>{
+    node.roleOrder=[...node.roleOrder].reverse();
+    if(node.primaryChildIds.length===1){
+      const i=node.children.indexOf(node.primaryChildIds[0]);
+      if(i>=0) node.primaryChildIds=[node.children[1-i]];
+    }
+  });
+  renderRelationshipDialog();
+}
+function changePrimary(){
+  if(!canModifyRelations()) return;
+  const node=getNode(activeRelationId),rel=node&&RELATIONSHIPS[node.relationshipId];
+  if(!node || !rel || rel.primary==="all" || Array.isArray(rel.primary)) return;
+  performAction("Hauptteil geändert",()=>{
+    const current=node.primaryChildIds.length?node.children.indexOf(node.primaryChildIds[0]):-1;
+    const next=(current+1)%node.children.length;
+    node.primaryChildIds=[node.children[next]];
+  });
+  renderRelationshipDialog();
+}
+function dissolveGroup(){
+  if(!canModifyRelations()) return;
+  const id=activeRelationId;
+  if(!getNode(id)) return;
+  selectionStartId=null;
+  const ok=performAction("Verbindung gelöscht",()=>removeRelationNode(id));
+  if(ok){
+    selectedRelationId=null;
+    closeRelationshipDialog();
+    render();
+    if(ok.parentOpened) announce("Verbindung gelöscht. Die übergeordnete Beziehung wurde geöffnet, weil ihre Kinderzahl sich geändert hat.");
+  }
+}
+function deleteSubtree(){
+  if(!canModifyRelations()) return;
+  const id=activeRelationId;
+  if(!getNode(id)) return;
+  if(!confirm("Diesen Teilbaum löschen? Der Text bleibt erhalten; alle Beziehungen innerhalb dieser Gruppe werden entfernt.")) return;
+  selectionStartId=null;
+  const ok=performAction("Teilbaum gelöscht",()=>deleteRelationSubtree(id));
+  if(ok){
+    selectedRelationId=null;
+    closeRelationshipDialog();
+    render();
+    if(ok.parentOpened) announce("Teilbaum gelöscht. Die übergeordnete Beziehung wurde geöffnet, weil ihre Kinderzahl sich geändert hat.");
+  }
+}
+
+function selectRelation(nodeId,{openEditor=false}={}){
+  if(!canModifyRelations()) return;
+  const node=getNode(nodeId);
+  if(!node || node.kind!=="relation") return;
+  selectedRelationId=nodeId;
+  render();
+  announce(`${nodeLabel(nodeId)} ausgewählt. Entf oder Backspace löscht diese Verbindung.`);
+  if(openEditor) openRelationshipDialog(nodeId);
+}
+function deleteSelectedRelation(nodeId=selectedRelationId){
+  if(!canModifyRelations()) return false;
+  const node=getNode(nodeId);
+  if(!node || node.kind!=="relation") return false;
+  const label=nodeLabel(nodeId);
+  selectionStartId=null;
+  const dialogWasActive=activeRelationId===nodeId;
+  const ok=performAction("Verbindung gelöscht",()=>removeRelationNode(nodeId));
+  if(!ok) return false;
+  selectedRelationId=null;
+  if(dialogWasActive) closeRelationshipDialog();
+  render();
+  announce(ok.parentOpened
+    ? `${label} gelöscht. Untergruppen und Text bleiben erhalten; die übergeordnete Beziehung wurde wegen der geänderten Kinderzahl geöffnet.`
+    : `${label} gelöscht. Untergruppen und Text bleiben erhalten.`);
+  return true;
+}
+
+function handleUnitClick(nodeId){
+  const node=getNode(nodeId);
+  if(!node || !canModifyRelations()) return;
+  if(!selectionStartId){
+    selectionStartId=nodeId; render(); announce(`${nodeLabel(nodeId)} als Start gewählt`);
+    return;
+  }
+  if(selectionStartId===nodeId){
+    selectionStartId=null; render(); announce("Auswahl aufgehoben"); return;
+  }
+  const a=findParentInfo(selectionStartId),b=findParentInfo(nodeId);
+  if(!a || !b || a.parentId!==b.parentId){
+    announce("Nur direkt benachbarte Einheiten derselben Ebene können verbunden werden.");
+    return;
+  }
+  const from=Math.min(a.index,b.index),to=Math.max(a.index,b.index);
+  const selected=a.siblings.slice(from,to+1);
+  if(selected.length<2){announce("Wähle mindestens zwei Einheiten.");return;}
+  if(!canGroupInside(a.parentId,selected.length)){
+    announce("Innerhalb einer bereits beschrifteten unterordnenden Beziehung kann keine neue Untergruppe angelegt werden.");
+    return;
+  }
+  let newId=null;
+  const preferredPrimaryChildId=selectionStartId;
+  selectionStartId=null;
+  performAction("Offene Gruppe angelegt",()=>{ newId=connectOpen(selected,a.parentId,preferredPrimaryChildId); });
+  if(newId && getNode(newId)) openRelationshipDialog(newId);
+}
+
+function splitBefore(tokenIndex){
+  if(state.settings.mode!=="bearbeiten" || activeTool!=="teilen") return;
+  if(tokenIndex===firstContentToken() || state.cuts.includes(tokenIndex)) return;
+  if(hasRelations() && !confirm("Das Teilen oder Zusammenführen löscht alle Beziehungen. Fortfahren?")) return;
+  selectionStartId=null; selectedRelationId=null;
+  performAction("Proposition geteilt",()=>{
+    if(hasRelations()) resetRelationsKeepSegmentation();
+    state.cuts=[...state.cuts,tokenIndex].sort((a,b)=>a-b);
+    rebuildPropositions({splitToken:tokenIndex});
+    state.rootIds=state.propositions.map(p=>p.id);
+  });
+}
+function mergeAtPropIndex(index){
+  if(state.settings.mode!=="bearbeiten" || activeTool!=="teilen") return;
+  if(index<=0 || index>=state.propositions.length) return;
+  const cut=state.propositions[index].tokenStart;
+  if(hasRelations() && !confirm("Das Teilen oder Zusammenführen löscht alle Beziehungen. Fortfahren?")) return;
+  selectionStartId=null; selectedRelationId=null;
+  performAction("Grenze entfernt",()=>{
+    if(hasRelations()) resetRelationsKeepSegmentation();
+    state.cuts=state.cuts.filter(x=>x!==cut);
+    rebuildPropositions({mergeCut:cut});
+    state.rootIds=state.propositions.map(p=>p.id);
+  });
+}
+function setMode(mode){
+  state.settings.mode=mode;
+  if(mode!=="bearbeiten"){
+    selectionStartId=null; selectedRelationId=null;
+    if(els.relationshipDialog.open) closeRelationshipDialog();
+  }
+  state.updatedAt=new Date().toISOString();
+  render(); schedulePersist();
+}
+function setTool(tool){
+  activeTool=tool;
+  selectionStartId=null;
+  if(tool!=="verbinden"){
+    selectedRelationId=null;
+    if(els.relationshipDialog.open) closeRelationshipDialog();
+  }
+  render();
+}
+function setExtended(enabled){
+  state.settings.includeExtended=!!enabled;
+  if(!enabled && activeRelationId && chosenRelationshipId){
+    const node=getNode(activeRelationId);
+    const chosen=RELATIONSHIPS[chosenRelationshipId];
+    if(chosen?.extended && node?.relationshipId!==chosenRelationshipId) chosenRelationshipId=node?.relationshipId||null;
+  }
+  state.updatedAt=new Date().toISOString(); render(); schedulePersist();
+  if(els.relationshipDialog.open) renderRelationshipDialog();
+}
+
+function schedulePersist(){
+  clearTimeout(saveTimer);
+  saveStateText="Speichern …";
+  renderStatus();
+  saveTimer=setTimeout(persistNow,300);
+}
+function persistNow(){
+  try{
+    syncStateIntoActiveProject();
+    storeProjectsNow();
+    saveStateText="Lokal gespeichert";
+  }catch(err){
+    saveStateText="Nur für diese Sitzung gespeichert";
+  }
+  renderStatus();
+  if(els.projectsDialog?.open) renderProjectManager();
+}
+function loadSaved(){ return loadProjects(); }
+function resetAll(){
+  if(!confirm("Aktuelles Projekt vollständig zurücksetzen? Text, Struktur und Verlauf dieses Projekts werden gelöscht. Andere Projekte bleiben erhalten.")) return;
+  clearTimeout(saveTimer);
+  state=createEmptyState(); history=[]; future=[]; selectionStartId=null; selectedRelationId=null; activeRelationId=null; chosenRelationshipId=null; activeTool="teilen";
+  saveStateText="Speichern …";
+  try{ syncStateIntoActiveProject(); storeProjectsNow(); saveStateText="Lokal gespeichert"; }
+  catch(_){ saveStateText="Nur für diese Sitzung gespeichert"; }
+  render(); announce("Aktuelles Projekt zurückgesetzt");
+}
+function downloadBlob(blob,filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1200);
+}
+function exportBaseFilename(){
+  const source=(state.title||"analyse").trim().toLocaleLowerCase("de");
+  const slug=source.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,70)||"analyse";
+  return `sensus-lab-${slug}`;
+}
+function exportJson(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json;charset=utf-8"});
+  downloadBlob(blob,`${exportBaseFilename()}.json`);
+  announce("JSON exportiert");
+}
+function exportTextLines(text,maxWidth,font){
+  const canvas=exportTextLines._canvas||(exportTextLines._canvas=document.createElement("canvas"));
+  const ctx=canvas.getContext("2d");
+  ctx.font=font;
+  const paragraphs=String(text??"").replace(/\r\n?/g,"\n").split("\n");
+  const lines=[];
+  const splitOversizeWord=(word)=>{
+    if(ctx.measureText(word).width<=maxWidth) return [word];
+    const parts=[]; let part="";
+    for(const ch of Array.from(word)){
+      const candidate=part+ch;
+      if(part && ctx.measureText(candidate).width>maxWidth){parts.push(part);part=ch;}
+      else part=candidate;
+    }
+    if(part) parts.push(part);
+    return parts;
+  };
+  for(let pi=0;pi<paragraphs.length;pi++){
+    const words=paragraphs[pi].trim().split(/\s+/).filter(Boolean).flatMap(splitOversizeWord);
+    if(!words.length){
+      if(pi<paragraphs.length-1) lines.push("");
+      continue;
+    }
+    let line="";
+    for(const word of words){
+      const candidate=line?`${line} ${word}`:word;
+      if(line && ctx.measureText(candidate).width>maxWidth){lines.push(line);line=word;}
+      else line=candidate;
+    }
+    if(line) lines.push(line);
+    if(pi<paragraphs.length-1) lines.push("");
+  }
+  while(lines.length>1 && lines[lines.length-1]==="") lines.pop();
+  return lines.length?lines:[""];
+}
+function exportRelationStyle(node){
+  const rel=RELATIONSHIPS[node.relationshipId];
+  if(node.relationshipId==null) return {rel:null,color:"#98a2b3",dash:"7 6",width:1.8};
+  if(!rel) return {rel:null,color:"#98a2b3",dash:"5 5",width:1.8};
+  return {rel,color:CATEGORY_COLORS[rel.category]||"#475467",dash:"",width:1.85};
+}
+function buildPublicationExportSvg(){
+  // Eigenständiger, bewusst reduzierter Export-Renderer: nur Titel, Text und Analysezeichnung.
+  const pageLeft=30;
+  const pageRight=34;
+  const rowGap=15;
+  const propTextWidth=690;
+  const propFontSize=18;
+  const propLineH=27;
+  const propMinH=50;
+  const labelMaxWidth=94;
+  const roleMaxWidth=90;
+  const bracketTextGap=28;
+  const titleFontSize=24;
+  const titleLineH=31;
+  const subtitleFontSize=14;
+  const subtitleLineH=21;
+  const titleLines=state.title ? exportTextLines(state.title,propTextWidth,`700 ${titleFontSize}px system-ui, -apple-system, "Segoe UI", sans-serif`) : [];
+  const subtitleLines=state.mainPointSummary ? exportTextLines(state.mainPointSummary,propTextWidth,`400 ${subtitleFontSize}px system-ui, -apple-system, "Segoe UI", sans-serif`) : [];
+  const headerH=(titleLines.length || subtitleLines.length)
+    ? 24 + titleLines.length*titleLineH + (subtitleLines.length ? 4 + subtitleLines.length*subtitleLineH : 0) + 18
+    : 24;
+
+  let cursorY=headerH;
+  const anchorMap=new Map();
+  const propLayouts=[];
+  for(let i=0;i<state.propositions.length;i++){
+    const p=state.propositions[i];
+    const text=state.tokens.slice(p.tokenStart,p.tokenEnd+1).join("");
+    const lines=exportTextLines(text,propTextWidth,`500 ${propFontSize}px system-ui, -apple-system, "Segoe UI", sans-serif`);
+    const textHeight=Math.max(propLineH,lines.length*propLineH);
+    const h=Math.max(propMinH,textHeight+12);
+    const top=cursorY, bottom=top+h, center=(top+bottom)/2;
+    anchorMap.set(p.id,{top,bottom,center});
+    propLayouts.push({p,index:i,text,lines,top,bottom,center,h,textHeight});
+    cursorY=bottom+rowGap;
+  }
+  const contentBottom=Math.max(headerH+80,cursorY-rowGap);
+  const data=relationLayoutData(anchorMap);
+  const exportGeometry=computeAdaptiveBracketGeometry(data);
+  const maxDepth=data.length?exportGeometry.maxDepth:0;
+  const outerReserve=data.length?Math.max(20,Math.ceil((exportGeometry.relationThicknessByDepth[maxDepth]||0)/2+10)):0;
+  const bracketRight=data.length?pageLeft+outerReserve+exportGeometry.cumulative[maxDepth]:pageLeft;
+  const textStart=data.length?bracketRight+bracketTextGap:pageLeft;
+  const canvasW=Math.ceil(textStart+propTextWidth+pageRight);
+  const canvasH=Math.ceil(contentBottom+28);
+  const xForDepth=(depth)=>bracketRight-exportGeometry.cumulative[depth];
+  const xById=new Map(data.map(item=>[item.node.id,xForDepth(item.depth)]));
+  const portMemo=new Map();
+
+  const rolePlacementByKey=new Map();
+  for(const item of data){
+    const {node}=item;
+    const {rel}=exportRelationStyle(node);
+    if(!rel || rel.primary==="all") continue;
+    const x=xById.get(node.id);
+    const targets=(node.children||[]).map(childId=>{
+      const child=getNode(childId);
+      return child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
+    });
+    const parentHalf=(exportGeometry.relationMetricsById.get(node.id)?.metrics.height||0)/2;
+    const nodeMaxRoleWidth=Math.min(roleMaxWidth,exportGeometry.maxRoleWidthByNode.get(node.id)||0);
+    const commonRoleX=x+Math.max(parentHalf+8,20)+nodeMaxRoleWidth/2;
+    (node.children||[]).forEach((childId,i)=>{
+      const cy=bracketNodePortY(childId,anchorMap,portMemo); if(!Number.isFinite(cy)) return;
+      const targetX=targets[i];
+      const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
+      const displayRole=compactRole(fullRole);
+      const lines=wrapBracketText(displayRole,13,2);
+      const metrics=bracketTextMetrics(lines,{minWidth:32,maxWidth:roleMaxWidth,charWidth:4.25,lineHeight:9.2,padX:4.5,padY:2.8});
+      const minX=x+Math.max(parentHalf+8,20)+metrics.width/2;
+      const maxX=targetX-metrics.width/2-6;
+      const rx=Math.max(minX,Math.min(commonRoleX,maxX));
+      const centerY=cy;
+      rolePlacementByKey.set(`${node.id}:${i}`,{rx,centerY,lines,metrics,fullRole});
+    });
+  }
+
+  const pieces=[];
+  const boxOverlays=[];
+  pieces.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`);
+  pieces.push(`<rect width="${canvasW}" height="${canvasH}" fill="#ffffff"/>`);
+  pieces.push(`<style>
+    text{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-rendering:auto;font-kerning:normal}
+    .pub-line{fill:none;stroke-linecap:square;stroke-linejoin:miter}
+    .pub-rel{font-size:10.25px;font-weight:500;text-anchor:middle;letter-spacing:.005em}
+    .pub-role{font-size:10px;font-weight:400;fill:#475467;text-anchor:middle}
+    .pub-prop{font-size:${propFontSize}px;font-weight:500;fill:#1d2939}
+  </style>`);
+
+  if(titleLines.length){
+    const firstTitleY=30;
+    pieces.push(`<text x="${pageLeft}" y="${firstTitleY}" font-size="${titleFontSize}" font-weight="720" letter-spacing="-.35" fill="#101828">${titleLines.map((line,li)=>`<tspan x="${pageLeft}" dy="${li===0?0:titleLineH}">${safeSvgText(line)}</tspan>`).join("")}</text>`);
+  }
+  if(subtitleLines.length){
+    const subtitleStartY=30 + Math.max(0,(titleLines.length-1)*titleLineH) + (titleLines.length ? titleLineH - 3 : 0);
+    pieces.push(`<text x="${pageLeft}" y="${subtitleStartY}" font-size="${subtitleFontSize}" font-weight="400" letter-spacing="0" fill="#667085">${subtitleLines.map((line,li)=>`<tspan x="${pageLeft}" dy="${li===0?0:subtitleLineH}">${safeSvgText(line)}</tspan>`).join("")}</text>`);
+  }
+
+  // Propositionen bleiben im Export reine Textzeilen; keine Karten, IDs, Status- oder App-Elemente.
+  propLayouts.forEach(item=>{
+    if(data.length) pieces.push(`<path d="M ${bracketRight} ${item.center} H ${textStart-10}" stroke="#d0d5dd" stroke-width="1"/>`);
+    const tx=textStart;
+    const firstY=item.center-((item.lines.length-1)*propLineH)/2+6;
+    pieces.push(`<text class="pub-prop" x="${tx}" y="${firstY}">${item.lines.map((line,li)=>`<tspan x="${tx}" dy="${li===0?0:propLineH}">${safeSvgText(line)}</tspan>`).join("")}</text>`);
+  });
+
+  // Beziehungen und Klammern direkt aus dem Analysebaum.
+  for(const item of data){
+    const {node}=item;
+    const {rel,color,dash,width}=exportRelationStyle(node);
+    const x=xById.get(node.id);
+    const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
+    const ports=childPorts.filter(Number.isFinite); if(!ports.length) continue;
+    const topY=Math.min(...ports),bottomY=Math.max(...ports);
+    const portY=bracketNodePortY(node.id,anchorMap,portMemo);
+    const dashAttr=dash?` stroke-dasharray="${dash}"`:"";
+    const relationTitle=rel?rel.label:"Offene Gruppe";
+    const displayRelationTitle=compactRelation(relationTitle);
+    const lines=wrapBracketText(displayRelationTitle,14,3);
+    const metrics=bracketTextMetrics(lines,{minWidth:42,maxWidth:labelMaxWidth,charWidth:4.35,lineHeight:9.5,padX:4,padY:2.8});
+    const labelScreenHeight=metrics.width;
+    const labelScreenWidth=metrics.height;
+    const y=(topY+bottomY)/2;
+    const labelTop=y-labelScreenHeight/2;
+    const labelBottom=y+labelScreenHeight/2;
+
+    if(topY!==bottomY){
+      const verticalSegments=[];
+      if(labelTop>topY+4) verticalSegments.push([topY,labelTop]);
+      if(labelBottom<bottomY-4) verticalSegments.push([labelBottom,bottomY]);
+      verticalSegments.forEach(([segTop,segBottom])=>{
+        pieces.push(`<path class="pub-line" d="M ${x} ${segTop} V ${segBottom}" stroke="${color}" stroke-width="${width}"${dashAttr}/>`);
+      });
+    }
+
+    (node.children||[]).forEach((childId,i)=>{
+      const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
+      const child=getNode(childId);
+      const targetX=child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
+      const primary=(node.primaryChildIds||[]).includes(childId);
+      const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+labelScreenWidth/2 : x;
+      pieces.push(`<path class="pub-line" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${primary?2.45:width}"${dashAttr}/>`);
+      const placement=rolePlacementByKey.get(`${node.id}:${i}`);
+      if(placement){
+        const {rx,centerY,lines,metrics,fullRole}=placement;
+        boxOverlays.push(`<g><title>${safeSvgText(fullRole)}</title>`);
+        boxOverlays.push(`<rect x="${rx-metrics.width/2-2}" y="${centerY-metrics.height/2-1}" width="${metrics.width+4}" height="${metrics.height+2}" rx="3" fill="#fff" stroke="#d8dee8" stroke-width="0.8"/>`);
+        boxOverlays.push(svgMultilineText(lines,rx,centerY,"pub-role",null,metrics.lineHeight));
+        boxOverlays.push(`</g>`);
+      }
+      if(primary && rel && rel.primary!=="all"){
+        const sx=branchStartX+9;
+        pieces.push(`<circle cx="${sx}" cy="${cy}" r="4.8" fill="#fff" stroke="${color}" stroke-width="1.15"/><text x="${sx}" y="${cy}" text-anchor="middle" font-size="6.8" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
+      }
+    });
+
+    const labelX=x;
+    boxOverlays.push(`<g><title>${safeSvgText(relationTitle)}</title>`);
+    boxOverlays.push(`<rect x="${labelX-metrics.width/2-3}" y="${y-metrics.height/2-2}" width="${metrics.width+6}" height="${metrics.height+4}" rx="4" fill="#fff" stroke="${color}" stroke-width="0.9"${dashAttr} transform="rotate(-90 ${labelX} ${y})"/>`);
+    boxOverlays.push(svgMultilineText(lines,labelX,y,"pub-rel",color,metrics.lineHeight).replace('<text ','<text transform="rotate(-90 '+labelX+' '+y+')" '));
+    boxOverlays.push(`</g>`);
+  }
+
+  // Auch im Export werden Kästchen bewusst zuletzt gemalt. Dadurch liegen alle Linien
+  // garantiert hinter den weißen Label-Flächen.
+  pieces.push(...boxOverlays);
+  pieces.push(`</svg>`);
+  return {svg:pieces.join(""),width:canvasW,height:canvasH};
+}
+async function exportImage(){
+  if(!state.rawText || !state.propositions.length){
+    announce("Bitte zuerst eine Analyse anlegen, bevor du ein Bild exportierst.");
+    return;
+  }
+  const button=els.exportButton;
+  const oldText=button.textContent;
+  button.disabled=true;
+  button.textContent="Exportiere …";
+  try{
+    const out=buildPublicationExportSvg();
+    const svgBlob=new Blob([out.svg],{type:"image/svg+xml;charset=utf-8"});
+    const svgUrl=URL.createObjectURL(svgBlob);
+    try{
+      const img=new Image();
+      await new Promise((resolve,reject)=>{
+        img.onload=resolve;
+        img.onerror=()=>reject(new Error("Exportgrafik konnte nicht gerendert werden."));
+        img.src=svgUrl;
+      });
+      const scale=Math.min(2.25,10000/out.width,10000/out.height);
+      if(!(scale>0)) throw new Error("Ungültige Exportgröße.");
+      const canvas=document.createElement("canvas");
+      canvas.width=Math.max(1,Math.round(out.width*scale));
+      canvas.height=Math.max(1,Math.round(out.height*scale));
+      const ctx=canvas.getContext("2d");
+      if(!ctx) throw new Error("Canvas ist in diesem Browser nicht verfügbar.");
+      ctx.fillStyle="#ffffff";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      const png=await new Promise(resolve=>canvas.toBlob(resolve,"image/png",1));
+      if(!png) throw new Error("PNG konnte nicht erzeugt werden.");
+      downloadBlob(png,`${exportBaseFilename()}.png`);
+      announce("Optimiertes Bild als PNG exportiert");
+    }finally{URL.revokeObjectURL(svgUrl);}
+  }catch(err){
+    console.error("Bildexport fehlgeschlagen:",err);
+    try{
+      const out=buildPublicationExportSvg();
+      downloadBlob(new Blob([out.svg],{type:"image/svg+xml;charset=utf-8"}),`${exportBaseFilename()}.svg`);
+      announce("PNG-Export war nicht möglich; die optimierte Grafik wurde als SVG exportiert.");
+    }catch(fallbackErr){
+      alert(`Bildexport fehlgeschlagen: ${fallbackErr.message||fallbackErr}`);
+    }
+  }finally{
+    button.disabled=false;
+    button.textContent=oldText;
+  }
+}
+async function importJsonFile(file){
+  try{
+    const text=await file.text();
+    const parsed=JSON.parse(text);
+    if(parsed.schemaVersion!==1) throw new Error("Unbekannte schemaVersion. Erwartet wird Version 1.");
+    const previous=snapshot();
+    hydrateState(parsed);
+    history.push(previous); if(history.length>MAX_HISTORY)history.shift(); future=[];
+    state.updatedAt=new Date().toISOString();
+    render(); schedulePersist(); announce("JSON importiert");
+  }catch(err){
+    alert(`Import fehlgeschlagen: ${err.message||err}`);
+  }finally{
+    els.importInput.value="";
+  }
+}
+
+function renderSignalTable(){
+  els.signalTableBody.innerHTML=SIGNAL_WORDS.map(row=>`<tr>${row.map(cell=>`<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("");
+}
+
+function moveFocusAmongUnits(current,delta){
+  const controls=$$(".unit-chip:not(:disabled),.unit-anchor:not(:disabled)",document).filter(el=>el.offsetParent!==null);
+  const i=controls.indexOf(current);
+  if(i<0 || !controls.length) return;
+  controls[(i+delta+controls.length)%controls.length].focus();
+}
+
+els.textButton.addEventListener("click",openTextDialog);
+els.rawTextInput.addEventListener("input",()=>{els.applyTextButton.disabled=!els.rawTextInput.value.trim();});
+els.textForm.addEventListener("submit",e=>{e.preventDefault();applyTextFromDialog();});
+els.editModeButton.addEventListener("click",()=>setMode("bearbeiten"));
+els.viewModeButton.addEventListener("click",()=>setMode("ansicht"));
+els.splitToolButton.addEventListener("click",()=>setTool("teilen"));
+els.connectToolButton.addEventListener("click",()=>setTool("verbinden"));
+els.undoButton.addEventListener("click",undo);
+els.redoButton.addEventListener("click",redo);
+els.helpButton.addEventListener("click",()=>showDialog(els.helpDialog));
+els.resetButton.addEventListener("click",resetAll);
+els.extendedToggle.addEventListener("change",e=>setExtended(e.target.checked));
+els.statusDetailsButton.addEventListener("click",openStatusDetails);
+els.exportButton.addEventListener("click",exportImage);
+els.jsonExportButton.addEventListener("click",exportJson);
+els.importButton.addEventListener("click",()=>els.importInput.click());
+els.importInput.addEventListener("change",e=>{if(e.target.files&&e.target.files[0]) importJsonFile(e.target.files[0]);});
+els.projectMenuButton.addEventListener("click",e=>{e.stopPropagation();toggleProjectMenu();});
+els.projectManagerButton.addEventListener("click",e=>{e.stopPropagation();openProjectManager();});
+els.newProjectButton.addEventListener("click",()=>createNewProject());
+els.projectList.addEventListener("click",e=>{
+  const rename=e.target.closest("[data-project-rename]");
+  if(rename){ renameProject(rename.dataset.projectRename); return; }
+  const del=e.target.closest("[data-project-delete]");
+  if(del){ deleteProject(del.dataset.projectDelete); return; }
+  const opener=e.target.closest("[data-project-open]");
+  if(opener){ activateProject(opener.dataset.projectOpen); }
+});
+
+// Diagramm-Tooltip: bewusst unabhängig von SVG-<title>, damit er in allen Browsern
+// zuverlässig sowohl auf horizontalen als auch vertikalen Kästchen funktioniert.
+const diagramTooltip=(()=>{
+  const el=document.createElement("div");
+  el.className="diagram-tooltip";
+  el.setAttribute("role","tooltip");
+  document.body.appendChild(el);
+  return el;
+})();
+function positionDiagramTooltip(e){
+  const gap=12;
+  const rect=diagramTooltip.getBoundingClientRect();
+  let x=e.clientX+gap, y=e.clientY+gap;
+  if(x+rect.width>window.innerWidth-8) x=e.clientX-rect.width-gap;
+  if(y+rect.height>window.innerHeight-8) y=e.clientY-rect.height-gap;
+  diagramTooltip.style.left=Math.max(8,x)+"px";
+  diagramTooltip.style.top=Math.max(8,y)+"px";
+}
+els.bracketSvg.addEventListener("pointerover",e=>{
+  const hit=e.target.closest("[data-diagram-tooltip]");
+  if(!hit) return;
+  diagramTooltip.textContent=hit.dataset.diagramTooltip||"";
+  diagramTooltip.classList.add("visible");
+  positionDiagramTooltip(e);
+});
+els.bracketSvg.addEventListener("pointermove",e=>{
+  if(diagramTooltip.classList.contains("visible")) positionDiagramTooltip(e);
+});
+els.bracketSvg.addEventListener("pointerout",e=>{
+  const hit=e.target.closest("[data-diagram-tooltip]");
+  if(!hit) return;
+  const next=e.relatedTarget;
+  if(next && next.closest && next.closest("[data-diagram-tooltip]")===hit) return;
+  diagramTooltip.classList.remove("visible");
+});
+els.bracketSvg.addEventListener("pointerleave",()=>diagramTooltip.classList.remove("visible"));
+
+els.propList.addEventListener("click",e=>{
+  const empty=e.target.closest("[data-empty-text]"); if(empty){openTextDialog();return;}
+  const split=e.target.closest("[data-split-token]"); if(split){splitBefore(Number(split.dataset.splitToken));return;}
+  const merge=e.target.closest("[data-merge-index]"); if(merge){mergeAtPropIndex(Number(merge.dataset.mergeIndex));return;}
+  const unit=e.target.closest("[data-unit-id]"); if(unit){handleUnitClick(unit.dataset.unitId);}
+});
+els.unitButtons.addEventListener("click",e=>{
+  const unit=e.target.closest("[data-unit-id]"); if(unit) handleUnitClick(unit.dataset.unitId);
+});
+els.bracketSvg.addEventListener("click",e=>{
+  // 1) Horizontale Rollenkästchen: niemals klickbar. Sie haben ausschließlich Tooltip-Funktion.
+  if(e.target.closest(".role-label-hit")) return;
+
+  // 2) Vertikale Beziehungskästchen: nur Bearbeiten → Verbinden öffnet die Beziehungsbearbeitung.
+  const relationLabel=e.target.closest(".relation-label-hit[data-edit-relation-id]");
+  if(relationLabel){
+    if(state.settings.mode==="bearbeiten" && activeTool==="verbinden"){
+      selectRelation(relationLabel.dataset.editRelationId,{openEditor:true});
+    }
+    return;
+  }
+
+  // 3) Alle übrigen Diagramm-Interaktionen existieren ebenfalls nur im Verbinden-Modus.
+  if(state.settings.mode!=="bearbeiten" || activeTool!=="verbinden") return;
+
+  const handle=e.target.closest("[data-unit-id]");
+  if(handle){ handleUnitClick(handle.dataset.unitId); return; }
+
+  const rel=e.target.closest("[data-relation-id]");
+  if(rel) selectRelation(rel.dataset.relationId,{openEditor:false});
+});
+els.relationshipSearch.addEventListener("input",renderRelationshipDialog);
+els.conjunctionLookupSelect.addEventListener("change",e=>{
+  selectedConjunctionLookup=e.target.value;
+  renderRelationshipDialog();
+});
+els.dialogExtendedToggle.addEventListener("change",e=>setExtended(e.target.checked));
+els.relationshipList.addEventListener("click",e=>{
+  const card=e.target.closest("[data-rel-id]");
+  if(!card || card.disabled) return;
+  chosenRelationshipId=card.dataset.relId;
+  renderRelationshipDialog();
+});
+els.applyRelationshipButton.addEventListener("click",applyRelationship);
+els.leaveOpenButton.addEventListener("click",closeRelationshipDialog);
+els.swapRolesButton.addEventListener("click",swapRoles);
+els.changePrimaryButton.addEventListener("click",changePrimary);
+els.dissolveGroupButton.addEventListener("click",dissolveGroup);
+els.deleteSubtreeButton.addEventListener("click",deleteSubtree);
+
+document.addEventListener("click",e=>{
+  if(!els.projectMenu.hidden && !e.target.closest("#projectMenuWrap")) closeProjectMenu();
+  const closer=e.target.closest("[data-close-dialog]");
+  if(!closer) return;
+  const d=document.getElementById(closer.dataset.closeDialog);
+  if(d===els.relationshipDialog) closeRelationshipDialog(); else closeDialog(d);
+});
+document.addEventListener("click",e=>{
+  if(!selectedRelationId) return;
+  if(e.target.closest("[data-relation-id],[data-unit-id],.unit-chip,dialog,.statusbar,.topbar")) return;
+  selectedRelationId=null;
+  render();
+});
+document.addEventListener("keydown",e=>{
+  const openDialogs=$$("dialog[open]");
+  const dialog=openDialogs.length?openDialogs[openDialogs.length-1]:null;
+  if(dialog && e.key==="Tab"){
+    const focusable=$$('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex]:not([tabindex="-1"])',dialog)
+      .filter(el=>el.offsetParent!==null);
+    if(focusable.length){
+      const first=focusable[0],last=focusable[focusable.length-1];
+      if(e.shiftKey && document.activeElement===first){e.preventDefault();last.focus();}
+      else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();}
+    }
+    return;
+  }
+  const tag=(document.activeElement&&document.activeElement.tagName||"").toLowerCase();
+  const editableFocus=["textarea","input","select"].includes(tag) || (document.activeElement&&document.activeElement.isContentEditable);
+
+  // Entf darf auch im Beziehungsdialog die dort aktive Verbindung löschen. Backspace wird in Formularfeldern nie abgefangen.
+  if((e.key==="Delete" || e.key==="Backspace") && !editableFocus && canModifyRelations()){
+    const targetId=(dialog===els.relationshipDialog && activeRelationId)?activeRelationId:selectedRelationId;
+    if(targetId && getNode(targetId)?.kind==="relation"){
+      e.preventDefault();
+      deleteSelectedRelation(targetId);
+      return;
+    }
+  }
+  if(dialog) return;
+  const formFocus=editableFocus || tag==="button";
+  if((e.ctrlKey||e.metaKey) && !e.altKey && e.key.toLowerCase()==="z"){
+    e.preventDefault();
+    if(e.shiftKey) redo(); else undo();
+    return;
+  }
+  if(e.key==="Escape"){
+    if(!els.projectMenu.hidden){ closeProjectMenu(); els.projectMenuButton.focus(); return; }
+    let changed=false;
+    if(selectionStartId){selectionStartId=null;changed=true;}
+    if(selectedRelationId){selectedRelationId=null;changed=true;}
+    if(changed){render();announce("Auswahl abgebrochen");}
+    return;
+  }
+  if(e.code==="Space" && !formFocus){
+    e.preventDefault();setMode(state.settings.mode==="bearbeiten"?"ansicht":"bearbeiten");return;
+  }
+});
+document.addEventListener("keydown",e=>{
+  const unit=e.target.closest && e.target.closest(".unit-chip,.unit-anchor");
+  if(!unit) return;
+  if(e.key==="ArrowRight"||e.key==="ArrowDown"){e.preventDefault();moveFocusAmongUnits(unit,1);}
+  if(e.key==="ArrowLeft"||e.key==="ArrowUp"){e.preventDefault();moveFocusAmongUnits(unit,-1);}
+});
+
+els.relationshipDialog.addEventListener("close",()=>{
+  activeRelationId=null;chosenRelationshipId=null;els.relationshipSearch.value="";
+});
+for(const d of $$("dialog")){
+  d.addEventListener("cancel",()=>{ if(d===els.relationshipDialog){activeRelationId=null;chosenRelationshipId=null;} });
+}
+
+window.addEventListener("beforeunload",()=>{
+  clearTimeout(saveTimer);
+  try{ syncStateIntoActiveProject(); storeProjectsNow(); }catch(_){ }
+});
+window.addEventListener("resize",()=>requestAnimationFrame(measureAndRenderSvgs));
+if("ResizeObserver" in window){
+  resizeObserver=new ResizeObserver(()=>requestAnimationFrame(measureAndRenderSvgs));
+  resizeObserver.observe(els.propList);
+}
+renderSignalTable();
+loadProjects();
+render();
+</script>
+</body>
+</html>
