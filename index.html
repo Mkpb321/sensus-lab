@@ -466,6 +466,12 @@ dialog::backdrop{background:rgba(15,23,42,.48);backdrop-filter:blur(2px)}
 .rel-card:hover:not(:disabled){border-color:#93c5fd;background:#f8fbff}
 .rel-card.selected{border-color:#60a5fa;background:#eff6ff;box-shadow:0 0 0 2px rgba(37,99,235,.08)}
 .rel-details{border-color:#e4e7ec;border-radius:12px;background:#fbfcfe;padding:15px}
+.rel-setting{display:grid;gap:7px}
+.rel-setting-options{display:flex;gap:6px;flex-wrap:wrap}
+.rel-setting-option{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid #d8e0ea;border-radius:9px;background:#fff;font-size:12px;color:#344054;cursor:pointer;user-select:none}
+.rel-setting-option:has(input:checked){border-color:#60a5fa;background:#eff6ff;color:#1d4ed8;box-shadow:0 0 0 2px rgba(37,99,235,.07)}
+.rel-setting-option input{margin:0;accent-color:#2563eb}
+.rel-setting-help{font-size:10.5px;line-height:1.4;color:#667085}
 .rel-card{border-left-width:4px;border-left-style:solid;border-left-color:var(--rel-color,#e4e7ec)}
 .rel-code{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:5px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--rel-color,#475467) 32%, white);background:color-mix(in srgb,var(--rel-color,#475467) 10%, white);color:var(--rel-color,#254d6f);font-weight:800;letter-spacing:-.01em}
 .rel-card:disabled .rel-code{opacity:.62}
@@ -623,8 +629,7 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] [data-unit-id]{cursor:pointe
     </div>
     <div class="dialog-foot">
       <div class="left-actions">
-        <button class="secondary" id="swapRolesButton" type="button">Rollen tauschen</button>
-        <button class="secondary" id="changePrimaryButton" type="button">Hauptteil ändern</button>
+        <button class="secondary" id="directionFlipButton" type="button" title="Berechnet die Beziehung so neu, als wären die beiden Einheiten beim Erstellen in umgekehrter Reihenfolge gewählt worden">Richtung umkehren</button>
         <button class="secondary" id="dissolveGroupButton" type="button" title="Nur diese Verbindung entfernen; Untergruppen bleiben erhalten">Verbindung löschen</button>
         <button class="danger-button" id="deleteSubtreeButton" type="button">Teilbaum löschen</button>
       </div>
@@ -690,7 +695,7 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] [data-unit-id]{cursor:pointe
 
 <script>
 "use strict";
-const RELATIONSHIPS = Object.freeze({"reihe":{"label":"Reihe","uiCode":"R","compatibilityCode":"S","category":"koordination","min":2,"max":null,"definition":"Jeder Teil trägt einen selbstständigen Punkt zu einem gemeinsamen Ganzen bei; keiner stützt den anderen.","test":"Lassen sich die Teile natürlich mit „und außerdem“ verbinden?","signals":["und","auch","außerdem","zudem","ferner","ebenso","weder … noch","noch"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":false,"reversal":"Keine Richtungsumkehr; die Reihenfolge des Textes bleibt erhalten.","note":"„Und“ allein beweist keine Reihe; es kann fast jede Beziehung verdecken."},"steigerung":{"label":"Abfolge","uiCode":"Abf","compatibilityCode":"P","category":"koordination","min":2,"max":null,"definition":"Jeder Teil ist ein weiterer Schritt hin zu einem Höhepunkt oder einer stärkeren Aussage.","test":"Bildet die Reihenfolge echte Schritte oder eine Zuspitzung?","signals":["zuerst … dann … schließlich","und dann","dann","mehr noch","darüber hinaus","schließlich"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":false,"reversal":"Nicht umkehren; die Abfolge folgt der Textreihenfolge.","note":"Eine bloße Liste ist eine Reihe, keine Abfolge."},"alternative":{"label":"Alternative","uiCode":"A","compatibilityCode":"A","category":"koordination","min":2,"max":null,"definition":"Die Teile nennen verschiedene Möglichkeiten, die aus derselben Situation entstehen.","test":"Sind dies echte Optionen oder nur gegensätzliche Aussagen?","signals":["oder","entweder … oder","andernfalls","andererseits","während","wohingegen"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":false,"reversal":"Keine semantische Haupt-/Nebenrichtung.","note":"Kontrast allein ist häufig Verneinung–Bejahung oder Einräumung."},"begruendung":{"label":"Begründung","uiCode":"Bg","compatibilityCode":"G","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Eine Aussage wird durch einen nachfolgenden Grund oder ein Argument gestützt.","test":"Kann zwischen den Seiten „denn/weil“ stehen?","signals":["denn","weil","da","zumal","aufgrund dessen","wegen","nämlich"],"roles":["Aussage","Grund"],"primary":0,"allowRoleSwap":false,"extended":false,"reversal":"Die Textreihenfolge ist wesentlich. Liegt der Grund zuerst, ist „Folgerung“ zu wählen.","note":"Nicht mit Zweck verwechseln: Begründung blickt auf die Ursache zurück."},"folgerung":{"label":"Folgerung","uiCode":"Fg","compatibilityCode":"∴","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Ein vorausgehender Grund oder ein Argument führt zu einer nachfolgenden Schlussfolgerung.","test":"Kann vor dem zweiten Teil „deshalb/also“ stehen?","signals":["deshalb","daher","darum","folglich","dementsprechend","also","somit","demnach","infolgedessen"],"roles":["Grund","Folgerung"],"primary":1,"allowRoleSwap":false,"extended":false,"reversal":"Die Textreihenfolge ist wesentlich. Liegt der Grund danach, ist „Begründung“ zu wählen.","note":"„Dann“ kann zeitlich oder als Abfolge gemeint sein und ist nicht automatisch eine Folgerung."},"beidseitige_begruendung":{"label":"Beidseitige Begründung","uiCode":"BB","compatibilityCode":"BL","category":"eigenstaendige_stuetze","min":3,"max":3,"definition":"Der mittlere Teil liefert den Grund für zwei Aussagen – eine davor und eine danach.","test":"Ergibt das Muster „Schluss – denn Grund – deshalb Schluss“ Sinn?","signals":["denn","weil","da","deshalb","daher","also","so"],"roles":["Schluss","Grund","Schluss"],"primary":[0,2],"allowRoleSwap":false,"extended":false,"reversal":"Keine binäre Umkehr; die mittlere Position ist zwingend der stützende Grund.","note":"Nicht als gewöhnliche Zweierbeziehung modellieren; drei benachbarte Einheiten sind erforderlich."},"handlung_ergebnis":{"label":"Handlung–Ergebnis","uiCode":"H/Erg","compatibilityCode":"Ac/Res","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Eine Handlung und die tatsächliche Folge oder das Ergebnis, das mit ihr eintritt.","test":"Ist der zweite Sachverhalt eingetreten – im Unterschied zu einer bloßen Absicht?","signals":["sodass","so dass","mit dem Ergebnis, dass","weshalb","dadurch"],"roles":["Handlung","Ergebnis"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden, wenn das Ergebnis im Text vor der Handlung steht.","note":"Nicht mit Handlung–Zweck verwechseln: Ergebnis ist tatsächlich, Zweck ist beabsichtigt."},"handlung_zweck":{"label":"Handlung–Zweck","uiCode":"H/Z","compatibilityCode":"Ac/Pur","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Eine Handlung und ihr beabsichtigtes Ziel.","test":"Antwortet der zweite Teil auf „wozu?“ oder „mit welcher Absicht?“","signals":["damit","um … zu","auf dass","zum Zweck, dass","damit nicht"],"roles":["Handlung","Zweck"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen entsprechend der Textreihenfolge vertauscht werden.","note":"Ein Zweck muss nicht eintreten; genau das unterscheidet ihn vom Ergebnis."},"bedingung_folge":{"label":"Bedingung–Folge","uiCode":"B/F","compatibilityCode":"If/Th","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Die mögliche Folge hängt davon ab, dass eine Bedingung erfüllt wird.","test":"Lässt sich „wenn …, dann …“ einsetzen?","signals":["wenn … dann","falls","sofern","vorausgesetzt, dass","außer wenn","es sei denn","wenn nicht"],"roles":["Bedingung","Folge"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Bedingung und Folge dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Eine tatsächlich eingetretene Folge ist eher Handlung–Ergebnis."},"zeit":{"label":"Zeit","uiCode":"Zt","compatibilityCode":"T","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Ein Teil bezeichnet den Zeitpunkt oder Zeitraum, in dem der andere wahr ist oder eintreten kann.","test":"Antwortet ein Teil auf „wann?“","signals":["wenn","als","immer wenn","nachdem","bevor","während","seit","sobald","bis"],"roles":["Zeit","Hauptaussage"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden.","note":"„Während“ kann zeitlich oder als Gegensatz („wohingegen“) gebraucht sein."},"ort":{"label":"Ort","uiCode":"O","compatibilityCode":"L","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Ein Teil bezeichnet den Ort oder Bereich, in dem der andere wahr ist oder eintreten kann.","test":"Antwortet ein Teil auf „wo/wohin/woher?“","signals":["wo","wo immer","überall, wo","wohin","woher","an dem Ort, an dem"],"roles":["Ort","Hauptaussage"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden.","note":"Eine bloße kurze Präpositionalgruppe wird nur abgeteilt, wenn sie die Logik sichtbar prägt."},"handlung_art_weise":{"label":"Handlung–Art und Weise","uiCode":"H/AW","compatibilityCode":"Ac/Mn","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Ein Teil nennt eine Handlung, der andere beschreibt, wie oder wodurch sie ausgeführt wird.","test":"Antwortet der stützende Teil auf „wie?“ oder „wodurch?“","signals":["indem","dadurch, dass","durch","mittels","auf diese Weise","so"],"roles":["Handlung","Art und Weise"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"„Durch“ kann Mittel, Ort/Bereich oder bloße Präposition sein."},"vergleich":{"label":"Vergleich","uiCode":"V","compatibilityCode":"Cf","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Ein Teil verdeutlicht den anderen, indem er zeigt, wie dieser ihm gleicht.","test":"Zeigt ein Teil, wie der andere ist?","signals":["wie","so wie","ebenso wie","genauso wie","auf dieselbe Weise","gleich","ähnlich","so auch","als ob"],"roles":["Hauptaussage","Vergleichsbild"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden.","note":"„Als“ kann ebenso eine Zeitbeziehung einleiten."},"verneinung_bejahung":{"label":"Verneinung–Bejahung","uiCode":"−/+","compatibilityCode":"-/+","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Eine Aussage wird verneint, damit die bejahte oder bevorzugte Aussage umso stärker hervortritt.","test":"Passt „nicht …, sondern …“ oder „nicht dies, vielmehr das“?","signals":["nicht … sondern","vielmehr","stattdessen","statt","nicht nur … sondern","wohingegen"],"roles":["Verneinung","Bejahung"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Nicht jeder Gegensatz ist eine ausdrückliche Verneinung–Bejahung."},"aussage_erklaerung":{"label":"Aussage–Erklärung","uiCode":"Aus/Erk","compatibilityCode":"Id/Exp","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Eine ursprüngliche Aussage wird durch einen weiteren Teil genauer erklärt oder inhaltlich entfaltet.","test":"Kann „das heißt/mit anderen Worten/nämlich“ eingesetzt werden?","signals":["das heißt","nämlich","mit anderen Worten","und zwar","genauer gesagt","das bedeutet","insofern als"],"roles":["Aussage","Erklärung"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Dies ist die breite Auffangkategorie; präzisere Beziehungen gehen vor."},"frage_antwort":{"label":"Frage–Antwort","uiCode":"Q/A","compatibilityCode":"Q/A","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Eine echte Frage eröffnet den Kontext für die darauf gegebene Antwort.","test":"Gibt es außer dem Fragezeichen auch eine tatsächliche Antwort?","signals":["Fragezeichen","wer","was","wie","warum","wo","wann"],"roles":["Frage","Antwort"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen bei nachgestellter Frage vertauscht werden.","note":"Rhetorische Fragen können als Aussagen paraphrasiert werden und brauchen nicht zwingend Q/A."},"einraeumung":{"label":"Einräumung","uiCode":"Einr","compatibilityCode":"Csv","category":"gegensaetzliche_stuetze","min":2,"max":2,"definition":"Eine Hauptaussage bleibt trotz eines entgegenstehenden oder erwartungswidrigen Umstands bestehen.","test":"Passt „obwohl X, gilt dennoch Y“?","signals":["obwohl","obgleich","wenngleich","auch wenn","selbst wenn","dennoch","trotzdem","gleichwohl","doch","jedoch","aber"],"roles":["Einräumung","Hauptaussage"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Alternative und Verneinung–Bejahung haben andere logische Funktionen."},"situation_reaktion":{"label":"Situation–Reaktion","uiCode":"Sit/Re","compatibilityCode":"Sit/R","category":"gegensaetzliche_stuetze","min":2,"max":2,"definition":"Auf eine Situation folgt eine überraschende, kontraintuitive oder unerwartete Reaktion.","test":"Ist die Reaktion gerade deshalb bemerkenswert, weil man das Gegenteil erwarten würde?","signals":["und","doch","aber","trotzdem"],"roles":["Situation","Reaktion"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen bei abweichender Textreihenfolge vertauscht werden.","note":"Die Überraschung muss inhaltlich begründet sein; „und“ reicht nicht."},"sowohl_als_auch":{"label":"Sowohl–als-auch","uiCode":"S/A","compatibilityCode":"Both-And","category":"erweitert","min":2,"max":null,"definition":"Zwei oder mehr Teile werden ausdrücklich gemeinsam als wahr oder gemeinsam als falsch hervorgehoben.","test":"Ist die Gemeinsamkeit ausdrücklich betont?","signals":["sowohl … als auch","beide","weder … noch"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":true,"reversal":"Keine Haupt-/Nebenrichtung.","note":"Ohne Betonung genügt meist die Beziehung Reihe."},"allgemein_spezifisch":{"label":"Allgemein–Spezifisch","uiCode":"All/Sp","compatibilityCode":"General-Specific","category":"erweitert","min":2,"max":2,"definition":"Ein Teil nennt das Ganze, der andere einen oder mehrere konkrete Teile davon.","test":"Nennt der zweite Teil Beispiele oder Bestandteile eines Ganzen?","signals":["zum Beispiel","beispielsweise","etwa","insbesondere","wie etwa"],"roles":["Allgemein","Spezifisch"],"primary":0,"allowRoleSwap":true,"extended":true,"reversal":"Rollen dürfen vertauscht werden.","note":"Ohne die erweiterte Liste fällt dies unter Aussage–Erklärung."},"tatsache_deutung":{"label":"Tatsache–Deutung","uiCode":"Tat/Deu","compatibilityCode":"Fact-Interpretation","category":"erweitert","min":2,"max":2,"definition":"Eine Tatsache wird nicht nur ergänzt, sondern ausdrücklich gedeutet.","test":"Sagt der zweite Teil, was die Tatsache bedeutet?","signals":["das heißt","was bedeutet","damit ist gemeint","gedeutet als"],"roles":["Tatsache","Deutung"],"primary":0,"allowRoleSwap":true,"extended":true,"reversal":"Rollen dürfen vertauscht werden.","note":"Bloße Zusatzinformation ist Aussage–Erklärung, nicht Deutung."},"ankuendigung_erfuellung":{"label":"Ankündigung–Erfüllung","uiCode":"Ank/Erf","compatibilityCode":"Anticipation-Fulfillment","category":"erweitert","min":2,"max":2,"definition":"Eine Ankündigung oder Verheißung steht mit ihrer späteren Erfüllung zusammen.","test":"Wird ein zuvor angekündigter Sachverhalt ausdrücklich erfüllt?","signals":["und so","daraufhin erfüllte sich","wie angekündigt","damit erfüllte sich"],"roles":["Ankündigung","Erfüllung"],"primary":1,"allowRoleSwap":true,"extended":true,"reversal":"Rollen dürfen vertauscht werden.","note":"Ein gewöhnliches Ergebnis ohne vorherige Ankündigung ist Handlung–Ergebnis."}});
+const RELATIONSHIPS = Object.freeze({"reihe":{"label":"Reihe","uiCode":"R","compatibilityCode":"S","category":"koordination","min":2,"max":null,"definition":"Jeder Teil trägt einen selbstständigen Punkt zu einem gemeinsamen Ganzen bei; keiner stützt den anderen.","test":"Lassen sich die Teile natürlich mit „und außerdem“ verbinden?","signals":["und","auch","außerdem","zudem","ferner","ebenso","weder … noch","noch"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":false,"reversal":"Keine Richtungsumkehr; die Reihenfolge des Textes bleibt erhalten.","note":"„Und“ allein beweist keine Reihe; es kann fast jede Beziehung verdecken."},"steigerung":{"label":"Abfolge","uiCode":"Abf","compatibilityCode":"P","category":"koordination","min":2,"max":null,"definition":"Jeder Teil ist ein weiterer Schritt hin zu einem Höhepunkt oder einer stärkeren Aussage.","test":"Bildet die Reihenfolge echte Schritte oder eine Zuspitzung?","signals":["zuerst … dann … schließlich","und dann","dann","mehr noch","darüber hinaus","schließlich"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":false,"reversal":"Nicht umkehren; die Abfolge folgt der Textreihenfolge.","note":"Eine bloße Liste ist eine Reihe, keine Abfolge."},"alternative":{"label":"Alternative","uiCode":"A","compatibilityCode":"A","category":"koordination","min":2,"max":null,"definition":"Die Teile nennen verschiedene Möglichkeiten, die aus derselben Situation entstehen.","test":"Sind dies echte Optionen oder nur gegensätzliche Aussagen?","signals":["oder","entweder … oder","andernfalls","andererseits","während","wohingegen"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":false,"reversal":"Keine semantische Haupt-/Nebenrichtung.","note":"Kontrast allein ist häufig Verneinung–Bejahung oder Einräumung."},"begruendung":{"label":"Begründung","uiCode":"Bg","compatibilityCode":"G","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Eine Aussage wird durch einen nachfolgenden Grund oder ein Argument gestützt.","test":"Kann zwischen den Seiten „denn/weil“ stehen?","signals":["denn","weil","da","zumal","aufgrund dessen","wegen","nämlich"],"roles":["Aussage","Grund"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Die Richtung folgt der Auswahlreihenfolge. Mit „Richtung umkehren“ werden Aussage und Grund so neu zugeordnet, als wären die Einheiten beim Erstellen in umgekehrter Reihenfolge gewählt worden.","note":"Nicht mit Zweck verwechseln: Begründung blickt auf die Ursache zurück."},"folgerung":{"label":"Folgerung","uiCode":"Fg","compatibilityCode":"∴","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Ein vorausgehender Grund oder ein Argument führt zu einer nachfolgenden Schlussfolgerung.","test":"Kann vor dem zweiten Teil „deshalb/also“ stehen?","signals":["deshalb","daher","darum","folglich","dementsprechend","also","somit","demnach","infolgedessen"],"roles":["Grund","Folgerung"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Die Richtung folgt der Auswahlreihenfolge. Mit „Richtung umkehren“ werden Grund und Folgerung so neu zugeordnet, als wären die Einheiten beim Erstellen in umgekehrter Reihenfolge gewählt worden.","note":"„Dann“ kann zeitlich oder als Abfolge gemeint sein und ist nicht automatisch eine Folgerung."},"beidseitige_begruendung":{"label":"Beidseitige Begründung","uiCode":"BB","compatibilityCode":"BL","category":"eigenstaendige_stuetze","min":3,"max":3,"definition":"Der mittlere Teil liefert den Grund für zwei Aussagen – eine davor und eine danach.","test":"Ergibt das Muster „Schluss – denn Grund – deshalb Schluss“ Sinn?","signals":["denn","weil","da","deshalb","daher","also","so"],"roles":["Schluss","Grund","Schluss"],"primary":[0,2],"allowRoleSwap":false,"extended":false,"reversal":"Keine binäre Umkehr; die mittlere Position ist zwingend der stützende Grund.","note":"Nicht als gewöhnliche Zweierbeziehung modellieren; drei benachbarte Einheiten sind erforderlich."},"handlung_ergebnis":{"label":"Handlung–Ergebnis","uiCode":"H/Erg","compatibilityCode":"Ac/Res","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Eine Handlung und die tatsächliche Folge oder das Ergebnis, das mit ihr eintritt.","test":"Ist der zweite Sachverhalt eingetreten – im Unterschied zu einer bloßen Absicht?","signals":["sodass","so dass","mit dem Ergebnis, dass","weshalb","dadurch"],"roles":["Handlung","Ergebnis"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden, wenn das Ergebnis im Text vor der Handlung steht.","note":"Nicht mit Handlung–Zweck verwechseln: Ergebnis ist tatsächlich, Zweck ist beabsichtigt."},"handlung_zweck":{"label":"Handlung–Zweck","uiCode":"H/Z","compatibilityCode":"Ac/Pur","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Eine Handlung und ihr beabsichtigtes Ziel.","test":"Antwortet der zweite Teil auf „wozu?“ oder „mit welcher Absicht?“","signals":["damit","um … zu","auf dass","zum Zweck, dass","damit nicht"],"roles":["Handlung","Zweck"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen entsprechend der Textreihenfolge vertauscht werden.","note":"Ein Zweck muss nicht eintreten; genau das unterscheidet ihn vom Ergebnis. In Sensus Lab ist der Zweck standardmäßig der Hauptpunkt."},"bedingung_folge":{"label":"Bedingung–Folge","uiCode":"B/F","compatibilityCode":"If/Th","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Die mögliche Folge hängt davon ab, dass eine Bedingung erfüllt wird.","test":"Lässt sich „wenn …, dann …“ einsetzen?","signals":["wenn … dann","falls","sofern","vorausgesetzt, dass","außer wenn","es sei denn","wenn nicht"],"roles":["Bedingung","Folge"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Bedingung und Folge dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Eine tatsächlich eingetretene Folge ist eher Handlung–Ergebnis."},"zeit":{"label":"Zeit","uiCode":"Zt","compatibilityCode":"T","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Ein Teil bezeichnet den Zeitpunkt oder Zeitraum, in dem der andere wahr ist oder eintreten kann.","test":"Antwortet ein Teil auf „wann?“","signals":["wenn","als","immer wenn","nachdem","bevor","während","seit","sobald","bis"],"roles":["Zeit","Hauptaussage"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden.","note":"„Während“ kann zeitlich oder als Gegensatz („wohingegen“) gebraucht sein."},"ort":{"label":"Ort","uiCode":"O","compatibilityCode":"L","category":"eigenstaendige_stuetze","min":2,"max":2,"definition":"Ein Teil bezeichnet den Ort oder Bereich, in dem der andere wahr ist oder eintreten kann.","test":"Antwortet ein Teil auf „wo/wohin/woher?“","signals":["wo","wo immer","überall, wo","wohin","woher","an dem Ort, an dem"],"roles":["Ort","Hauptaussage"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden.","note":"Eine bloße kurze Präpositionalgruppe wird nur abgeteilt, wenn sie die Logik sichtbar prägt."},"handlung_art_weise":{"label":"Handlung–Art und Weise","uiCode":"H/AW","compatibilityCode":"Ac/Mn","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Ein Teil nennt eine Handlung, der andere beschreibt, wie oder wodurch sie ausgeführt wird.","test":"Antwortet der stützende Teil auf „wie?“ oder „wodurch?“","signals":["indem","dadurch, dass","durch","mittels","auf diese Weise","so"],"roles":["Handlung","Art und Weise"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"„Durch“ kann Mittel, Ort/Bereich oder bloße Präposition sein."},"vergleich":{"label":"Vergleich","uiCode":"V","compatibilityCode":"Cf","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Ein Teil verdeutlicht den anderen, indem er zeigt, wie dieser ihm gleicht.","test":"Zeigt ein Teil, wie der andere ist?","signals":["wie","so wie","ebenso wie","genauso wie","auf dieselbe Weise","gleich","ähnlich","so auch","als ob"],"roles":["Hauptaussage","Vergleichsbild"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen vertauscht werden.","note":"„Als“ kann ebenso eine Zeitbeziehung einleiten."},"verneinung_bejahung":{"label":"Verneinung–Bejahung","uiCode":"−/+","compatibilityCode":"-/+","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Eine Aussage wird verneint, damit die bejahte oder bevorzugte Aussage umso stärker hervortritt.","test":"Passt „nicht …, sondern …“ oder „nicht dies, vielmehr das“?","signals":["nicht … sondern","vielmehr","stattdessen","statt","nicht nur … sondern","wohingegen"],"roles":["Verneinung","Bejahung"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Nicht jeder Gegensatz ist eine ausdrückliche Verneinung–Bejahung."},"aussage_erklaerung":{"label":"Aussage–Erklärung","uiCode":"Aus/Erk","compatibilityCode":"Id/Exp","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Eine ursprüngliche Aussage wird durch einen weiteren Teil genauer erklärt oder inhaltlich entfaltet.","test":"Kann „das heißt/mit anderen Worten/nämlich“ eingesetzt werden?","signals":["das heißt","nämlich","mit anderen Worten","und zwar","genauer gesagt","das bedeutet","insofern als"],"roles":["Aussage","Erklärung"],"primary":0,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Dies ist die breite Auffangkategorie; präzisere Beziehungen gehen vor."},"frage_antwort":{"label":"Frage–Antwort","uiCode":"Q/A","compatibilityCode":"Q/A","category":"erlaeuternde_stuetze","min":2,"max":2,"definition":"Eine echte Frage eröffnet den Kontext für die darauf gegebene Antwort.","test":"Gibt es außer dem Fragezeichen auch eine tatsächliche Antwort?","signals":["Fragezeichen","wer","was","wie","warum","wo","wann"],"roles":["Frage","Antwort"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen bei nachgestellter Frage vertauscht werden.","note":"Rhetorische Fragen können als Aussagen paraphrasiert werden und brauchen nicht zwingend Q/A."},"einraeumung":{"label":"Einräumung","uiCode":"Einr","compatibilityCode":"Csv","category":"gegensaetzliche_stuetze","min":2,"max":2,"definition":"Eine Hauptaussage bleibt trotz eines entgegenstehenden oder erwartungswidrigen Umstands bestehen.","test":"Passt „obwohl X, gilt dennoch Y“?","signals":["obwohl","obgleich","wenngleich","auch wenn","selbst wenn","dennoch","trotzdem","gleichwohl","doch","jedoch","aber"],"roles":["Einräumung","Hauptaussage"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen der Textreihenfolge entsprechend vertauscht werden.","note":"Alternative und Verneinung–Bejahung haben andere logische Funktionen."},"situation_reaktion":{"label":"Situation–Reaktion","uiCode":"Sit/Re","compatibilityCode":"Sit/R","category":"gegensaetzliche_stuetze","min":2,"max":2,"definition":"Auf eine Situation folgt eine überraschende, kontraintuitive oder unerwartete Reaktion.","test":"Ist die Reaktion gerade deshalb bemerkenswert, weil man das Gegenteil erwarten würde?","signals":["und","doch","aber","trotzdem"],"roles":["Situation","Reaktion"],"primary":1,"allowRoleSwap":true,"extended":false,"reversal":"Rollen dürfen bei abweichender Textreihenfolge vertauscht werden.","note":"Die Überraschung muss inhaltlich begründet sein; „und“ reicht nicht."},"sowohl_als_auch":{"label":"Sowohl–als-auch","uiCode":"S/A","compatibilityCode":"Both-And","category":"erweitert","min":2,"max":null,"definition":"Zwei oder mehr Teile werden ausdrücklich gemeinsam als wahr oder gemeinsam als falsch hervorgehoben.","test":"Ist die Gemeinsamkeit ausdrücklich betont?","signals":["sowohl … als auch","beide","weder … noch"],"roles":[],"primary":"all","allowRoleSwap":false,"extended":true,"reversal":"Keine Haupt-/Nebenrichtung.","note":"Ohne Betonung genügt meist die Beziehung Reihe."},"allgemein_spezifisch":{"label":"Allgemein–Spezifisch","uiCode":"All/Sp","compatibilityCode":"General-Specific","category":"erweitert","min":2,"max":2,"definition":"Ein Teil nennt das Ganze, der andere einen oder mehrere konkrete Teile davon.","test":"Nennt der zweite Teil Beispiele oder Bestandteile eines Ganzen?","signals":["zum Beispiel","beispielsweise","etwa","insbesondere","wie etwa"],"roles":["Allgemein","Spezifisch"],"primary":0,"allowRoleSwap":true,"extended":true,"reversal":"Rollen dürfen vertauscht werden.","note":"Ohne die erweiterte Liste fällt dies unter Aussage–Erklärung."},"tatsache_deutung":{"label":"Tatsache–Deutung","uiCode":"Tat/Deu","compatibilityCode":"Fact-Interpretation","category":"erweitert","min":2,"max":2,"definition":"Eine Tatsache wird nicht nur ergänzt, sondern ausdrücklich gedeutet.","test":"Sagt der zweite Teil, was die Tatsache bedeutet?","signals":["das heißt","was bedeutet","damit ist gemeint","gedeutet als"],"roles":["Tatsache","Deutung"],"primary":0,"allowRoleSwap":true,"extended":true,"reversal":"Rollen dürfen vertauscht werden.","note":"Bloße Zusatzinformation ist Aussage–Erklärung, nicht Deutung."},"ankuendigung_erfuellung":{"label":"Ankündigung–Erfüllung","uiCode":"Ank/Erf","compatibilityCode":"Anticipation-Fulfillment","category":"erweitert","min":2,"max":2,"definition":"Eine Ankündigung oder Verheißung steht mit ihrer späteren Erfüllung zusammen.","test":"Wird ein zuvor angekündigter Sachverhalt ausdrücklich erfüllt?","signals":["und so","daraufhin erfüllte sich","wie angekündigt","damit erfüllte sich"],"roles":["Ankündigung","Erfüllung"],"primary":1,"allowRoleSwap":true,"extended":true,"reversal":"Rollen dürfen vertauscht werden.","note":"Ein gewöhnliches Ergebnis ohne vorherige Ankündigung ist Handlung–Ergebnis."}});
 const EVERYDAY_EXAMPLES = Object.freeze({
   reihe: "Auf der Feier sangen wir Geburtstagslieder, spielten Spiele und aßen Kuchen.",
   steigerung: "Zuerst verbindest du die Augen, dann drehst du dich fünfmal im Kreis und schließlich schlägst du nach der Piñata.",
@@ -789,7 +794,7 @@ const CONJUNCTION_LOOKUP = Object.freeze([
   {label:"zudem",relations:["reihe"]}
 ].sort((a,b)=>a.label.localeCompare(b.label,"de",{sensitivity:"base"})));
 let selectedConjunctionLookup="";
-
+let selectedPrimaryRoleChoice=null;
 
 const CATEGORY_LABELS = Object.freeze({
   koordination:"Beiordnend",
@@ -831,8 +836,8 @@ const els = {
   textTitleInput:$("#textTitleInput"), mainPointSummaryInput:$("#mainPointSummaryInput"), rawTextInput:$("#rawTextInput"), applyTextButton:$("#applyTextButton"), relationshipDialog:$("#relationshipDialog"),
   relationshipDialogTitle:$("#relationshipDialogTitle"), relationshipSearch:$("#relationshipSearch"), conjunctionLookupSelect:$("#conjunctionLookupSelect"), conjunctionFilterInfo:$("#conjunctionFilterInfo"),
   dialogExtendedToggle:$("#dialogExtendedToggle"), relationshipList:$("#relationshipList"),
-  relationshipDetails:$("#relationshipDetails"), swapRolesButton:$("#swapRolesButton"),
-  changePrimaryButton:$("#changePrimaryButton"), dissolveGroupButton:$("#dissolveGroupButton"),
+  relationshipDetails:$("#relationshipDetails"), directionFlipButton:$("#directionFlipButton"),
+  dissolveGroupButton:$("#dissolveGroupButton"),
   deleteSubtreeButton:$("#deleteSubtreeButton"), leaveOpenButton:$("#leaveOpenButton"),
   applyRelationshipButton:$("#applyRelationshipButton"), helpDialog:$("#helpDialog"), signalTableBody:$("#signalTableBody"),
   statusDialog:$("#statusDialog"), statusDialogBody:$("#statusDialogBody")
@@ -1141,7 +1146,8 @@ function assertSafeStateShape(s){
       if(!Array.isArray(n.children) || n.children.length<2 || new Set(n.children).size!==n.children.length) throw new Error("Ungültiger Zustand: Eine Verbindung besitzt ungültige Kinder.");
       if(n.relationshipId!==null && typeof n.relationshipId!=="string") throw new Error("Ungültiger Zustand: Beziehungs-ID ist beschädigt.");
       if(!Array.isArray(n.roleOrder) || !Array.isArray(n.primaryChildIds)) throw new Error("Ungültiger Zustand: Rollen oder Hauptteile sind beschädigt.");
-      if(n.preferredPrimaryChildId!=null && (typeof n.preferredPrimaryChildId!=="string" || !n.children.includes(n.preferredPrimaryChildId))) throw new Error("Ungültiger Zustand: Bevorzugter Hauptpunkt ist beschädigt.");
+      if(n.directionFirstChildId!=null && (typeof n.directionFirstChildId!=="string" || !n.children.includes(n.directionFirstChildId))) throw new Error("Ungültiger Zustand: Beziehungsrichtung ist beschädigt.");
+      if(n.primaryRoleChoice!=null && n.primaryRoleChoice!=="Handlung" && n.primaryRoleChoice!=="Ergebnis") throw new Error("Ungültiger Zustand: Hauptpunktwahl ist beschädigt.");
     }
   }
   for(const p of s.propositions){
@@ -1220,6 +1226,38 @@ function hydrateState(raw){
   s.rootIds=Array.isArray(s.rootIds)?s.rootIds:[];
   s.nodesById=(s.nodesById && typeof s.nodesById==="object" && !Array.isArray(s.nodesById))?s.nodesById:{};
   for(const p of s.propositions){ if(p && typeof p.id==="string") s.nodesById[p.id]=p; }
+  // Migration/Normalisierung für Handlung–Ergebnis:
+  // Ohne gespeicherte explizite Wahl ist „Ergebnis“ der Hauptpunkt. Dadurch
+  // liegen Stern, Gruppen-Port und der Anker für die nächste Verbindung beim Ergebnis.
+  for(const n of Object.values(s.nodesById)){
+    if(!n || n.kind!=="relation") continue;
+    if(n.relationshipId==="handlung_ergebnis"){
+      if(n.primaryRoleChoice!=="Handlung" && n.primaryRoleChoice!=="Ergebnis") n.primaryRoleChoice="Ergebnis";
+      if(Array.isArray(n.roleOrder) && Array.isArray(n.children)){
+        const idx=n.roleOrder.findIndex(role=>role===n.primaryRoleChoice);
+        if(idx>=0 && n.children[idx]) n.primaryChildIds=[n.children[idx]];
+      }
+    }else if("primaryRoleChoice" in n){
+      delete n.primaryRoleChoice;
+    }
+    const directionRel=RELATIONSHIPS[n.relationshipId];
+    // Migration auf die kanonische Richtungsinformation. Ältere Versionen
+    // verwendeten preferredPrimaryChildId dafür, obwohl das Feld semantisch
+    // nicht den Hauptpunkt, sondern die zuerst gewählte/erste Rollen-Seite meinte.
+    if(!n.directionFirstChildId || !n.children.includes(n.directionFirstChildId)){
+      if(n.preferredPrimaryChildId && n.children.includes(n.preferredPrimaryChildId)){
+        n.directionFirstChildId=n.preferredPrimaryChildId;
+      }else if(directionRel?.allowRoleSwap && n.children.length===2 && Array.isArray(n.roleOrder)){
+        const firstRoleIndex=n.roleOrder.indexOf(directionRel.roles?.[0]);
+        if(firstRoleIndex>=0 && n.children[firstRoleIndex]) n.directionFirstChildId=n.children[firstRoleIndex];
+      }else if(n.children.length===2){
+        // Für alte Zustände ohne rekonstruierbare Klickrichtung ist die
+        // Textreihenfolge die einzig deterministische, reproduzierbare Basis.
+        n.directionFirstChildId=n.children[0];
+      }
+    }
+    if("preferredPrimaryChildId" in n) delete n.preferredPrimaryChildId;
+  }
   assertSafeStateShape(s);
   state=s;
   rebuildParentIds();
@@ -1368,32 +1406,117 @@ function defaultPrimaryIds(rel,children){
   if(Array.isArray(rel.primary)) return rel.primary.map(i=>children[i]).filter(Boolean);
   return children[rel.primary]!=null?[children[rel.primary]]:[];
 }
-function orientedRelationDefaults(rel,children,preferredPrimaryChildId=null){
-  const roleOrder=defaultRoleOrder(rel,children.length);
-  const primaryChildIds=defaultPrimaryIds(rel,children);
-
-  // Die Klickreihenfolge bestimmt bei binären unterordnenden Beziehungen die
-  // Leserichtung: Die zuerst gewählte Einheit soll Hauptpunkt werden. Die
-  // Textreihenfolge der Kinder bleibt unverändert; nur Rollen und Hauptpunkt
-  // werden bei Bedarf gespiegelt.
-  if(rel && rel.primary!=="all" && !Array.isArray(rel.primary) && children.length===2 && preferredPrimaryChildId && children.includes(preferredPrimaryChildId)){
-    const defaultPrimary=primaryChildIds[0]||null;
-    if(defaultPrimary!==preferredPrimaryChildId){
-      return {
-        roleOrder:[...roleOrder].reverse(),
-        primaryChildIds:[preferredPrimaryChildId]
-      };
-    }
-    return {roleOrder,primaryChildIds:[preferredPrimaryChildId]};
+function primaryIdsFromRoleOrder(rel,children,roleOrder){
+  if(rel.primary==="all") return [...children];
+  if(Array.isArray(rel.primary)) return rel.primary.map(i=>children[i]).filter(Boolean);
+  // Bei richtungsabhängigen binären Beziehungen ist primary der Index der
+  // semantischen Hauptrolle im Katalog, nicht zwingend der sichtbare Kindindex.
+  // Wenn die Rollen wegen der Klickreihenfolge gespiegelt wurden, folgt der
+  // Hauptpunkt deshalb der Rolle mit – Stern und Gruppenanker wandern mit.
+  if(rel.allowRoleSwap && children.length===2 && Array.isArray(rel.roles) && rel.roles[rel.primary]){
+    const primaryRole=rel.roles[rel.primary];
+    const visibleIndex=roleOrder.indexOf(primaryRole);
+    if(visibleIndex>=0 && children[visibleIndex]) return [children[visibleIndex]];
   }
+  return children[rel.primary]!=null?[children[rel.primary]]:[];
+}
+function isDirectionalBinary(rel,children){
+  return !!(rel && rel.allowRoleSwap && Array.isArray(children) && children.length===2 && Array.isArray(rel.roles) && rel.roles.length>=2);
+}
+function inferDirectionFirstChildId(node,relOverride=null){
+  if(!node || node.kind!=="relation" || !Array.isArray(node.children) || node.children.length!==2) return null;
+  if(node.directionFirstChildId && node.children.includes(node.directionFirstChildId)) return node.directionFirstChildId;
+  const rel=relOverride || RELATIONSHIPS[node.relationshipId];
+  if(isDirectionalBinary(rel,node.children) && Array.isArray(node.roleOrder)){
+    const firstRoleIndex=node.roleOrder.indexOf(rel.roles[0]);
+    if(firstRoleIndex>=0 && node.children[firstRoleIndex]) return node.children[firstRoleIndex];
+  }
+  // Deterministischer Fallback für migrierte/alte Daten.
+  return node.children[0]||null;
+}
+function orientedRelationDefaults(rel,children,directionFirstChildId=null){
+  let roleOrder=defaultRoleOrder(rel,children.length);
+
+  // Eine einzige kanonische Richtungsinformation steuert die sichtbare
+  // Rollenzuordnung. Die Kinder bleiben immer in Textreihenfolge.
+  if(isDirectionalBinary(rel,children) && directionFirstChildId && children.includes(directionFirstChildId)){
+    if(children.indexOf(directionFirstChildId)===1) roleOrder=[...roleOrder].reverse();
+  }
+
+  const primaryChildIds=primaryIdsFromRoleOrder(rel,children,roleOrder);
   return {roleOrder,primaryChildIds};
+}
+function computedRelationState(node,rel,{directionFirstChildId=null,primaryRoleChoice=null}={}){
+  const first=(directionFirstChildId && node.children.includes(directionFirstChildId))
+    ? directionFirstChildId
+    : inferDirectionFirstChildId(node,rel);
+  const oriented=orientedRelationDefaults(rel,node.children,first);
+  let primaryChildIds=[...oriented.primaryChildIds];
+  let resolvedPrimaryRoleChoice=null;
+
+  if(rel && rel===RELATIONSHIPS.handlung_ergebnis){
+    resolvedPrimaryRoleChoice=(primaryRoleChoice==="Handlung" || primaryRoleChoice==="Ergebnis")
+      ? primaryRoleChoice
+      : inferPrimaryRoleChoice(node,"handlung_ergebnis") || "Ergebnis";
+    const idx=oriented.roleOrder.findIndex(role=>role===resolvedPrimaryRoleChoice);
+    if(idx>=0 && node.children[idx]) primaryChildIds=[node.children[idx]];
+  }
+
+  return {
+    directionFirstChildId:first,
+    roleOrder:oriented.roleOrder,
+    primaryChildIds,
+    primaryRoleChoice:resolvedPrimaryRoleChoice
+  };
+}
+function applyComputedRelationState(node,rel,computed){
+  node.roleOrder=[...computed.roleOrder];
+  node.primaryChildIds=[...computed.primaryChildIds];
+  if(computed.directionFirstChildId && node.children.includes(computed.directionFirstChildId)){
+    node.directionFirstChildId=computed.directionFirstChildId;
+  }
+  if(rel===RELATIONSHIPS.handlung_ergebnis){
+    node.primaryRoleChoice=computed.primaryRoleChoice || "Ergebnis";
+  }else if("primaryRoleChoice" in node){
+    delete node.primaryRoleChoice;
+  }
+}
+function inferPrimaryRoleChoice(node,relationId){
+  if(!node || node.kind!=="relation" || relationId!=="handlung_ergebnis") return null;
+  if(node.primaryRoleChoice==="Handlung" || node.primaryRoleChoice==="Ergebnis") return node.primaryRoleChoice;
+  // Bestehende Projekte aus älteren Versionen hatten keine explizite Wahl.
+  // Für sie gilt ab jetzt ebenfalls der neue Standard: Ergebnis.
+  return "Ergebnis";
+}
+function normalizedPrimaryIdsForChoice(relationId,children,roleOrder,basePrimaryChildIds){
+  if(relationId!=="handlung_ergebnis") return [...basePrimaryChildIds];
+  const wanted=selectedPrimaryRoleChoice==="Handlung" || selectedPrimaryRoleChoice==="Ergebnis" ? selectedPrimaryRoleChoice : "Ergebnis";
+  const index=roleOrder.findIndex(role=>role===wanted);
+  if(index>=0 && children[index]!=null) return [children[index]];
+  return [...basePrimaryChildIds];
+}
+function sameIdArray(a,b){
+  if(!Array.isArray(a) || !Array.isArray(b) || a.length!==b.length) return false;
+  return a.every((id,i)=>id===b[i]);
+}
+function syncDialogRelationOptions(){
+  const node=getNode(activeRelationId);
+  if(chosenRelationshipId==="handlung_ergebnis"){
+    if(selectedPrimaryRoleChoice!=="Handlung" && selectedPrimaryRoleChoice!=="Ergebnis"){
+      selectedPrimaryRoleChoice=node && node.relationshipId==="handlung_ergebnis"
+        ? (inferPrimaryRoleChoice(node,"handlung_ergebnis") || "Ergebnis")
+        : "Ergebnis";
+    }
+  }else{
+    selectedPrimaryRoleChoice=null;
+  }
 }
 function canModifyRelations(){
   return state.settings.mode==="bearbeiten" && activeTool==="verbinden";
 }
 function normalizeRelationAfterChildChange(node){
   if(!node || node.kind!=="relation") return {opened:false};
-  if(node.preferredPrimaryChildId && !node.children.includes(node.preferredPrimaryChildId)) node.preferredPrimaryChildId=null;
+  if(node.directionFirstChildId && !node.children.includes(node.directionFirstChildId)) node.directionFirstChildId=node.children[0]||null;
   if(node.relationshipId==null){
     node.roleOrder=[];
     node.primaryChildIds=[];
@@ -1407,21 +1530,22 @@ function normalizeRelationAfterChildChange(node){
     node.relationshipId=null;
     node.roleOrder=[];
     node.primaryChildIds=[];
+    delete node.primaryRoleChoice;
     return {opened:true};
   }
   if(rel.primary==="all"){
     node.roleOrder=defaultRoleOrder(rel,node.children.length);
     node.primaryChildIds=[...node.children];
+    if("primaryRoleChoice" in node) delete node.primaryRoleChoice;
   }else{
-    // Unterordnende Typen behalten bei unveränderter Kinderzahl ihre Rollen.
-    // Falls Daten unvollständig sind, werden sichere Standardwerte wiederhergestellt.
-    node.primaryChildIds=(node.primaryChildIds||[]).filter(id=>node.children.includes(id));
-    const preferred=node.primaryChildIds.length===1?node.primaryChildIds[0]:(node.preferredPrimaryChildId||null);
-    if(!Array.isArray(node.roleOrder) || node.roleOrder.length!==node.children.length || !node.primaryChildIds.length){
-      const oriented=orientedRelationDefaults(rel,node.children,preferred);
-      node.roleOrder=oriented.roleOrder;
-      node.primaryChildIds=oriented.primaryChildIds;
-    }
+    // Beziehung nach jeder Strukturänderung vollständig aus Typ + kanonischer
+    // Richtung neu berechnen. So können Rollen, Stern und Gruppenanker nicht
+    // auseinanderlaufen.
+    const computed=computedRelationState(node,rel,{
+      directionFirstChildId:inferDirectionFirstChildId(node,rel),
+      primaryRoleChoice:node.relationshipId==="handlung_ergebnis" ? inferPrimaryRoleChoice(node,"handlung_ergebnis") : null
+    });
+    applyComputedRelationState(node,rel,computed);
   }
   return {opened:false};
 }
@@ -1452,13 +1576,13 @@ function canGroupInside(parentId,selectedCount){
   if(!rel || rel.primary!=="all") return false;
   return cardinalityOk(rel,newCount);
 }
-function connectOpen(selectedIds,parentId,preferredPrimaryChildId=null){
+function connectOpen(selectedIds,parentId,firstSelectedChildId=null){
   if(!validateContiguousSelection(selectedIds,parentId)) throw new Error("Nur ein direkt benachbarter Geschwisterbereich kann verbunden werden.");
   if(!canGroupInside(parentId,selectedIds.length)) throw new Error("Diese Untergruppe würde die übergeordnete Verbindung ungültig machen.");
   const siblings=siblingArray(parentId);
   const firstIndex=siblings.indexOf(selectedIds[0]);
   const id=makeId("r");
-  const node={kind:"relation",id,children:[...selectedIds],relationshipId:null,roleOrder:[],primaryChildIds:[],parentId,preferredPrimaryChildId:preferredPrimaryChildId&&selectedIds.includes(preferredPrimaryChildId)?preferredPrimaryChildId:null};
+  const node={kind:"relation",id,children:[...selectedIds],relationshipId:null,roleOrder:[],primaryChildIds:[],parentId,directionFirstChildId:firstSelectedChildId&&selectedIds.includes(firstSelectedChildId)?firstSelectedChildId:(selectedIds[0]||null)};
   state.nodesById[id]=node;
   siblings.splice(firstIndex,selectedIds.length,id);
   for(const childId of selectedIds){
@@ -1585,6 +1709,23 @@ function validateState(){
       }
     }else if(node.primaryChildIds.length!==1 || node.primaryChildIds.some(id=>!children.includes(id))){
       addError(`${rel.label}: Es fehlt eine gültige Hauptteilmarkierung.`,node.id);
+    }
+
+    // Zusätzliche kanonische Richtungsprüfung: Bei gerichteten binären
+    // Beziehungen müssen Rollen und Hauptpunkt exakt aus Typ + gespeicherter
+    // Richtung ableitbar sein. Dadurch kann kein Zwischenzustand existieren,
+    // in dem z. B. die Rollen bereits gedreht sind, Stern/Anker aber noch nicht.
+    if(isDirectionalBinary(rel,children)){
+      const expected=computedRelationState(node,rel,{
+        directionFirstChildId:inferDirectionFirstChildId(node,rel),
+        primaryRoleChoice:node.relationshipId==="handlung_ergebnis" ? inferPrimaryRoleChoice(node,"handlung_ergebnis") : null
+      });
+      if(!sameIdArray(node.roleOrder,expected.roleOrder)){
+        addError(`${rel.label}: Rollen und gespeicherte Richtung sind nicht konsistent.`,node.id);
+      }
+      if(!sameIdArray(node.primaryChildIds,expected.primaryChildIds)){
+        addError(`${rel.label}: Hauptpunkt und gespeicherte Richtung sind nicht konsistent.`,node.id);
+      }
     }
     if(rel.extended && !state.settings.includeExtended){
       warnings.push(`${rel.label} ist eine erweiterte Beziehung; zum Bearbeiten die erweiterten Beziehungen einschalten.`);
@@ -2305,6 +2446,7 @@ function relationshipEntriesForDialog(){
 function renderRelationshipDialog(){
   const node=getNode(activeRelationId);
   if(!node || node.kind!=="relation") return;
+  syncDialogRelationOptions();
   els.relationshipDialogTitle.textContent=node.relationshipId?"Beziehung ändern":"Beziehung wählen";
   els.dialogExtendedToggle.checked=!!state.settings.includeExtended;
   renderConjunctionFilter();
@@ -2362,6 +2504,16 @@ function renderRelationshipDetails(){
   if(!node || node.kind!=="relation") return;
   const current=RELATIONSHIPS[node.relationshipId];
   const rel=RELATIONSHIPS[chosenRelationshipId];
+  const handlungErgebnisSetting=rel && chosenRelationshipId==="handlung_ergebnis" ? `
+        <dt>Hauptpunkt</dt><dd>
+          <div class="rel-setting">
+            <div class="rel-setting-options">
+              <label class="rel-setting-option"><input type="radio" name="handlungErgebnisPrimaryRole" value="Handlung" ${selectedPrimaryRoleChoice==="Handlung"?"checked":""}> Handlung</label>
+              <label class="rel-setting-option"><input type="radio" name="handlungErgebnisPrimaryRole" value="Ergebnis" ${selectedPrimaryRoleChoice!=="Handlung"?"checked":""}> Ergebnis</label>
+            </div>
+            <div class="rel-setting-help">Bestimmt, welcher Teil der Hauptpunkt ist – also an welchem Teil der Anker sitzt und die Linie weitergeführt wird.</div>
+          </div>
+        </dd>` : "";
   els.relationshipDetails.innerHTML=`
     <div class="rel-current"><strong>Ausgewählte Gruppe:</strong> ${escapeHtml(nodeLabel(node.id))}<br>
       ${current?`Aktuell: ${escapeHtml(current.label)}`:"Aktuell: offene Gruppe"}<br>
@@ -2375,13 +2527,15 @@ function renderRelationshipDetails(){
         <dt>Prüffrage</dt><dd>${escapeHtml(rel.test)}</dd>
         <dt>Signalwörter</dt><dd>${escapeHtml(rel.signals.join("; "))}</dd>
         <dt>Rollen</dt><dd>${escapeHtml(rel.primary==="all"?"Alle Kinder gleichrangige Hauptteile":(rel.roles.join(" → ")||"—"))}</dd>
+        ${handlungErgebnisSetting}
         <dt>Umkehrung</dt><dd>${escapeHtml(rel.reversal||"—")}</dd>
         <dt>Hinweis</dt><dd>${escapeHtml(rel.note||"—")}</dd>
       </dl>`:
       `<p class="small-note">Wähle links eine Beziehung. Nicht passende Kardinalitäten sind deaktiviert.</p>`}`;
   const currentRel=current;
-  els.swapRolesButton.disabled=!(currentRel && currentRel.allowRoleSwap && node.children.length===2);
-  els.changePrimaryButton.disabled=!(currentRel && currentRel.primary!=="all" && !Array.isArray(currentRel.primary) && node.children.length>=2);
+  const canFlipDirection=isDirectionalBinary(currentRel,node.children);
+  els.directionFlipButton.hidden=!canFlipDirection;
+  els.directionFlipButton.disabled=!canFlipDirection;
   els.dissolveGroupButton.disabled=false;
   els.deleteSubtreeButton.disabled=false;
   els.leaveOpenButton.textContent=node.relationshipId?"Abbrechen":"Offen lassen";
@@ -2394,6 +2548,7 @@ function openRelationshipDialog(nodeId){
   activeRelationId=nodeId;
   selectedRelationId=nodeId;
   chosenRelationshipId=node.relationshipId || null;
+  selectedPrimaryRoleChoice=node.relationshipId==="handlung_ergebnis" ? inferPrimaryRoleChoice(node,"handlung_ergebnis") : null;
   selectedConjunctionLookup="";
   els.relationshipSearch.value="";
   renderRelationshipDialog();
@@ -2401,50 +2556,53 @@ function openRelationshipDialog(nodeId){
 }
 function closeRelationshipDialog(){
   closeDialog(els.relationshipDialog);
-  activeRelationId=null; chosenRelationshipId=null;
+  activeRelationId=null; chosenRelationshipId=null; selectedPrimaryRoleChoice=null;
 }
 function applyRelationship(){
   if(!canModifyRelations()) return;
   const node=getNode(activeRelationId);
   const rel=RELATIONSHIPS[chosenRelationshipId];
   if(!node || node.kind!=="relation" || !rel || !cardinalityOk(rel,node.children.length)) return;
-  if(node.relationshipId===chosenRelationshipId && node.roleOrder.length===node.children.length){
-    closeRelationshipDialog(); return;
-  }
+
+  const directionFirstChildId=inferDirectionFirstChildId(node,rel);
+  const computed=computedRelationState(node,rel,{
+    directionFirstChildId,
+    primaryRoleChoice:chosenRelationshipId==="handlung_ergebnis" ? selectedPrimaryRoleChoice : null
+  });
+  const sameRelation=node.relationshipId===chosenRelationshipId;
+  const sameRoles=sameIdArray(node.roleOrder,computed.roleOrder);
+  const samePrimary=sameIdArray(node.primaryChildIds,computed.primaryChildIds);
+  const sameChoice=chosenRelationshipId!=="handlung_ergebnis" || inferPrimaryRoleChoice(node,"handlung_ergebnis")===computed.primaryRoleChoice;
+  if(sameRelation && sameRoles && samePrimary && sameChoice){ closeRelationshipDialog(); return; }
+
   performAction(`Beziehung ${rel.label} übernommen`,()=>{
-    const existingPrimary=node.primaryChildIds&&node.primaryChildIds.length===1?node.primaryChildIds[0]:null;
-    const preferred=node.preferredPrimaryChildId||existingPrimary||null;
-    const oriented=orientedRelationDefaults(rel,node.children,preferred);
     node.relationshipId=chosenRelationshipId;
-    node.roleOrder=oriented.roleOrder;
-    node.primaryChildIds=oriented.primaryChildIds;
-    // Nach der ersten Festlegung ist der Hauptpunkt bereits in primaryChildIds
-    // gespeichert; die temporäre Auswahlpräferenz wird nicht mehr benötigt.
-    node.preferredPrimaryChildId=null;
+    applyComputedRelationState(node,rel,computed);
   });
   closeRelationshipDialog();
 }
-function swapRoles(){
+function flipRelationDirection(){
   if(!canModifyRelations()) return;
-  const node=getNode(activeRelationId),rel=node&&RELATIONSHIPS[node.relationshipId];
-  if(!node || !rel || !rel.allowRoleSwap || node.children.length!==2) return;
-  performAction("Rollen getauscht",()=>{
-    node.roleOrder=[...node.roleOrder].reverse();
-    if(node.primaryChildIds.length===1){
-      const i=node.children.indexOf(node.primaryChildIds[0]);
-      if(i>=0) node.primaryChildIds=[node.children[1-i]];
-    }
+  const node=getNode(activeRelationId);
+  const rel=node&&RELATIONSHIPS[node.relationshipId];
+  if(!node || !isDirectionalBinary(rel,node.children)) return;
+
+  // Der Button verändert nur die kanonische Richtung. Alles andere wird aus
+  // Beziehungstyp + Richtung (+ einer expliziten H/Erg-Hauptpunktwahl) neu
+  // berechnet. So entsteht exakt ein Zustand, der auch durch die umgekehrte
+  // ursprüngliche Klickreihenfolge hätte entstehen können.
+  const currentFirst=inferDirectionFirstChildId(node,rel);
+  const flippedFirst=currentFirst===node.children[0] ? node.children[1] : node.children[0];
+  const primaryChoice=node.relationshipId==="handlung_ergebnis"
+    ? inferPrimaryRoleChoice(node,"handlung_ergebnis")
+    : null;
+  const computed=computedRelationState(node,rel,{
+    directionFirstChildId:flippedFirst,
+    primaryRoleChoice:primaryChoice
   });
-  renderRelationshipDialog();
-}
-function changePrimary(){
-  if(!canModifyRelations()) return;
-  const node=getNode(activeRelationId),rel=node&&RELATIONSHIPS[node.relationshipId];
-  if(!node || !rel || rel.primary==="all" || Array.isArray(rel.primary)) return;
-  performAction("Hauptteil geändert",()=>{
-    const current=node.primaryChildIds.length?node.children.indexOf(node.primaryChildIds[0]):-1;
-    const next=(current+1)%node.children.length;
-    node.primaryChildIds=[node.children[next]];
+
+  performAction("Richtung umgekehrt",()=>{
+    applyComputedRelationState(node,rel,computed);
   });
   renderRelationshipDialog();
 }
@@ -2526,9 +2684,11 @@ function handleUnitClick(nodeId){
     return;
   }
   let newId=null;
-  const preferredPrimaryChildId=selectionStartId;
+  // Merkt die zuerst angeklickte Einheit. Bei richtungsabhängigen Typen
+  // erhält genau diese Einheit später die erste semantische Rolle des Typs.
+  const firstSelectedChildId=selectionStartId;
   selectionStartId=null;
-  performAction("Offene Gruppe angelegt",()=>{ newId=connectOpen(selected,a.parentId,preferredPrimaryChildId); });
+  performAction("Offene Gruppe angelegt",()=>{ newId=connectOpen(selected,a.parentId,firstSelectedChildId); });
   if(newId && getNode(newId)) openRelationshipDialog(newId);
 }
 
@@ -3027,12 +3187,17 @@ els.relationshipList.addEventListener("click",e=>{
   const card=e.target.closest("[data-rel-id]");
   if(!card || card.disabled) return;
   chosenRelationshipId=card.dataset.relId;
+  if(chosenRelationshipId!=="handlung_ergebnis") selectedPrimaryRoleChoice=null;
   renderRelationshipDialog();
+});
+els.relationshipDetails.addEventListener("change",e=>{
+  const control=e.target.closest('input[name="handlungErgebnisPrimaryRole"]');
+  if(!control) return;
+  selectedPrimaryRoleChoice=control.value==="Handlung" ? "Handlung" : "Ergebnis";
 });
 els.applyRelationshipButton.addEventListener("click",applyRelationship);
 els.leaveOpenButton.addEventListener("click",closeRelationshipDialog);
-els.swapRolesButton.addEventListener("click",swapRoles);
-els.changePrimaryButton.addEventListener("click",changePrimary);
+els.directionFlipButton.addEventListener("click",flipRelationDirection);
 els.dissolveGroupButton.addEventListener("click",dissolveGroup);
 els.deleteSubtreeButton.addEventListener("click",deleteSubtree);
 
