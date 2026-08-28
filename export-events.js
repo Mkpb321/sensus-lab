@@ -406,30 +406,131 @@ async function importJsonFile(file){
 function normalizedHelpText(value){
   return String(value??"").toLocaleLowerCase("de").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/ß/g,"ss");
 }
+function helpNormalizedWithMap(value){
+  const source=String(value??"");
+  let normalized="";
+  const map=[];
+  let offset=0;
+  for(const ch of Array.from(source)){
+    const folded=normalizedHelpText(ch);
+    for(const part of folded){
+      normalized+=part;
+      map.push({start:offset,end:offset+ch.length});
+    }
+    offset+=ch.length;
+  }
+  return {source,normalized,map};
+}
+function helpHighlightedHtml(value,terms){
+  const info=helpNormalizedWithMap(value);
+  if(!terms.length || !info.source) return escapeHtml(info.source);
+  const ranges=[];
+  for(const term of terms){
+    if(!term) continue;
+    let from=0;
+    while(from<=info.normalized.length-term.length){
+      const at=info.normalized.indexOf(term,from);
+      if(at<0) break;
+      const first=info.map[at],last=info.map[at+term.length-1];
+      if(first&&last) ranges.push([first.start,last.end]);
+      from=at+Math.max(1,term.length);
+    }
+  }
+  if(!ranges.length) return escapeHtml(info.source);
+  ranges.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const merged=[];
+  for(const range of ranges){
+    const prev=merged[merged.length-1];
+    if(prev&&range[0]<=prev[1]) prev[1]=Math.max(prev[1],range[1]);
+    else merged.push([...range]);
+  }
+  let html="",cursor=0;
+  for(const [a,b] of merged){
+    html+=escapeHtml(info.source.slice(cursor,a));
+    html+=`<mark>${escapeHtml(info.source.slice(a,b))}</mark>`;
+    cursor=b;
+  }
+  html+=escapeHtml(info.source.slice(cursor));
+  return html;
+}
+function helpSearchCandidates(){
+  if(!els.helpContent) return [];
+  const selectors=[
+    ".help-topic > h3",
+    ".help-topic > .help-intro",
+    ".help-topic > .help-steps > li",
+    ".help-topic .help-reference-row",
+    ".help-topic details.help-detail > summary",
+    ".help-topic details.help-detail > .help-detail-body > p",
+    ".help-topic .help-shortcuts > div"
+  ].join(",");
+  return $$(selectors,els.helpContent).map((element,index)=>{
+    if(!element.dataset.helpSearchId) element.dataset.helpSearchId=`help-hit-${index+1}`;
+    const topic=element.closest(".help-topic");
+    const topicTitle=topic?.querySelector(":scope > h3")?.textContent?.trim()||"Hilfe";
+    return {element,topic,topicTitle,text:(element.textContent||"").replace(/\s+/g," ").trim()};
+  }).filter(item=>item.text);
+}
+function ensureHelpSearchResults(){
+  if(!els.helpContent) return null;
+  let results=els.helpContent.querySelector("#helpSearchResults");
+  if(results) return results;
+  results=document.createElement("div");
+  results.id="helpSearchResults";
+  results.className="help-search-results";
+  results.hidden=true;
+  els.helpContent.insertBefore(results,els.helpContent.firstChild);
+  return results;
+}
+function restoreHelpAtElement(element){
+  if(!element || !els.helpSearch) return;
+  els.helpSearch.value="";
+  filterHelpTopics();
+  let detail=element.closest("details.help-detail");
+  while(detail){detail.open=true;detail=detail.parentElement?.closest("details.help-detail")||null;}
+  requestAnimationFrame(()=>{
+    element.scrollIntoView({block:"center",behavior:"smooth"});
+    element.classList.add("help-search-arrival");
+    setTimeout(()=>element.classList.remove("help-search-arrival"),1400);
+  });
+}
 function filterHelpTopics(){
   if(!els.helpDialog) return;
-  const query=normalizedHelpText(els.helpSearch?.value||"").trim();
-  const terms=query.split(/\s+/u).filter(Boolean);
+  const rawQuery=String(els.helpSearch?.value||"").trim();
+  const terms=normalizedHelpText(rawQuery).split(/\s+/u).filter(Boolean);
   const topics=$$(".help-topic",els.helpDialog);
-  let visible=0;
-  topics.forEach(topic=>{
-    const topicText=normalizedHelpText(`${topic.dataset.helpKeywords||""} ${topic.textContent||""}`);
-    const matches=!terms.length || terms.every(term=>topicText.includes(term));
-    topic.hidden=!matches;
-    if(matches) visible++;
-    const nav=els.helpDialog.querySelector(`[data-help-nav="${topic.id}"]`);
-    if(nav) nav.hidden=!matches;
-    $$('details.help-detail',topic).forEach(detail=>{
-      detail.hidden=false;
-      if(!terms.length) return;
-      const detailText=normalizedHelpText(`${detail.dataset.helpKeywords||""} ${detail.textContent||""}`);
-      if(terms.every(term=>detailText.includes(term))) detail.open=true;
-    });
-  });
-  if(els.helpNoResults) els.helpNoResults.hidden=visible!==0;
-  if(els.helpSearchStatus){
-    els.helpSearchStatus.textContent=terms.length ? `${visible} ${visible===1?"Thema":"Themen"}` : `${topics.length} Themen`;
+  const nav=els.helpDialog.querySelector(".help-nav");
+  const results=ensureHelpSearchResults();
+
+  if(!terms.length){
+    els.helpDialog.classList.remove("help-search-active");
+    if(results){results.hidden=true;results.innerHTML="";}
+    topics.forEach(topic=>{topic.hidden=false;});
+    $$('[data-help-nav]',els.helpDialog).forEach(link=>{link.hidden=false;});
+    $$('details.help-detail',els.helpDialog).forEach(detail=>{detail.hidden=false;});
+    if(nav) nav.hidden=false;
+    if(els.helpNoResults) els.helpNoResults.hidden=true;
+    if(els.helpSearchStatus) els.helpSearchStatus.textContent=`${topics.length} Themen`;
+    return;
   }
+
+  const hits=helpSearchCandidates().filter(item=>{
+    const hay=normalizedHelpText(item.text);
+    return terms.every(term=>hay.includes(term));
+  });
+  els.helpDialog.classList.add("help-search-active");
+  topics.forEach(topic=>{topic.hidden=true;});
+  $$('[data-help-nav]',els.helpDialog).forEach(link=>{link.hidden=true;});
+  if(nav) nav.hidden=true;
+  if(results){
+    results.hidden=hits.length===0;
+    results.innerHTML=hits.map((hit,index)=>`<button type="button" class="help-search-result" data-help-result-id="${escapeHtml(hit.element.dataset.helpSearchId)}">
+      <span class="help-search-result-topic">${escapeHtml(hit.topicTitle)}</span>
+      <span class="help-search-result-text">${helpHighlightedHtml(hit.text,terms)}</span>
+    </button>`).join("");
+  }
+  if(els.helpNoResults) els.helpNoResults.hidden=hits.length!==0;
+  if(els.helpSearchStatus) els.helpSearchStatus.textContent=`${hits.length} ${hits.length===1?"Treffer":"Treffer"}`;
 }
 function openHelpDialog(){
   closeProjectMenu();
@@ -458,6 +559,12 @@ els.redoButton.addEventListener("click",redo);
 els.helpButton.addEventListener("click",openHelpDialog);
 if(els.helpSearch) els.helpSearch.addEventListener("input",filterHelpTopics);
 if(els.helpDialog) els.helpDialog.addEventListener("click",e=>{
+  const result=e.target.closest("[data-help-result-id]");
+  if(result){
+    const target=els.helpContent?.querySelector(`[data-help-search-id="${CSS.escape(result.dataset.helpResultId)}"]`);
+    if(target){e.preventDefault();restoreHelpAtElement(target);}
+    return;
+  }
   const link=e.target.closest("[data-help-nav]");
   if(!link) return;
   const target=document.getElementById(link.dataset.helpNav);
