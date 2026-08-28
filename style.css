@@ -162,8 +162,8 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 /* Relationship picker: dense master/detail list instead of relationship cards. */
 .relationship-layout{display:grid;grid-template-columns:minmax(360px,1.08fr) minmax(300px,.92fr);gap:0;min-height:460px;margin:-14px}
 .relationship-list-pane{min-width:0;padding:12px 0 14px;border-right:1px solid var(--line);overflow:hidden}
-.relationship-controls{display:grid;grid-template-columns:minmax(150px,1fr) minmax(160px,210px) auto;gap:6px;align-items:center;padding:0 12px 9px;border-bottom:1px solid var(--line)}
-.relationship-controls input[type=search],.relationship-controls select{min-height:32px;border:1px solid var(--line-strong);border-radius:4px;padding:5px 8px;background:#fff;color:var(--ink);font:inherit;font-size:12px}
+.relationship-controls{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:8px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line);background:#fff}
+.relationship-controls select{min-height:32px;border:1px solid var(--line-strong);border-radius:4px;padding:5px 8px;background:#fff;color:var(--ink);font:inherit;font-size:12px}
 .relationship-controls select{padding-right:26px}
 .check-inline{display:flex;align-items:center;gap:5px;font-size:11px;color:#596572;white-space:nowrap}
 .check-inline input{width:15px;height:15px;accent-color:var(--accent)}
@@ -304,6 +304,17 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] .diagram-relation-label .dia
   .mode-group .seg-button,.tool-group .seg-button{padding:0 7px}
   .status-pill#openStatus,.status-pill#rootStatus{display:none}
 }
+
+/* Relationship dialog header: search belongs directly to the dialog title, outside scrolling content. */
+#relationshipDialog .relationship-dialog-head{height:auto;display:block;padding:10px 14px 11px;background:#fff;border-bottom:1px solid var(--line)}
+#relationshipDialog .relationship-dialog-title-row{display:flex;align-items:center;gap:10px;min-height:28px}
+#relationshipDialog .relationship-dialog-title-row h2{margin:0;flex:1}
+#relationshipDialog .relationship-title-search{display:block;width:100%;min-height:34px;margin-top:7px;border:1px solid var(--line-strong);border-radius:4px;padding:6px 9px;background:#fff;color:var(--ink);font:inherit;font-size:12px}
+#relationshipDialog .dialog-body{padding:0;overflow:hidden}
+#relationshipDialog .relationship-layout{margin:0}
+#relationshipDialog .relationship-list-pane{padding-top:0}
+#relationshipDialog .relationship-controls{position:sticky;top:0;z-index:2}
+
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
 /* Long relationship catalogs use independent master/detail scrolling. */

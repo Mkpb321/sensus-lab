@@ -89,273 +89,240 @@ function exportLegendSections(data){
   return sections;
 }
 function buildPublicationExportSvg(){
-  const bgColor="#f4f7fb";
-  const panelColor="#ffffff";
-  const panelBorder="#d8dee8";
-  const softFill="#fbfcfe";
-  const rowAlt="#fafbfd";
-  const separator="#e6ebf1";
+  // Publikations-Renderer: bewusst keine App-Oberfläche nachzeichnen.
+  // Die Ausgabe besteht nur aus Titel, Analysezeichnung, Text und einer kompakten Legende.
+  const pageX=34;
+  const pageTop=30;
+  const pageBottom=30;
+  const textWidth=720;
+  const graphTextGap=16;
+  const rowPadY=9;
+  const rowGap=2;
+  const propFontSize=17;
+  const propLineH=25;
+  const propMinH=48;
+  const roleMaxWidth=82;
+  const relationLabelMaxWidth=74;
+  const fontStack='system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
+  const ink="#172230";
   const muted="#667085";
-  const textColor="#101828";
-  const textSecondary="#344054";
-  const pagePadX=38;
-  const pagePadY=30;
-  const workspacePad=24;
-  const diagramDividerGap=12;
-  const textAreaWidth=740;
-  const propFontSize=18;
-  const propLineH=27;
-  const propMinH=56;
-  const roleMaxWidth=94;
-  const labelMaxWidth=98;
-  const exportFont='system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
+  const hairline="#e3e8ef";
 
-  const dataCount=relationNodes().length;
-  const exportTitle=(state.title||"").trim() || "Sensus Lab Analyse";
-  const titleLines=exportTextLines(exportTitle,980,`700 30px ${exportFont}`);
-  const summaryLines=(state.mainPointSummary||"").trim()
-    ? exportTextLines(state.mainPointSummary,980,`500 14px ${exportFont}`)
-    : [];
-  const metaParts=[`${state.propositions.length} Propositionen`,`${dataCount} Verbindungen`];
-  if(lastValidation?.complete) metaParts.push("vollständig");
-  const metaText=metaParts.join(" · ");
-  const titleLineH=36;
-  const summaryLineH=22;
-  const metaLineH=18;
-  const headerHeight=22 + titleLines.length*titleLineH + (summaryLines.length ? 8 + summaryLines.length*summaryLineH : 0) + 14 + metaLineH;
+  const title=String(state.title||"").trim();
+  const summary=String(state.mainPointSummary||"").trim();
+  const titleLines=title?exportTextLines(title,1000,`700 27px ${fontStack}`):[];
+  const summaryLines=summary?exportTextLines(summary,1000,`400 13px ${fontStack}`):[];
+  const titleLineH=33;
+  const summaryLineH=20;
+  let contentTop=pageTop;
+  if(titleLines.length) contentTop+=titleLines.length*titleLineH;
+  if(summaryLines.length) contentTop+=(titleLines.length?5:0)+summaryLines.length*summaryLineH;
+  if(titleLines.length||summaryLines.length) contentTop+=18;
 
-  const propTextFont=`500 ${propFontSize}px ${exportFont}`;
+  // Propositionen zuerst vollständig vermessen; ihre Mittelpunkte sind die alleinige Y-Wahrheit
+  // für Text, Klammern, Rollenlabels und Hauptpunkt-Anschlüsse.
+  const propFont=`500 ${propFontSize}px ${fontStack}`;
   const propLayouts=[];
   const anchorMap=new Map();
-  let rowY=0;
+  let y=contentTop;
   for(let i=0;i<state.propositions.length;i++){
     const p=state.propositions[i];
-    const text=state.tokens.slice(p.tokenStart,p.tokenEnd+1).join("");
-    const lines=exportTextLines(text,textAreaWidth,propTextFont);
-    const textHeight=Math.max(propLineH,lines.length*propLineH);
-    const height=Math.max(propMinH,textHeight+16);
-    const top=rowY;
-    const bottom=top+height;
+    const raw=state.tokens.slice(p.tokenStart,p.tokenEnd+1).join("");
+    const lines=exportTextLines(raw,textWidth,propFont);
+    const textH=Math.max(propLineH,lines.length*propLineH);
+    const h=Math.max(propMinH,textH+rowPadY*2);
+    const top=y;
+    const bottom=top+h;
     const center=(top+bottom)/2;
-    propLayouts.push({p,index:i,text,lines,height,top,bottom,center});
+    propLayouts.push({p,index:i,raw,lines,top,bottom,center,h});
     anchorMap.set(p.id,{top,bottom,center});
-    rowY=bottom;
+    y=bottom+rowGap;
   }
-  const rowsHeight=Math.max(84,rowY);
-  const data=relationLayoutData(anchorMap);
-  const exportGeometry=computeAdaptiveBracketGeometry(data);
-  const maxDepth=data.length?exportGeometry.maxDepth:0;
-  const outerReserve=data.length?Math.max(18,Math.ceil((exportGeometry.relationThicknessByDepth[maxDepth]||0)/2+10)):0;
-  const diagramTrackWidth=data.length?(outerReserve+exportGeometry.cumulative[maxDepth]+18):86;
-  const workspaceInnerWidth=diagramTrackWidth + diagramDividerGap + 1 + diagramDividerGap + textAreaWidth;
-  const workspaceWidth=workspaceInnerWidth + workspacePad*2;
-  const canvasW=Math.ceil(pagePadX*2 + workspaceWidth);
+  const contentBottom=propLayouts.length?propLayouts[propLayouts.length-1].bottom:contentTop+60;
 
-  const workspaceX=pagePadX;
-  const workspaceY=pagePadY + headerHeight + 18;
-  const diagramX=workspaceX + workspacePad;
-  const diagramRight=diagramX + diagramTrackWidth;
-  const dividerX=diagramRight + diagramDividerGap;
-  const textStart=dividerX + diagramDividerGap;
-  const bracketRight=dividerX - 6;
-  const xForDepth=(depth)=>bracketRight-exportGeometry.cumulative[depth];
+  // Geometrie aus denselben absoluten Ankern berechnen. Kein zweites Koordinatensystem,
+  // damit verschachtelte Beziehungen niemals in den Kopfbereich springen können.
+  const data=relationLayoutData(anchorMap);
+  const geometry=computeAdaptiveBracketGeometry(data);
+  const maxDepth=data.length?geometry.maxDepth:0;
+  const graphWidth=data.length
+    ? Math.ceil(geometry.leftGutter+geometry.cumulative[maxDepth]+geometry.rightGutter+4)
+    : 0;
+  const textX=pageX+(graphWidth?graphWidth+graphTextGap:0);
+  const canvasW=Math.ceil(textX+textWidth+pageX);
+  const bracketRight=graphWidth?textX-10:pageX;
+  const xForDepth=(depth)=>bracketRight-geometry.cumulative[depth];
   const xById=new Map(data.map(item=>[item.node.id,xForDepth(item.depth)]));
   const portMemo=new Map();
 
+  // Rollenlabels werden als kurze Cutouts direkt auf ihrer Linie platziert.
   const rolePlacementByKey=new Map();
   for(const item of data){
     const {node}=item;
     const {rel}=exportRelationStyle(node);
     if(!rel || rel.primary==="all") continue;
     const x=xById.get(node.id);
-    const targets=(node.children||[]).map(childId=>{
-      const child=getNode(childId);
-      return child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
-    });
-    const parentHalf=(exportGeometry.relationMetricsById.get(node.id)?.metrics.height||0)/2;
-    const nodeMaxRoleWidth=Math.min(roleMaxWidth,exportGeometry.maxRoleWidthByNode.get(node.id)||0);
-    const commonRoleX=x+Math.max(parentHalf+10,22)+nodeMaxRoleWidth/2;
+    const parentHalf=(geometry.relationMetricsById.get(node.id)?.metrics.height||0)/2;
+    const maxRoleWidth=Math.min(roleMaxWidth,geometry.maxRoleWidthByNode.get(node.id)||0);
+    const commonX=x+Math.max(parentHalf+9,20)+maxRoleWidth/2;
     (node.children||[]).forEach((childId,i)=>{
-      const cy=bracketNodePortY(childId,anchorMap,portMemo); if(!Number.isFinite(cy)) return;
-      const targetX=targets[i];
+      const cy=bracketNodePortY(childId,anchorMap,portMemo);
+      if(!Number.isFinite(cy)) return;
+      const child=getNode(childId);
+      const targetX=child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
       const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
-      const displayRole=compactRole(fullRole);
-      const lines=[displayRole];
-      const metrics=bracketTextMetrics(lines,{minWidth:28,maxWidth:roleMaxWidth,charWidth:4.65,lineHeight:9.4,padX:4.6,padY:2.8});
-      const minX=x+Math.max(parentHalf+10,22)+metrics.width/2;
-      const maxX=targetX-metrics.width/2-6;
-      const rx=Math.max(minX,Math.min(commonRoleX,maxX));
-      rolePlacementByKey.set(`${node.id}:${i}`,{rx,centerY:cy,lines,metrics,fullRole});
+      const shortRole=compactRole(fullRole);
+      const lines=[shortRole];
+      const metrics=bracketTextMetrics(lines,{minWidth:22,maxWidth:roleMaxWidth,charWidth:4.7,lineHeight:9.2,padX:4,padY:2.3});
+      const minX=x+Math.max(parentHalf+9,20)+metrics.width/2;
+      const maxX=targetX-metrics.width/2-5;
+      const rx=Math.max(minX,Math.min(commonX,maxX));
+      rolePlacementByKey.set(`${node.id}:${i}`,{rx,cy,lines,metrics,fullRole});
     });
   }
 
+  // Legende: horizontale Kürzel nur aufnehmen, wenn sie nicht bereits als Teil
+  // eines verwendeten vertikalen Beziehungskürzels erklärt sind.
   const legendSections=exportLegendSections(data);
-  const legendTitleFont=`700 12px ${exportFont}`;
-  const legendSectionFont=`700 11px ${exportFont}`;
-  const legendRowFont=`500 12px ${exportFont}`;
-  const legendPadX=14;
-  const legendPadY=12;
+  const legendStartY=contentBottom+28;
+  const legendContentW=canvasW-pageX*2;
   const legendRowH=19;
-  const legendSectionGap=10;
-  const legendTitleH=18;
-  const legendSectionTitleH=16;
-  const legendSwatchW=18;
-  const legendTextGap=8;
-  const legendSectionWidths=legendSections.map(section=>{
-    const titleW=exportMeasureText(section.title,legendSectionFont);
-    const rowW=Math.max(0,...section.items.map(item=>exportMeasureText(`${item.code} = ${item.label}`,legendRowFont)));
-    return Math.ceil(Math.max(titleW,legendSwatchW+legendTextGap+rowW));
-  });
-  const legendWidth=legendSections.length
-    ? Math.max(320,Math.min(workspaceWidth,Math.ceil(Math.max(...legendSectionWidths)+legendPadX*2)))
-    : 0;
-  const legendContentHeight=legendSections.reduce((sum,section,idx)=>sum + legendSectionTitleH + section.items.length*legendRowH + (idx<legendSections.length-1?legendSectionGap:0),0);
-  const legendHeight=legendSections.length ? legendPadY*2 + legendTitleH + 8 + legendContentHeight : 0;
-
-  const footerGap=legendSections.length?18:0;
-  const canvasH=Math.ceil(workspaceY + rowsHeight + workspacePad + footerGap + legendHeight + pagePadY);
-  const legendX=workspaceX;
-  const legendY=workspaceY + rowsHeight + workspacePad + footerGap;
-
-  // endgültige absolute Ankerkoordinaten für Diagramm und Textzeilen herstellen
-  for(const item of propLayouts){
-    const absTop=workspaceY + workspacePad + item.top;
-    const absBottom=workspaceY + workspacePad + item.bottom;
-    const absCenter=workspaceY + workspacePad + item.center;
-    anchorMap.set(item.p.id,{top:absTop,bottom:absBottom,center:absCenter});
-    item.absTop=absTop;
-    item.absBottom=absBottom;
-    item.absCenter=absCenter;
+  const legendSectionTitleH=20;
+  const legendSectionGap=12;
+  const legendLayouts=[];
+  let legendY=legendStartY;
+  for(const section of legendSections){
+    const count=section.items.length;
+    if(!count) continue;
+    const columns=Math.min(3,Math.max(1,Math.ceil(count/5)));
+    const rows=Math.ceil(count/columns);
+    const h=legendSectionTitleH+rows*legendRowH;
+    legendLayouts.push({...section,columns,rows,y:legendY,h,colW:legendContentW/columns});
+    legendY+=h+legendSectionGap;
   }
+  const legendHeight=legendLayouts.length?legendY-legendStartY-legendSectionGap:0;
+  const canvasH=Math.ceil((legendHeight?legendStartY+legendHeight:contentBottom)+pageBottom);
 
   const pieces=[];
   const overlays=[];
   pieces.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`);
-  pieces.push(`<rect width="${canvasW}" height="${canvasH}" fill="${bgColor}"/>`);
+  pieces.push(`<rect width="${canvasW}" height="${canvasH}" fill="#ffffff"/>`);
   pieces.push(`<style>
-    text{font-family:${exportFont};text-rendering:auto;font-kerning:normal}
+    text{font-family:${fontStack};text-rendering:auto;font-kerning:normal}
     .pub-line{fill:none;stroke-linecap:square;stroke-linejoin:miter}
-    .pub-rel{font-size:10.4px;font-weight:700;text-anchor:middle;letter-spacing:.01em}
-    .pub-role{font-size:10px;font-weight:500;fill:${textSecondary};text-anchor:middle}
-    .pub-prop{font-size:${propFontSize}px;font-weight:500;fill:${textColor}}
-    .pub-meta{font-size:12px;font-weight:600;fill:${muted};letter-spacing:.01em}
+    .pub-rel{font-size:10px;font-weight:700;text-anchor:middle;letter-spacing:.005em}
+    .pub-role{font-size:9.5px;font-weight:600;fill:#475467;text-anchor:middle}
+    .pub-prop{font-size:${propFontSize}px;font-weight:500;fill:${ink}}
   </style>`);
 
-  // Kopfbereich
-  const titleY=pagePadY + 8;
-  pieces.push(`<text x="${pagePadX}" y="${titleY}" font-size="30" font-weight="700" letter-spacing="-.02em" fill="${textColor}">${titleLines.map((line,li)=>`<tspan x="${pagePadX}" dy="${li===0?0:titleLineH}">${safeSvgText(line)}</tspan>`).join("")}</text>`);
-  let metaStartY=titleY + Math.max(0,(titleLines.length-1)*titleLineH) + 14;
-  if(summaryLines.length){
-    pieces.push(`<text x="${pagePadX}" y="${metaStartY}" font-size="14" font-weight="500" fill="${textSecondary}">${summaryLines.map((line,li)=>`<tspan x="${pagePadX}" dy="${li===0?0:summaryLineH}">${safeSvgText(line)}</tspan>`).join("")}</text>`);
-    metaStartY += (summaryLines.length-1)*summaryLineH + 28;
-  }else{
-    metaStartY += 8;
+  // Ruhiger Kopf ohne Metadaten-/App-Zeile.
+  let headerY=pageTop+4;
+  if(titleLines.length){
+    pieces.push(`<text x="${pageX}" y="${headerY}" font-size="27" font-weight="700" letter-spacing="-.02em" fill="${ink}">${titleLines.map((line,i)=>`<tspan x="${pageX}" dy="${i===0?0:titleLineH}">${safeSvgText(line)}</tspan>`).join("")}</text>`);
+    headerY+=titleLines.length*titleLineH;
   }
-  pieces.push(`<text class="pub-meta" x="${pagePadX}" y="${metaStartY}">${safeSvgText(metaText)}</text>`);
+  if(summaryLines.length){
+    if(titleLines.length) headerY+=2;
+    pieces.push(`<text x="${pageX}" y="${headerY}" font-size="13" font-weight="400" fill="${muted}">${summaryLines.map((line,i)=>`<tspan x="${pageX}" dy="${i===0?0:summaryLineH}">${safeSvgText(line)}</tspan>`).join("")}</text>`);
+  }
+  if(titleLines.length||summaryLines.length){
+    pieces.push(`<line x1="${pageX}" y1="${contentTop-10}" x2="${canvasW-pageX}" y2="${contentTop-10}" stroke="${hairline}" stroke-width="1"/>`);
+  }
 
-  // Hauptpanel
-  const workspaceH=rowsHeight + workspacePad*2;
-  pieces.push(`<rect x="${workspaceX}" y="${workspaceY}" width="${workspaceWidth}" height="${workspaceH}" rx="18" fill="${panelColor}" stroke="${panelBorder}" stroke-width="1"/>`);
-  pieces.push(`<rect x="${diagramX}" y="${workspaceY+workspacePad/2}" width="${diagramTrackWidth+diagramDividerGap/2}" height="${workspaceH-workspacePad}" rx="12" fill="${softFill}"/>`);
-  pieces.push(`<line x1="${dividerX}" y1="${workspaceY+16}" x2="${dividerX}" y2="${workspaceY+workspaceH-16}" stroke="${separator}" stroke-width="1"/>`);
-
-  propLayouts.forEach((item,idx)=>{
-    if(idx%2===1){
-      pieces.push(`<rect x="${workspaceX+1}" y="${item.absTop}" width="${workspaceWidth-2}" height="${item.height}" fill="${rowAlt}"/>`);
+  // Propositionen: nur Text und feine Satzlinien – keine Tabellenflächen oder Karten.
+  propLayouts.forEach((item,i)=>{
+    const firstY=item.center-((item.lines.length-1)*propLineH)/2+5.5;
+    pieces.push(`<text class="pub-prop" x="${textX}" y="${firstY}">${item.lines.map((line,li)=>`<tspan x="${textX}" dy="${li===0?0:propLineH}">${safeSvgText(line)}</tspan>`).join("")}</text>`);
+    if(i<propLayouts.length-1){
+      const sepY=item.bottom+rowGap/2;
+      pieces.push(`<line x1="${textX}" y1="${sepY}" x2="${textX+textWidth}" y2="${sepY}" stroke="${hairline}" stroke-width="1"/>`);
     }
-    if(idx>0){
-      pieces.push(`<line x1="${workspaceX+16}" y1="${item.absTop}" x2="${workspaceX+workspaceWidth-16}" y2="${item.absTop}" stroke="${separator}" stroke-width="1"/>`);
-    }
-    if(data.length) pieces.push(`<path class="pub-line" d="M ${bracketRight} ${item.absCenter} H ${dividerX-2}" stroke="#cfd7e3" stroke-width="1"/>`);
-    const firstY=item.absCenter-((item.lines.length-1)*propLineH)/2+6;
-    pieces.push(`<text class="pub-prop" x="${textStart}" y="${firstY}">${item.lines.map((line,li)=>`<tspan x="${textStart}" dy="${li===0?0:propLineH}">${safeSvgText(line)}</tspan>`).join("")}</text>`);
   });
 
-  // Diagramm
+  // Klammerzeichnung.
   for(const item of data){
     const {node}=item;
     const {rel,color,dash,width}=exportRelationStyle(node);
     const x=xById.get(node.id);
     const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
-    const ports=childPorts.filter(Number.isFinite); if(!ports.length) continue;
+    const ports=childPorts.filter(Number.isFinite);
+    if(!ports.length) continue;
     const topY=Math.min(...ports),bottomY=Math.max(...ports);
     const dashAttr=dash?` stroke-dasharray="${dash}"`:"";
     const relationTitle=rel?rel.label:"Offene Gruppe";
-    const displayRelationTitle=relationShortCode(node);
-    const lines=[displayRelationTitle];
-    const metrics=bracketTextMetrics(lines,{minWidth:42,maxWidth:labelMaxWidth,charWidth:4.5,lineHeight:9.6,padX:4.3,padY:2.9});
-    const labelScreenHeight=metrics.width;
-    const labelScreenWidth=metrics.height;
-    const y=(topY+bottomY)/2;
-    const labelTop=y-labelScreenHeight/2;
-    const labelBottom=y+labelScreenHeight/2;
+    const short=relationShortCode(node);
+    const relationLines=[short];
+    const relationMetrics=bracketTextMetrics(relationLines,{minWidth:34,maxWidth:relationLabelMaxWidth,charWidth:4.65,lineHeight:9.4,padX:4,padY:2.5});
+    const labelScreenH=relationMetrics.width;
+    const labelScreenW=relationMetrics.height;
+    const labelY=(topY+bottomY)/2;
+    const labelTop=labelY-labelScreenH/2;
+    const labelBottom=labelY+labelScreenH/2;
 
     if(topY!==bottomY){
-      const verticalSegments=[];
-      if(labelTop>topY+4) verticalSegments.push([topY,labelTop]);
-      if(labelBottom<bottomY-4) verticalSegments.push([labelBottom,bottomY]);
-      verticalSegments.forEach(([segTop,segBottom])=>{
-        pieces.push(`<path class="pub-line" d="M ${x} ${segTop} V ${segBottom}" stroke="${color}" stroke-width="${width}"${dashAttr}/>`);
-      });
+      if(labelTop>topY+3) pieces.push(`<path class="pub-line" d="M ${x} ${topY} V ${labelTop}" stroke="${color}" stroke-width="${width}"${dashAttr}/>`);
+      if(labelBottom<bottomY-3) pieces.push(`<path class="pub-line" d="M ${x} ${labelBottom} V ${bottomY}" stroke="${color}" stroke-width="${width}"${dashAttr}/>`);
     }
 
     (node.children||[]).forEach((childId,i)=>{
-      const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
+      const cy=childPorts[i];
+      if(!Number.isFinite(cy)) return;
       const child=getNode(childId);
       const targetX=child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
       const primary=(node.primaryChildIds||[]).includes(childId);
-      const hasMainPointStar=primary && !!rel && rel.primary!=="all";
-      const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+labelScreenWidth/2 : x;
-      const branchWidth=hasMainPointStar && uiSettings.emphasizePrimaryLines!==false ? width*2 : width;
-      pieces.push(`<path class="pub-line" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${branchWidth}"${dashAttr}/>`);
+      const hasStar=primary && !!rel && rel.primary!=="all";
+      const startX=(cy>=labelTop-2&&cy<=labelBottom+2)?x+labelScreenW/2:x;
+      const branchWidth=hasStar&&uiSettings.emphasizePrimaryLines!==false?width*2:width;
+      pieces.push(`<path class="pub-line" d="M ${startX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${branchWidth}"${dashAttr}/>`);
+
       const placement=rolePlacementByKey.get(`${node.id}:${i}`);
       if(placement){
-        const {rx,centerY,lines,metrics,fullRole}=placement;
+        const {rx,cy:roleY,lines,metrics,fullRole}=placement;
         overlays.push(`<g><title>${safeSvgText(fullRole)}</title>`);
-        overlays.push(`<rect x="${rx-metrics.width/2-2}" y="${centerY-metrics.height/2-1}" width="${metrics.width+4}" height="${metrics.height+2}" rx="4" fill="#ffffff" stroke="#d5dce7" stroke-width="0.9"/>`);
-        overlays.push(svgMultilineText(lines,rx,centerY,"pub-role",null,metrics.lineHeight));
+        overlays.push(`<rect x="${rx-metrics.width/2-2}" y="${roleY-metrics.height/2-1}" width="${metrics.width+4}" height="${metrics.height+2}" fill="#ffffff"/>`);
+        overlays.push(svgMultilineText(lines,rx,roleY,"pub-role",null,metrics.lineHeight));
         overlays.push(`</g>`);
       }
-      if(hasMainPointStar){
-        const sx=branchStartX+9;
-        pieces.push(`<circle cx="${sx}" cy="${cy}" r="5" fill="#ffffff" stroke="${color}" stroke-width="1.1"/>`);
-        pieces.push(`<text x="${sx}" y="${cy}" text-anchor="middle" font-size="7" font-weight="700" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
+      if(hasStar){
+        const sx=startX+8;
+        pieces.push(`<text x="${sx}" y="${cy}" text-anchor="middle" font-size="8" font-weight="700" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
       }
     });
 
     overlays.push(`<g><title>${safeSvgText(relationTitle)}</title>`);
-    overlays.push(`<rect x="${x-metrics.width/2-3}" y="${y-metrics.height/2-2}" width="${metrics.width+6}" height="${metrics.height+4}" rx="5" fill="#ffffff" stroke="${color}" stroke-width="1"${dashAttr} transform="rotate(-90 ${x} ${y})"/>`);
-    overlays.push(svgMultilineText(lines,x,y,"pub-rel",color,metrics.lineHeight).replace('<text ','<text transform="rotate(-90 '+x+' '+y+')" '));
+    overlays.push(`<rect x="${x-relationMetrics.width/2-2}" y="${labelY-relationMetrics.height/2-1}" width="${relationMetrics.width+4}" height="${relationMetrics.height+2}" rx="3" fill="#ffffff" stroke="${color}" stroke-width="0.9"${dashAttr} transform="rotate(-90 ${x} ${labelY})"/>`);
+    overlays.push(svgMultilineText(relationLines,x,labelY,"pub-rel",color,relationMetrics.lineHeight).replace('<text ','<text transform="rotate(-90 '+x+' '+labelY+')" '));
     overlays.push(`</g>`);
   }
-
   pieces.push(...overlays);
 
-  // Legende
-  if(legendSections.length){
-    pieces.push(`<rect x="${legendX}" y="${legendY}" width="${workspaceWidth}" height="${legendHeight}" rx="16" fill="${panelColor}" stroke="${panelBorder}" stroke-width="1"/>`);
-    let currentY=legendY+legendPadY+12;
-    pieces.push(`<text x="${legendX+legendPadX}" y="${currentY}" font-size="12" font-weight="700" fill="${textColor}">Legende</text>`);
-    currentY += legendTitleH + 2;
-    legendSections.forEach((section,sectionIndex)=>{
-      pieces.push(`<text x="${legendX+legendPadX}" y="${currentY}" font-size="11" font-weight="700" fill="${muted}" letter-spacing=".02em">${safeSvgText(section.title.toUpperCase())}</text>`);
-      currentY += legendSectionTitleH;
-      section.items.forEach(item=>{
-        const baselineY=currentY;
-        const swatchY=baselineY-4;
-        if(item.kind==="relation"){
-          const dashAttr=item.dash?` stroke-dasharray="${item.dash}"`:"";
-          pieces.push(`<line x1="${legendX+legendPadX}" y1="${swatchY}" x2="${legendX+legendPadX+legendSwatchW}" y2="${swatchY}" stroke="${item.color}" stroke-width="2.2"${dashAttr}/>`);
+  // Kompakte, druckartige Legende ohne umschließende Karte.
+  if(legendLayouts.length){
+    pieces.push(`<line x1="${pageX}" y1="${legendStartY-13}" x2="${canvasW-pageX}" y2="${legendStartY-13}" stroke="${hairline}" stroke-width="1"/>`);
+    pieces.push(`<text x="${pageX}" y="${legendStartY}" font-size="11" font-weight="700" fill="${ink}" letter-spacing=".02em">LEGENDE</text>`);
+    const legendBaseY=legendStartY+18;
+    let priorOffset=0;
+    legendLayouts.forEach(section=>{
+      const sy=legendBaseY+priorOffset;
+      pieces.push(`<text x="${pageX}" y="${sy}" font-size="10" font-weight="700" fill="${muted}" letter-spacing=".04em">${safeSvgText(section.title.toUpperCase())}</text>`);
+      const itemTop=sy+15;
+      section.items.forEach((entry,index)=>{
+        const col=Math.floor(index/section.rows);
+        const row=index%section.rows;
+        const ix=pageX+col*section.colW;
+        const iy=itemTop+row*legendRowH;
+        const codeX=ix+22;
+        if(entry.kind==="relation"){
+          const d=entry.dash?` stroke-dasharray="${entry.dash}"`:"";
+          pieces.push(`<line x1="${ix}" y1="${iy-4}" x2="${ix+14}" y2="${iy-4}" stroke="${entry.color}" stroke-width="2"${d}/>`);
         }else{
-          pieces.push(`<rect x="${legendX+legendPadX+3}" y="${baselineY-10}" width="${legendSwatchW-6}" height="8" rx="3" fill="#ffffff" stroke="#98a2b3" stroke-width="1"/>`);
+          pieces.push(`<text x="${ix+7}" y="${iy}" text-anchor="middle" font-size="9" font-weight="700" fill="#667085">·</text>`);
         }
-        const textX=legendX+legendPadX+legendSwatchW+legendTextGap;
-        pieces.push(`<text x="${textX}" y="${baselineY}" font-size="12" font-weight="650" fill="${textSecondary}">${safeSvgText(item.code)}</text>`);
-        const codeW=exportMeasureText(item.code,legendRowFont);
-        pieces.push(`<text x="${textX+codeW+8}" y="${baselineY}" font-size="12" font-weight="500" fill="${muted}">= ${safeSvgText(item.label)}</text>`);
-        currentY += legendRowH;
+        pieces.push(`<text x="${codeX}" y="${iy}" font-size="10.5" font-weight="700" fill="${ink}">${safeSvgText(entry.code)}</text>`);
+        const codeW=exportMeasureText(entry.code,`700 10.5px ${fontStack}`);
+        pieces.push(`<text x="${codeX+codeW+6}" y="${iy}" font-size="10.5" font-weight="400" fill="${muted}">${safeSvgText(entry.label)}</text>`);
       });
-      if(sectionIndex<legendSections.length-1) currentY += legendSectionGap;
+      priorOffset+=section.h+legendSectionGap;
     });
   }
 

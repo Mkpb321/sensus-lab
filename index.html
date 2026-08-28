@@ -161,15 +161,17 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
 
 <dialog id="relationshipDialog" aria-labelledby="relationshipDialogTitle">
   <div class="dialog-shell">
-    <div class="dialog-head">
-      <h2 id="relationshipDialogTitle">Beziehung wählen</h2>
-      <button class="close-button" type="button" data-close-dialog="relationshipDialog" aria-label="Dialog schließen">×</button>
+    <div class="dialog-head relationship-dialog-head">
+      <div class="relationship-dialog-title-row">
+        <h2 id="relationshipDialogTitle">Beziehung wählen</h2>
+        <button class="close-button" type="button" data-close-dialog="relationshipDialog" aria-label="Dialog schließen">×</button>
+      </div>
+      <input id="relationshipSearch" class="relationship-title-search" type="search" placeholder="Beziehung suchen …" aria-label="Beziehung suchen">
     </div>
     <div class="dialog-body">
       <div class="relationship-layout">
         <section class="relationship-list-pane">
           <div class="relationship-controls">
-            <input id="relationshipSearch" type="search" placeholder="Beziehung suchen …" aria-label="Beziehung suchen">
             <select id="conjunctionLookupSelect" aria-label="Konjunktion auswählen"></select>
             <label class="check-inline"><input id="dialogExtendedToggle" type="checkbox"> Erweiterte Beziehungen</label>
           </div>
