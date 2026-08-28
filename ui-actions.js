@@ -223,7 +223,7 @@ function renderBracketSvg(anchorMap,height){
 
   els.bracketEmpty.textContent="";
   els.bracketEmpty.style.display=data.length?"none":"flex";
-  if(!data.length) els.bracketEmpty.textContent=state.propositions.length<2?"Teile den Text in mindestens zwei Propositionen, um Klammern anzulegen.":"Verbinde benachbarte Einheiten. Die Klammerbreite passt sich automatisch an den benötigten Platz an.";
+  if(!data.length) els.bracketEmpty.textContent=state.propositions.length<2?"Keine Struktur":"Keine Verbindungen";
 }
 
 function measureAndRenderSvgs(){
@@ -379,8 +379,8 @@ function renderRelationshipDetails(){
           </div>
         </dd>` : "";
   els.relationshipDetails.innerHTML=`
-    <div class="rel-current"><strong>Ausgewählte Gruppe:</strong> ${escapeHtml(nodeLabel(node.id))}<br>
-      ${current?`Aktuell: ${escapeHtml(current.label)}`:"Aktuell: offene Gruppe"}<br>
+    <div class="rel-current"><strong>Gruppe:</strong> ${escapeHtml(nodeLabel(node.id))}<br>
+      ${current?`Aktuell: ${escapeHtml(current.label)}`:"Aktuell: offen"}<br>
       <span class="small-note">${escapeHtml(relationRoleSummary(node))}</span>
     </div>
     ${rel?`<h3>${escapeHtml(rel.label)}${rel.biblearcLabel?` <span class="rel-original">(${escapeHtml(rel.biblearcLabel)})</span>`:""}</h3>
@@ -395,7 +395,7 @@ function renderRelationshipDetails(){
         <dt>Umkehrung</dt><dd>${escapeHtml(rel.reversal||"—")}</dd>
         <dt>Hinweis</dt><dd>${escapeHtml(rel.note||"—")}</dd>
       </dl>`:
-      `<p class="small-note">Wähle links eine Beziehung. Nicht passende Kardinalitäten sind deaktiviert.</p>`}`;
+      `<p class="small-note">Keine Beziehung ausgewählt.</p>`}`;
   const currentRel=current;
   const canFlipDirection=isDirectionalBinary(currentRel,node.children);
   els.directionFlipButton.hidden=!canFlipDirection;

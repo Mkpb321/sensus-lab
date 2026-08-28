@@ -23,6 +23,8 @@ Abkürzungen wie in dem farbigen menü genau gleich also nur einmal im code. und
 
 zusätzlich das der main point ein stern hat soll seine horizontale linie auch doppelt so dick sein
 
+in Bezihung ändern/wählen sollen die titel der gruppen aufälliger sein. dunkler als anderes in der farbe der gruppe mit weisser scheift. und die abkürzungen die so farbig sind sollen auch aufälliger sein
+
 Kurs Notizen
 Rethorische fragen nicht  Q/A sondern als Statements behandeln. diese haben keine Antwort. Auch Serien von Fragen ohne Antworten sind ein Hinweis.
 

@@ -158,13 +158,14 @@ function render(){
   els.toolGroup.style.display=state.settings.mode==="bearbeiten"?"flex":"none";
   els.documentHeading.hidden=!state.title;
   els.documentHeading.textContent=state.title||"";
-  els.textButton.textContent=state.rawText?"Text bearbeiten":"Text einfügen";
+  els.textButton.textContent="Text";
+  els.textButton.title=state.rawText?"Text bearbeiten":"Text einfügen";
   const currentProject=activeProject();
   if(currentProject){
-    els.projectMenuButton.setAttribute("aria-label",`Projekte öffnen. Aktuell: ${projectDisplayName(currentProject)}`);
+    els.projectMenuButton.setAttribute("aria-label",`Menü öffnen. Projekt: ${projectDisplayName(currentProject)}`);
     if(els.projectsDialog?.open) renderProjectManager();
   }
-  els.centerModeLabel.textContent=state.settings.mode==="ansicht"?"Ansicht":`Bearbeiten · ${activeTool==="teilen"?"Teilen":"Verbinden"}`;
+  els.centerModeLabel.textContent=state.settings.mode==="ansicht"?"Ansicht":(activeTool==="teilen"?"Teilen":"Verbinden");
   els.undoButton.disabled=!history.length;
   els.redoButton.disabled=!future.length;
   renderStatus();
@@ -183,19 +184,19 @@ function renderStatus(){
   els.saveStatus.textContent=saveStateText;
   if(selectedRelationId && getNode(selectedRelationId)?.kind==="relation") {
     els.selectionStatus.hidden=false;
-    els.selectionStatus.textContent=`Ausgewählt: ${nodeLabel(selectedRelationId)} · Entf = löschen`;
+    els.selectionStatus.textContent=`Auswahl: ${nodeLabel(selectedRelationId)}`;
   } else {
     els.selectionStatus.hidden=true;
     els.selectionStatus.textContent="";
   }
   if(!state.rawText){
-    els.finishPill.textContent="Noch keine Analyse";
+    els.finishPill.textContent="Keine Analyse";
     els.finishPill.className="status-pill";
   }else if(v.complete){
-    els.finishPill.textContent="Analyse vollständig";
+    els.finishPill.textContent="Vollständig";
     els.finishPill.className="status-pill done";
   }else{
-    els.finishPill.textContent="Analyse unvollständig";
+    els.finishPill.textContent="Unvollständig";
     els.finishPill.className="status-pill problem";
   }
   const items=[...v.errors,...v.warnings];
@@ -239,9 +240,8 @@ function propositionHtml(p,i){
 function renderPropositions(){
   if(!state.rawText){
     els.propList.innerHTML=`<div class="empty-center">
-      <h2>Noch kein Text</h2>
-      <p>Füge eigenen Text ein. Es wird kein Beispieltext und keine automatische Textquelle geladen.</p>
-      <button class="primary-action" type="button" data-empty-text>Text einfügen</button>
+      <h2>Kein Text</h2>
+      <button class="primary-action" type="button" data-empty-text>Text öffnen</button>
     </div>`;
     return;
   }

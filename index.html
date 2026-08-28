@@ -17,49 +17,51 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
 <body>
 <header class="app-header">
   <div class="topbar">
-    <div class="brand"><strong>Sensus Lab</strong><span>Textstrukturanalyse</span></div>
-    <div class="toolbar-group">
-      <button class="toolbar-button" id="textButton" type="button">Text einfügen</button>
+    <div class="brand"><strong>Sensus Lab</strong></div>
+    <button class="toolbar-button text-action" id="textButton" type="button">Text</button>
+    <span class="toolbar-separator" aria-hidden="true"></span>
+    <div class="toolbar-group mode-group" aria-label="Ansichtsmodus">
       <button class="seg-button" id="editModeButton" type="button" aria-pressed="true">Bearbeiten</button>
       <button class="seg-button" id="viewModeButton" type="button" aria-pressed="false">Ansicht</button>
     </div>
-    <div class="toolbar-group" id="toolGroup">
+    <div class="toolbar-group tool-group" id="toolGroup" aria-label="Werkzeug">
       <button class="seg-button" id="splitToolButton" type="button" aria-pressed="true">Teilen</button>
       <button class="seg-button" id="connectToolButton" type="button" aria-pressed="false">Verbinden</button>
     </div>
-    <div class="toolbar-group">
-      <button class="toolbar-button" id="undoButton" type="button" title="Rückgängig (Strg/Cmd+Z)">Rückgängig</button>
-      <button class="toolbar-button" id="redoButton" type="button" title="Wiederholen (Strg/Cmd+Umschalt+Z)">Wiederholen</button>
-      <button class="toolbar-button" id="helpButton" type="button">Hilfe</button>
-      <button class="toolbar-button danger" id="resetButton" type="button">Zurücksetzen</button>
+    <div class="topbar-spacer"></div>
+    <div class="toolbar-group history-group" aria-label="Verlauf">
+      <button class="toolbar-button icon-button" id="undoButton" type="button" title="Rückgängig (Strg/Cmd+Z)" aria-label="Rückgängig">↶</button>
+      <button class="toolbar-button icon-button" id="redoButton" type="button" title="Wiederholen (Strg/Cmd+Umschalt+Z)" aria-label="Wiederholen">↷</button>
     </div>
-    <label class="extended-toggle"><input id="extendedToggle" type="checkbox"> Erweiterte Beziehungen einbeziehen</label>
+    <label class="extended-toggle" hidden><input id="extendedToggle" type="checkbox"> Erweiterte Beziehungen</label>
     <div class="project-menu-wrap" id="projectMenuWrap">
-      <button class="project-menu-button" id="projectMenuButton" type="button" aria-label="Projekte öffnen" aria-haspopup="menu" aria-expanded="false">
+      <button class="project-menu-button" id="projectMenuButton" type="button" aria-label="Menü öffnen" aria-haspopup="menu" aria-expanded="false">
         <span class="project-menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
       </button>
       <div class="project-menu" id="projectMenu" role="menu" hidden>
         <button class="project-menu-entry" id="projectManagerButton" type="button" role="menuitem">Projekte</button>
         <button class="project-menu-entry" id="settingsMenuButton" type="button" role="menuitem">Einstellungen</button>
+        <div class="project-menu-separator" role="separator"></div>
+        <button class="project-menu-entry" id="helpButton" type="button" role="menuitem">Hilfe</button>
+        <button class="project-menu-entry" id="exportButton" type="button" role="menuitem">Bild exportieren</button>
+        <button class="project-menu-entry" id="jsonExportButton" type="button" role="menuitem">JSON exportieren</button>
+        <button class="project-menu-entry" id="importButton" type="button" role="menuitem">JSON importieren</button>
+        <input id="importInput" type="file" accept="application/json,.json" hidden>
+        <div class="project-menu-separator" role="separator"></div>
+        <button class="project-menu-entry danger-entry" id="resetButton" type="button" role="menuitem">Analyse zurücksetzen</button>
       </div>
     </div>
   </div>
   <div class="statusbar">
-    <span class="status-pill" id="finishPill">Noch keine Analyse</span>
+    <span class="status-pill status-primary" id="finishPill">Noch keine Analyse</span>
     <span class="status-pill" id="propStatus">0 Propositionen</span>
     <span class="status-pill" id="openStatus">0 offene Gruppen</span>
     <span class="status-pill" id="rootStatus">0 Wurzeln</span>
     <span class="status-pill" id="errorStatus">0 Fehler</span>
-    <span class="status-pill" id="saveStatus">Nicht gespeichert</span>
     <span class="status-pill selection-status" id="selectionStatus" hidden></span>
     <div class="status-spacer"></div>
-    <div class="status-actions">
-      <button id="statusDetailsButton" type="button">Statusdetails</button>
-      <button id="exportButton" type="button" title="Für den Export optimiertes PNG-Bild erzeugen">Bild exportieren</button>
-      <button id="jsonExportButton" type="button" title="Analysezustand als JSON-Datei exportieren">JSON exportieren</button>
-      <button id="importButton" type="button">JSON importieren</button>
-      <input id="importInput" type="file" accept="application/json,.json" hidden>
-    </div>
+    <span class="status-pill save-status" id="saveStatus">Nicht gespeichert</span>
+    <button class="status-details-button" id="statusDetailsButton" type="button">Details</button>
   </div>
   <div class="validation-strip" id="validationStrip" aria-live="polite"></div>
 </header>
@@ -67,15 +69,12 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
 <main class="workspace-scroll" id="workspaceScroll">
   <div class="document-heading" id="documentHeading" hidden></div>
   <section class="unit-bar" id="unitBar" aria-label="Verfügbare Einheiten">
-    <div class="unit-bar-head">
-      <strong>Verfügbare Einheiten</strong>
-      <span class="unit-hint" id="unitHint">Wähle im Werkzeug „Verbinden“ zuerst eine Einheit und danach das Ende eines zusammenhängenden Geschwisterbereichs.</span>
-    </div>
+    <div class="unit-bar-head"><span class="unit-hint" id="unitHint"></span></div>
     <div class="unit-buttons" id="unitButtons"></div>
   </section>
   <div class="canvas-grid">
     <section class="column left-column" aria-label="Klammeransicht">
-      <div class="column-title"><span>Klammern</span><span class="mini">hierarchische Analyse</span></div>
+      <div class="column-title"><span>Struktur</span></div>
       <div class="svg-wrap">
         <svg id="bracketSvg" class="diagram-svg" aria-hidden="true"></svg>
         <div class="diagram-empty" id="bracketEmpty"></div>
@@ -143,7 +142,6 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
       <textarea class="summary-input" id="mainPointSummaryInput" maxlength="1200" placeholder="Die zentrale Aussage des Textes in eigenen Worten zusammenfassen …"></textarea>
       <label class="field-label" for="rawTextInput">Eigener Text</label>
       <textarea id="rawTextInput" placeholder="Hier eigenen Text einfügen …"></textarea>
-      <p class="form-help">Titel, Hauptaussage und Analyse werden pro Projekt gespeichert. Der Text wird nicht automatisch segmentiert und erscheint nach dem Übernehmen zunächst als genau eine Proposition.</p>
     </div>
     <div class="dialog-foot">
       <button class="secondary" type="button" data-close-dialog="textDialog">Abbrechen</button>
