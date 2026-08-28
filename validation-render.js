@@ -227,7 +227,7 @@ function propositionHtml(p,i){
       content.push(`<span class="word-token">${escapeHtml(tok)}</span>`);
     }
   }
-  const anchor=connect?`<button class="unit-anchor" type="button" data-unit-id="${p.id}" aria-label="${nodeLabel(p.id)} zum Verbinden auswählen">•</button>`:"";
+  const anchor=connect && canUseConnectionAnchor(p.id)?`<button class="unit-anchor" type="button" data-unit-id="${p.id}" aria-label="${nodeLabel(p.id)} zum Verbinden auswählen">•</button>`:"";
   return `<div class="prop-wrap" data-prop-wrap="${p.id}">
     ${edit && activeTool==="teilen" && i>0?`<button class="merge-button" type="button" data-merge-index="${i}" title="Grenze entfernen" aria-label="Grenze vor P${i+1} entfernen">×</button>`:""}
     <article class="prop-card${selected}" data-prop-id="${p.id}">
@@ -249,7 +249,7 @@ function renderPropositions(){
 }
 function allSelectableUnits(){
   const ids=[];
-  const add=id=>{if(id && getNode(id) && !ids.includes(id)) ids.push(id);};
+  const add=id=>{if(id && getNode(id) && canUseConnectionAnchor(id) && !ids.includes(id)) ids.push(id);};
   state.rootIds.forEach(add);
   for(const rel of relationNodes()){
     if(rel.relationshipId==null || (RELATIONSHIPS[rel.relationshipId] && RELATIONSHIPS[rel.relationshipId].primary==="all")){

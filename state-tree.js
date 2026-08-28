@@ -515,6 +515,33 @@ function canGroupInside(parentId,selectedCount){
   if(!rel || rel.primary!=="all") return false;
   return cardinalityOk(rel,newCount);
 }
+function connectionRangeForEndpoints(firstId,secondId){
+  if(!firstId || !secondId || firstId===secondId) return null;
+  const a=findParentInfo(firstId),b=findParentInfo(secondId);
+  if(!a || !b || a.parentId!==b.parentId) return null;
+  const from=Math.min(a.index,b.index),to=Math.max(a.index,b.index);
+  const selected=a.siblings.slice(from,to+1);
+  if(selected.length<2 || !validateContiguousSelection(selected,a.parentId)) return null;
+  if(!canGroupInside(a.parentId,selected.length)) return null;
+  return {parentId:a.parentId,selected};
+}
+function canUseConnectionAnchor(nodeId,startId=selectionStartId){
+  if(!getNode(nodeId)) return false;
+  const info=findParentInfo(nodeId);
+  if(!info) return false;
+
+  // Nach dem ersten Klick bleibt dieser Anker als Abwahlmöglichkeit sichtbar;
+  // alle anderen Anker erscheinen nur noch, wenn der Bereich zwischen beiden
+  // Endpunkten tatsächlich als neue Untergruppe angelegt werden darf.
+  if(startId){
+    if(nodeId===startId) return true;
+    return !!connectionRangeForEndpoints(startId,nodeId);
+  }
+
+  // Ohne Startauswahl ist ein Anker nur sinnvoll, wenn es auf derselben Ebene
+  // wenigstens einen Partner gibt, mit dem eine gültige neue Gruppe entsteht.
+  return info.siblings.some(otherId=>otherId!==nodeId && !!connectionRangeForEndpoints(nodeId,otherId));
+}
 function connectOpen(selectedIds,parentId,firstSelectedChildId=null){
   if(!validateContiguousSelection(selectedIds,parentId)) throw new Error("Nur ein direkt benachbarter Geschwisterbereich kann verbunden werden.");
   if(!canGroupInside(parentId,selectedIds.length)) throw new Error("Diese Untergruppe würde die übergeordnete Verbindung ungültig machen.");

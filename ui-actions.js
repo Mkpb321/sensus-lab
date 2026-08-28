@@ -199,7 +199,7 @@ function renderBracketSvg(anchorMap,height){
     labelPieces.push(`</g>`);
     pieces.push(`</g>`);
 
-    if(state.settings.mode==="bearbeiten" && activeTool==="verbinden"){
+    if(state.settings.mode==="bearbeiten" && activeTool==="verbinden" && canUseConnectionAnchor(node.id)){
       const anchorY=Number.isFinite(portY)?portY:(topY+bottomY)/2;
       pieces.push(`<circle data-unit-id="${node.id}" class="svg-rel" cx="${effectiveRight-1}" cy="${anchorY}" r="7" fill="#fff" stroke="${selectionStartId===node.id?"#2563eb":"#94a3b8"}" stroke-width="${selectionStartId===node.id?2.6:1.4}"/>`);
     }
@@ -502,30 +502,26 @@ function handleUnitClick(nodeId){
   const node=getNode(nodeId);
   if(!node || !canModifyRelations()) return;
   if(!selectionStartId){
+    if(!canUseConnectionAnchor(nodeId)) return;
     selectionStartId=nodeId; render(); announce(`${nodeLabel(nodeId)} als Start gewählt`);
     return;
   }
   if(selectionStartId===nodeId){
     selectionStartId=null; render(); announce("Auswahl aufgehoben"); return;
   }
-  const a=findParentInfo(selectionStartId),b=findParentInfo(nodeId);
-  if(!a || !b || a.parentId!==b.parentId){
-    announce("Nur direkt benachbarte Einheiten derselben Ebene können verbunden werden.");
+  const range=connectionRangeForEndpoints(selectionStartId,nodeId);
+  if(!range){
+    announce("Diese beiden Einheiten können in der aktuellen Struktur nicht neu verbunden werden.");
     return;
   }
-  const from=Math.min(a.index,b.index),to=Math.max(a.index,b.index);
-  const selected=a.siblings.slice(from,to+1);
-  if(selected.length<2){announce("Wähle mindestens zwei Einheiten.");return;}
-  if(!canGroupInside(a.parentId,selected.length)){
-    announce("Innerhalb einer bereits beschrifteten unterordnenden Beziehung kann keine neue Untergruppe angelegt werden.");
-    return;
-  }
+  const selected=range.selected;
+  const parentId=range.parentId;
   let newId=null;
   // Merkt die zuerst angeklickte Einheit. Bei richtungsabhängigen Typen
   // erhält genau diese Einheit später die erste semantische Rolle des Typs.
   const firstSelectedChildId=selectionStartId;
   selectionStartId=null;
-  performAction("Offene Gruppe angelegt",()=>{ newId=connectOpen(selected,a.parentId,firstSelectedChildId); });
+  performAction("Offene Gruppe angelegt",()=>{ newId=connectOpen(selected,parentId,firstSelectedChildId); });
   if(newId && getNode(newId)) openRelationshipDialog(newId);
 }
 
