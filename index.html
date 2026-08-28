@@ -81,6 +81,8 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
       </div>
     </section>
 
+    <div class="workspace-divider" id="workspaceDivider" role="separator" aria-orientation="vertical" aria-label="Breite von Struktur und Propositionen ändern" aria-valuemin="25" aria-valuemax="72" tabindex="0"></div>
+
     <section class="column center-column" aria-label="Propositionen">
       <div class="column-title"><span>Propositionen</span><span class="mini" id="centerModeLabel">Bearbeiten · Teilen</span></div>
       <div class="prop-list" id="propList"></div>
@@ -120,6 +122,13 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
           <span class="settings-row-label">Linien am Hauptpunkt</span>
           <span class="settings-toggle">
             <input id="lineAttachmentToggle" type="checkbox" role="switch" aria-label="Linien am Hauptpunkt; ausgeschaltet bedeutet zentrierte Linien">
+            <span class="settings-toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
+        <label class="settings-row" title="Hebt die horizontale Linie des Hauptpunkts zusätzlich zum Stern mit doppelter Linienstärke hervor">
+          <span class="settings-row-label">Hauptlinien dicker</span>
+          <span class="settings-toggle">
+            <input id="primaryLineWeightToggle" type="checkbox" role="switch" aria-label="Horizontale Linien von Hauptpunkten doppelt so dick darstellen">
             <span class="settings-toggle-track" aria-hidden="true"></span>
           </span>
         </label>

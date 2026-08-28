@@ -104,10 +104,17 @@ let selectedPrimaryRoleChoice=null;
 
 const CATEGORY_LABELS = Object.freeze({
   koordination:"Beiordnend",
-  eigenstaendige_stuetze:"Unterordnend – eigenständige Stütze",
-  erlaeuternde_stuetze:"Unterordnend – erläuternde Stütze",
-  gegensaetzliche_stuetze:"Unterordnend – gegensätzliche Stütze",
+  eigenstaendige_stuetze:"Unterordnend (eigenständige Stütze)",
+  erlaeuternde_stuetze:"Unterordnend (erläuternde Stütze)",
+  gegensaetzliche_stuetze:"Unterordnend (gegensätzliche Stütze)",
   erweitert:"Erweiterte Beziehungen"
+});
+const CATEGORY_HEADING_PARTS = Object.freeze({
+  koordination:["Beiordnend",null],
+  eigenstaendige_stuetze:["Unterordnend","eigenständige Stütze"],
+  erlaeuternde_stuetze:["Unterordnend","erläuternde Stütze"],
+  gegensaetzliche_stuetze:["Unterordnend","gegensätzliche Stütze"],
+  erweitert:["Erweiterte Beziehungen",null]
 });
 // Biblearc-Farblogik: Coordinate = grün, Restatement = blau,
 // Distinct Statement = rot, Contrary Statement = orange.
@@ -162,10 +169,11 @@ const els = {
   statusDetailsButton:$("#statusDetailsButton"), exportButton:$("#exportButton"), jsonExportButton:$("#jsonExportButton"), importButton:$("#importButton"), importInput:$("#importInput"),
   projectMenuWrap:$("#projectMenuWrap"), projectMenuButton:$("#projectMenuButton"), projectMenu:$("#projectMenu"),
   projectManagerButton:$("#projectManagerButton"), settingsMenuButton:$("#settingsMenuButton"), projectsDialog:$("#projectsDialog"),
-  settingsDialog:$("#settingsDialog"), lineAttachmentToggle:$("#lineAttachmentToggle"),
+  settingsDialog:$("#settingsDialog"), lineAttachmentToggle:$("#lineAttachmentToggle"), primaryLineWeightToggle:$("#primaryLineWeightToggle"),
   projectMenuCurrent:$("#projectMenuCurrent"), newProjectButton:$("#newProjectButton"), projectList:$("#projectList"),
   unitBar:$("#unitBar"), unitButtons:$("#unitButtons"),
   unitHint:$("#unitHint"), propList:$("#propList"), documentHeading:$("#documentHeading"), centerModeLabel:$("#centerModeLabel"), bracketSvg:$("#bracketSvg"),
+  canvasGrid:$(".canvas-grid"), workspaceDivider:$("#workspaceDivider"),
   bracketEmpty:$("#bracketEmpty"), treeSummary:$("#treeSummary"),
   liveRegion:$("#liveRegion"), textDialog:$("#textDialog"), textForm:$("#textForm"), textDialogTitle:$("#textDialogTitle"),
   textTitleInput:$("#textTitleInput"), mainPointSummaryInput:$("#mainPointSummaryInput"), rawTextInput:$("#rawTextInput"), applyTextButton:$("#applyTextButton"), relationshipDialog:$("#relationshipDialog"),
@@ -201,24 +209,32 @@ let resizeObserver = null;
 let projects = [];
 let activeProjectId = null;
 // App-weite Darstellungspräferenzen liegen bewusst außerhalb des Analysezustands.
-// Dadurch verändern sie weder Projekte noch JSON-Exporte oder die Undo-Historie.
-let uiSettings = {lineAttachment:"primary"};
+// Dadurch verändern sie weder Analyse-JSON noch die Undo-Historie.
+let uiSettings = {lineAttachment:"primary",emphasizePrimaryLines:true};
 function loadUiSettings(){
   try{
     const raw=localStorage.getItem(UI_SETTINGS_STORAGE_KEY);
     const parsed=raw?JSON.parse(raw):null;
     uiSettings.lineAttachment=parsed?.lineAttachment==="center"?"center":"primary";
-  }catch(_){ uiSettings.lineAttachment="primary"; }
+    uiSettings.emphasizePrimaryLines=parsed?.emphasizePrimaryLines!==false;
+  }catch(_){ uiSettings.lineAttachment="primary"; uiSettings.emphasizePrimaryLines=true; }
 }
 function storeUiSettings(){
-  try{ localStorage.setItem(UI_SETTINGS_STORAGE_KEY,JSON.stringify({lineAttachment:uiSettings.lineAttachment})); }catch(_){ }
+  try{ localStorage.setItem(UI_SETTINGS_STORAGE_KEY,JSON.stringify({
+    lineAttachment:uiSettings.lineAttachment,
+    emphasizePrimaryLines:uiSettings.emphasizePrimaryLines!==false
+  })); }catch(_){ }
 }
 
 function cloneDocument(doc){ return JSON.parse(JSON.stringify(doc)); }
 function normalizeProjectTool(tool){ return tool==="verbinden"?"verbinden":"teilen"; }
+function normalizeProjectWorkspaceSplit(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.min(.72,Math.max(.25,n)):.42;
+}
 function createProject(documentState=createEmptyState()){
   const now=new Date().toISOString();
-  return {id:makeId("project"),createdAt:now,updatedAt:now,activeTool:"teilen",document:cloneDocument(documentState)};
+  return {id:makeId("project"),createdAt:now,updatedAt:now,activeTool:"teilen",workspaceSplit:.42,document:cloneDocument(documentState)};
 }
 function activeProject(){ return projects.find(p=>p.id===activeProjectId)||null; }
 function projectDisplayName(project){
@@ -388,6 +404,7 @@ function loadProjects(){
         createdAt:typeof p.createdAt==="string"?p.createdAt:new Date().toISOString(),
         updatedAt:typeof p.updatedAt==="string"?p.updatedAt:new Date().toISOString(),
         activeTool:normalizeProjectTool(p.activeTool),
+        workspaceSplit:normalizeProjectWorkspaceSplit(p.workspaceSplit),
         document:p.document
       }));
     }

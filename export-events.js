@@ -221,7 +221,7 @@ function buildPublicationExportSvg(){
       const primary=(node.primaryChildIds||[]).includes(childId);
       const hasMainPointStar=primary && !!rel && rel.primary!=="all";
       const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+labelScreenWidth/2 : x;
-      pieces.push(`<path class="pub-line" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${hasMainPointStar?width*2:width}"${dashAttr}/>`);
+      pieces.push(`<path class="pub-line" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${hasMainPointStar && uiSettings.emphasizePrimaryLines!==false?width*2:width}"${dashAttr}/>`);
       const placement=rolePlacementByKey.get(`${node.id}:${i}`);
       if(placement){
         const {rx,centerY,lines,metrics,fullRole}=placement;
@@ -369,6 +369,9 @@ els.settingsMenuButton.addEventListener("click",e=>{e.stopPropagation();openSett
 els.lineAttachmentToggle.addEventListener("change",e=>{
   setLineAttachmentMode(e.target.checked?"primary":"center");
 });
+els.primaryLineWeightToggle.addEventListener("change",e=>{
+  setPrimaryLineEmphasis(e.target.checked);
+});
 els.newProjectButton.addEventListener("click",()=>createNewProject());
 els.projectList.addEventListener("click",e=>{
   const rename=e.target.closest("[data-project-rename]");
@@ -378,6 +381,46 @@ els.projectList.addEventListener("click",e=>{
   const opener=e.target.closest("[data-project-open]");
   if(opener){ activateProject(opener.dataset.projectOpen); }
 });
+
+let workspaceDividerDrag=null;
+function workspaceSplitFromClientX(clientX){
+  const rect=els.canvasGrid?.getBoundingClientRect();
+  if(!rect || rect.width<=0) return null;
+  return normalizeProjectWorkspaceSplit((clientX-rect.left)/rect.width);
+}
+if(els.workspaceDivider){
+  els.workspaceDivider.addEventListener("pointerdown",e=>{
+    if(e.button!==0) return;
+    workspaceDividerDrag={pointerId:e.pointerId};
+    els.workspaceDivider.setPointerCapture?.(e.pointerId);
+    els.workspaceDivider.classList.add("dragging");
+    document.body.classList.add("resizing-workspace");
+    e.preventDefault();
+  });
+  els.workspaceDivider.addEventListener("pointermove",e=>{
+    if(!workspaceDividerDrag || workspaceDividerDrag.pointerId!==e.pointerId) return;
+    const split=workspaceSplitFromClientX(e.clientX);
+    if(split!=null) setWorkspaceSplit(split);
+  });
+  const finishWorkspaceDividerDrag=e=>{
+    if(!workspaceDividerDrag || (e.pointerId!=null && workspaceDividerDrag.pointerId!==e.pointerId)) return;
+    workspaceDividerDrag=null;
+    els.workspaceDivider.classList.remove("dragging");
+    document.body.classList.remove("resizing-workspace");
+    const project=activeProject();
+    if(project) setWorkspaceSplit(project.workspaceSplit,{persist:true});
+  };
+  els.workspaceDivider.addEventListener("pointerup",finishWorkspaceDividerDrag);
+  els.workspaceDivider.addEventListener("pointercancel",finishWorkspaceDividerDrag);
+  els.workspaceDivider.addEventListener("keydown",e=>{
+    if(e.key!=="ArrowLeft" && e.key!=="ArrowRight" && e.key!=="Home" && e.key!=="End") return;
+    const project=activeProject();
+    const current=normalizeProjectWorkspaceSplit(project?.workspaceSplit);
+    const next=e.key==="Home"?.25:e.key==="End"?.72:current+(e.key==="ArrowRight"?.025:-.025);
+    setWorkspaceSplit(next,{persist:true});
+    e.preventDefault();
+  });
+}
 
 // Diagramm-Tooltip: bewusst unabhängig von SVG-<title>, damit er in allen Browsern
 // zuverlässig sowohl auf horizontalen als auch vertikalen Kästchen funktioniert.

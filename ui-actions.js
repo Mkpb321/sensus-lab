@@ -169,7 +169,7 @@ function renderBracketSvg(anchorMap,height){
       const primary=(node.primaryChildIds||[]).includes(childId);
       const hasMainPointStar=primary && !!rel && rel.primary!=="all";
       const lineClass=hasMainPointStar?"svg-tree-line svg-primary-line":"svg-tree-line";
-      const branchStrokeWidth=hasMainPointStar?strokeWidth*2:strokeWidth;
+      const branchStrokeWidth=hasMainPointStar && uiSettings.emphasizePrimaryLines!==false?strokeWidth*2:strokeWidth;
 
       const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+relationLabelScreenWidth/2 : x;
       pieces.push(`<path class="svg-hit-line" d="M ${branchStartX} ${cy} H ${targetX}"/>`);
@@ -311,7 +311,8 @@ function renderRelationshipDialog(){
     const rows=grouped.get(cat)||[];
     if(!rows.length) continue;
     const categoryColor=CATEGORY_STRONG_COLORS[cat]||"#475467";
-    html.push(`<div class="rel-category" style="--category-color:${categoryColor}">${escapeHtml(CATEGORY_LABELS[cat])}</div><div class="rel-list">`);
+    const [categoryMain,categoryDetail]=CATEGORY_HEADING_PARTS[cat]||[CATEGORY_LABELS[cat],null];
+    html.push(`<div class="rel-category" style="--category-color:${categoryColor}"><span class="rel-category-main">${escapeHtml(categoryMain)}</span>${categoryDetail?` <span class="rel-category-detail">(${escapeHtml(categoryDetail)})</span>`:""}</div><div class="rel-list">`);
     for(const [id,rel] of rows){
       const ok=cardinalityOk(rel,node.children.length);
       const selected=chosenRelationshipId===id?" selected":"";
@@ -584,6 +585,7 @@ function mergeAtPropIndex(index){
 function openSettingsDialog(){
   closeProjectMenu();
   els.lineAttachmentToggle.checked=uiSettings.lineAttachment!=="center";
+  els.primaryLineWeightToggle.checked=uiSettings.emphasizePrimaryLines!==false;
   showDialog(els.settingsDialog);
 }
 function setLineAttachmentMode(mode){
@@ -595,6 +597,33 @@ function setLineAttachmentMode(mode){
   storeUiSettings();
   render();
   announce(next==="center"?"Linien werden jetzt zentriert angeschlossen.":"Linien werden jetzt am Hauptpunkt angeschlossen.");
+}
+function setPrimaryLineEmphasis(enabled){
+  const next=!!enabled;
+  if(uiSettings.emphasizePrimaryLines===next) return;
+  uiSettings.emphasizePrimaryLines=next;
+  storeUiSettings();
+  render();
+  announce(next?"Hauptlinien werden stärker hervorgehoben.":"Hauptlinien verwenden normale Linienstärke.");
+}
+function applyWorkspaceSplit(){
+  if(!els.canvasGrid) return;
+  const project=activeProject();
+  const split=normalizeProjectWorkspaceSplit(project?.workspaceSplit);
+  els.canvasGrid.style.setProperty("--workspace-split",`${(split*100).toFixed(2)}%`);
+  if(els.workspaceDivider) els.workspaceDivider.setAttribute("aria-valuenow",String(Math.round(split*100)));
+}
+function setWorkspaceSplit(split,{persist=false}={}){
+  const project=activeProject();
+  if(!project || !els.canvasGrid) return;
+  project.workspaceSplit=normalizeProjectWorkspaceSplit(split);
+  applyWorkspaceSplit();
+  requestAnimationFrame(measureAndRenderSvgs);
+  if(persist){
+    project.updatedAt=new Date().toISOString();
+    try{ storeProjectsNow(); saveStateText="Lokal gespeichert"; }catch(_){ saveStateText="Nur für diese Sitzung gespeichert"; }
+    renderStatus();
+  }
 }
 function setMode(mode){
   state.settings.mode=mode;

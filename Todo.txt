@@ -8,7 +8,6 @@ Fragezeichen sind auch ein indikator
 
 vielleicht bei solchen die horizontale Beschriftungen haben braucht man das vertikale label garnicht bei schlauer Benennung, so macht es biblearc. bei biblearc haben manche sogar nur ein horizontales lable z.b. bei vergleich. "There is no significance to this. It merely follows from the relationship names."
 
-schmaler machen
 
 
 das andere free mini kurs machen und ev daraus andere Ansicht machen wo man auch bearbeitet
@@ -17,13 +16,8 @@ das andere free mini kurs machen und ev daraus andere Ansicht machen wo man auch
 nochmal bei allen checken ob der main point richtig ist, wenn ich Probeabo habe
 
 
-
-
 , aber ein ausführliches durchsuchbares hilfe punkt im burger menu der alles erklährt, das mit der bedienung zu tun hat nicht die technische umsetzung. 
 
-zusätzlich das der main point ein stern hat soll seine horizontale linie auch doppelt so dick sein
-
-in Bezihung ändern/wählen sollen die titel der gruppen aufälliger sein. dunkler als anderes in der farbe der gruppe mit weisser scheift. und die abkürzungen die so farbig sind sollen auch aufälliger sein
 
 Kurs Notizen
 Rethorische fragen nicht  Q/A sondern als Statements behandeln. diese haben keine Antwort. Auch Serien von Fragen ohne Antworten sind ein Hinweis.
