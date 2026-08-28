@@ -124,6 +124,7 @@ function renderBracketSvg(anchorMap,height){
 
   const pieces=[];
   const labelPieces=[];
+  const anchorPieces=[];
   for(const item of data){
     const {node}=item;
     const {rel,color,dash,width:strokeWidth}=relationStrokeInfo(node);
@@ -201,12 +202,24 @@ function renderBracketSvg(anchorMap,height){
 
     if(state.settings.mode==="bearbeiten" && activeTool==="verbinden" && canUseConnectionAnchor(node.id)){
       const anchorY=Number.isFinite(portY)?portY:(topY+bottomY)/2;
-      pieces.push(`<circle data-unit-id="${node.id}" class="svg-rel" cx="${effectiveRight-1}" cy="${anchorY}" r="7" fill="#fff" stroke="${selectionStartId===node.id?"#2563eb":"#94a3b8"}" stroke-width="${selectionStartId===node.id?2.6:1.4}"/>`);
+      // Ein Beziehungs-Knoten wird von einer späteren/äußeren Klammer genau an
+      // seiner eigenen vertikalen Bahn angeschlossen. Der Anker gehört deshalb
+      // auf diese Ebene und nicht pauschal an den rechten Rand des Diagramms.
+      // Ein kleiner Versatz nach links hält Kreis, Linie und ggf. gedrehtes
+      // Beziehungslabel optisch getrennt.
+      const relationHalfWidth=relationLabelScreenWidth/2;
+      const anchorX=x-Math.max(18,relationHalfWidth+10);
+      const selected=selectionStartId===node.id;
+      anchorPieces.push(`<g data-unit-id="${node.id}" class="svg-connection-anchor" aria-label="${escapeHtml(nodeLabel(node.id))} zum Verbinden auswählen">`);
+      anchorPieces.push(`<circle class="svg-connection-anchor-hit" cx="${anchorX}" cy="${anchorY}" r="13"/>`);
+      anchorPieces.push(`<circle class="svg-connection-anchor-dot" cx="${anchorX}" cy="${anchorY}" r="7" fill="#fff" stroke="${selected?"#2563eb":"#94a3b8"}" stroke-width="${selected?2.6:1.4}"/>`);
+      anchorPieces.push(`</g>`);
     }
   }
 
-  // Labels liegen immer über sämtlichen Linien.
-  svg.innerHTML=pieces.join("")+`<g class="svg-label-layer">${labelPieces.join("")}</g>`;
+  // Labels liegen über den Linien; Verbindungsanker bilden die oberste Ebene,
+  // damit weder Linien noch Badges die anklickbaren Kreise überzeichnen.
+  svg.innerHTML=pieces.join("")+`<g class="svg-label-layer">${labelPieces.join("")}</g><g class="svg-anchor-layer">${anchorPieces.join("")}</g>`;
 
   els.bracketEmpty.textContent="";
   els.bracketEmpty.style.display=data.length?"none":"flex";

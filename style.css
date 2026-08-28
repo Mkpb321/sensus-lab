@@ -233,6 +233,9 @@ textarea{
 .status-dialog-list{margin:0;padding-left:20px;line-height:1.55}
 .small-note{font-size:12px;color:var(--muted)}
 .svg-rel{cursor:pointer}
+.svg-connection-anchor{pointer-events:all;cursor:pointer}
+.svg-connection-anchor-hit{fill:transparent;stroke:none;pointer-events:all}
+.svg-connection-anchor-dot{pointer-events:none;filter:drop-shadow(0 1px 1px rgba(15,23,42,.12))}
 .svg-role{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:9.75px;fill:#3f4c5f;font-weight:400;pointer-events:none;text-anchor:middle;text-rendering:auto;font-kerning:normal;-webkit-font-smoothing:antialiased;dominant-baseline:middle;alignment-baseline:middle}
 .svg-role-bg{fill:#fff;stroke:#e4e9ef;stroke-width:.7;pointer-events:none;transition:stroke-width .12s ease,filter .12s ease}
 .svg-code{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:9.75px;font-weight:500;text-anchor:middle;pointer-events:none;letter-spacing:.005em;text-rendering:auto;font-kerning:normal;-webkit-font-smoothing:antialiased;dominant-baseline:middle;alignment-baseline:middle}
