@@ -182,8 +182,9 @@ function buildPublicationExportSvg(){
       const child=getNode(childId);
       const targetX=child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
       const primary=(node.primaryChildIds||[]).includes(childId);
+      const hasMainPointStar=primary && !!rel && rel.primary!=="all";
       const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+labelScreenWidth/2 : x;
-      pieces.push(`<path class="pub-line" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${primary?2.45:width}"${dashAttr}/>`);
+      pieces.push(`<path class="pub-line" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${hasMainPointStar?width*2:width}"${dashAttr}/>`);
       const placement=rolePlacementByKey.get(`${node.id}:${i}`);
       if(placement){
         const {rx,centerY,lines,metrics,fullRole}=placement;
@@ -192,7 +193,7 @@ function buildPublicationExportSvg(){
         boxOverlays.push(svgMultilineText(lines,rx,centerY,"pub-role",null,metrics.lineHeight));
         boxOverlays.push(`</g>`);
       }
-      if(primary && rel && rel.primary!=="all"){
+      if(hasMainPointStar){
         const sx=branchStartX+9;
         pieces.push(`<circle cx="${sx}" cy="${cy}" r="4.8" fill="#fff" stroke="${color}" stroke-width="1.15"/><text x="${sx}" y="${cy}" text-anchor="middle" font-size="6.8" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
       }

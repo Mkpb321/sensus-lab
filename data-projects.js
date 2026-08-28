@@ -118,6 +118,15 @@ const CATEGORY_COLORS = Object.freeze({
   gegensaetzliche_stuetze:"#df903f",
   erweitert:"#667085"
 });
+// Kräftigere Töne derselben Biblearc-Gruppenfarben für UI-Hierarchie
+// (z. B. Gruppenüberschriften und Beziehungskürzel im Auswahlfenster).
+const CATEGORY_STRONG_COLORS = Object.freeze({
+  koordination:"#527348",
+  eigenstaendige_stuetze:"#963a33",
+  erlaeuternde_stuetze:"#426879",
+  gegensaetzliche_stuetze:"#9b5c24",
+  erweitert:"#475467"
+});
 // Biblearc führt die optionalen Beziehungen nicht als eigene Farbkategorie:
 // Both-And gehört zu Coordinate; die übrigen drei zu Subordinate—Restatement.
 const EXTENDED_BIBLEARC_COLOR_CATEGORY = Object.freeze({
@@ -129,6 +138,10 @@ const EXTENDED_BIBLEARC_COLOR_CATEGORY = Object.freeze({
 function relationshipColor(rel,relationshipId=null){
   const category=(relationshipId&&EXTENDED_BIBLEARC_COLOR_CATEGORY[relationshipId]) || rel?.category;
   return CATEGORY_COLORS[category]||"#475467";
+}
+function relationshipStrongColor(rel,relationshipId=null){
+  const category=(relationshipId&&EXTENDED_BIBLEARC_COLOR_CATEGORY[relationshipId]) || rel?.category;
+  return CATEGORY_STRONG_COLORS[category]||"#344054";
 }
 const STORAGE_KEY = "sensusLab.v1"; // alte Einzelanalyse, nur noch für Migration
 const LEGACY_STORAGE_KEY = "bracketingArcingMvp.v1"; // ältere Einzelanalyse, nur noch für Migration
@@ -202,9 +215,10 @@ function storeUiSettings(){
 }
 
 function cloneDocument(doc){ return JSON.parse(JSON.stringify(doc)); }
+function normalizeProjectTool(tool){ return tool==="verbinden"?"verbinden":"teilen"; }
 function createProject(documentState=createEmptyState()){
   const now=new Date().toISOString();
-  return {id:makeId("project"),createdAt:now,updatedAt:now,document:cloneDocument(documentState)};
+  return {id:makeId("project"),createdAt:now,updatedAt:now,activeTool:"teilen",document:cloneDocument(documentState)};
 }
 function activeProject(){ return projects.find(p=>p.id===activeProjectId)||null; }
 function projectDisplayName(project){
@@ -231,12 +245,13 @@ function syncStateIntoActiveProject(){
     activeProjectId=project.id;
   }
   project.document=cloneDocument(state);
+  project.activeTool=normalizeProjectTool(activeTool);
   project.updatedAt=new Date().toISOString();
   return project;
 }
-function resetTransientUiForProject(){
+function resetTransientUiForProject(project=activeProject()){
   history=[]; future=[]; selectionStartId=null; selectedRelationId=null; activeRelationId=null; chosenRelationshipId=null;
-  activeTool="teilen";
+  activeTool=normalizeProjectTool(project?.activeTool);
   if(els.relationshipDialog?.open) closeRelationshipDialog();
   if(els.textDialog?.open) closeDialog(els.textDialog);
 }
@@ -372,6 +387,7 @@ function loadProjects(){
         id:p.id,
         createdAt:typeof p.createdAt==="string"?p.createdAt:new Date().toISOString(),
         updatedAt:typeof p.updatedAt==="string"?p.updatedAt:new Date().toISOString(),
+        activeTool:normalizeProjectTool(p.activeTool),
         document:p.document
       }));
     }

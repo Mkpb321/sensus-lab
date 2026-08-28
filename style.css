@@ -161,14 +161,15 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .check-inline input{width:15px;height:15px;accent-color:var(--accent)}
 .conjunction-filter-info{margin:0;padding:6px 12px;border-bottom:1px solid var(--line);font-size:10.5px;line-height:1.35;color:#6e7984;background:#fafbfb}
 .conjunction-filter-info strong{color:#394550;font-weight:650}
-.rel-category{margin:0;padding:8px 12px 4px;font-size:9.5px;color:#7d8792;text-transform:uppercase;letter-spacing:.07em;font-weight:700;background:#fff}
+.rel-category{margin:7px 0 0;padding:6px 12px;font-size:10px;color:#fff;text-transform:uppercase;letter-spacing:.075em;font-weight:780;background:var(--category-color,#475467);border-top:1px solid rgba(0,0,0,.08);border-bottom:1px solid rgba(0,0,0,.12)}
+.rel-category:first-child{margin-top:0}
 .rel-list{display:grid;gap:0}
 .rel-card{min-height:40px;width:100%;text-align:left;border:0;border-left:3px solid var(--rel-color,#cbd2d8);border-bottom:1px solid #ebedef;background:#fff;border-radius:0;padding:7px 10px 7px 9px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:8px;align-items:center}
 .rel-card:hover:not(:disabled){background:#f6f8f9}
 .rel-card.selected{background:var(--accent-soft);box-shadow:inset 2px 0 0 var(--accent);border-left-color:var(--accent)}
 .rel-card:disabled{background:#fafafa}
 .rel-card:disabled .rel-name{color:#a2a9b0;text-decoration:none}
-.rel-code{display:block;min-width:0;padding:0;border:0;border-radius:0;background:transparent;color:var(--rel-color,#45515d);font-weight:750;font-size:11px;letter-spacing:-.01em}
+.rel-code{display:block;min-width:0;padding:2px 0 2px 6px;border:0;border-left:3px solid var(--rel-strong,#45515d);border-radius:0;background:transparent;color:var(--rel-strong,#45515d);font-weight:850;font-size:12.5px;line-height:1.05;letter-spacing:-.015em}
 .rel-name{display:block;font-weight:620;font-size:12px;line-height:1.25;color:#27333f}
 .rel-original{font-size:.86em;font-weight:400;color:#7a8590;letter-spacing:0}
 .rel-desc{display:none}
@@ -253,7 +254,7 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] [data-unit-id]{cursor:pointe
 .svg-label-bg{fill:#fff;stroke-width:1}
 .svg-tree-line{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .svg-hit-line{fill:none;stroke:transparent;stroke-width:16;vector-effect:non-scaling-stroke;pointer-events:stroke}
-.svg-primary-line{stroke-width:2.35!important}
+.svg-primary-line{stroke-linecap:round}
 .svg-selected-halo{fill:none;stroke:var(--accent);stroke-width:5;opacity:.10;vector-effect:non-scaling-stroke}
 .diagram-label-box{pointer-events:none}
 .diagram-label-hit{fill:transparent;stroke:none;pointer-events:all}

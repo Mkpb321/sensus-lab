@@ -167,12 +167,14 @@ function renderBracketSvg(anchorMap,height){
       const child=getNode(childId);
       const targetX=child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
       const primary=(node.primaryChildIds||[]).includes(childId);
-      const lineClass=primary?"svg-tree-line svg-primary-line":"svg-tree-line";
+      const hasMainPointStar=primary && !!rel && rel.primary!=="all";
+      const lineClass=hasMainPointStar?"svg-tree-line svg-primary-line":"svg-tree-line";
+      const branchStrokeWidth=hasMainPointStar?strokeWidth*2:strokeWidth;
 
       const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+relationLabelScreenWidth/2 : x;
       pieces.push(`<path class="svg-hit-line" d="M ${branchStartX} ${cy} H ${targetX}"/>`);
       if(isSelected) pieces.push(`<path class="svg-selected-halo" d="M ${branchStartX} ${cy} H ${targetX}"/>`);
-      pieces.push(`<path class="${lineClass}" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${strokeWidth}"${dashAttr}/>`);
+      pieces.push(`<path class="${lineClass}" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${branchStrokeWidth}"${dashAttr}/>`);
 
       const placement=rolePlacementByKey.get(`${node.id}:${i}`);
       if(placement){
@@ -185,7 +187,7 @@ function renderBracketSvg(anchorMap,height){
         labelPieces.push(`</g>`);
       }
 
-      if(primary && rel && rel.primary!=="all"){
+      if(hasMainPointStar){
         const sx=branchStartX+10;
         pieces.push(`<circle cx="${sx}" cy="${cy}" r="5.1" fill="#fff" stroke="${color}" stroke-width="1.2"/><text x="${sx}" y="${cy}" class="svg-star" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
       }
@@ -308,12 +310,14 @@ function renderRelationshipDialog(){
   for(const cat of order){
     const rows=grouped.get(cat)||[];
     if(!rows.length) continue;
-    html.push(`<div class="rel-category">${escapeHtml(CATEGORY_LABELS[cat])}</div><div class="rel-list">`);
+    const categoryColor=CATEGORY_STRONG_COLORS[cat]||"#475467";
+    html.push(`<div class="rel-category" style="--category-color:${categoryColor}">${escapeHtml(CATEGORY_LABELS[cat])}</div><div class="rel-list">`);
     for(const [id,rel] of rows){
       const ok=cardinalityOk(rel,node.children.length);
       const selected=chosenRelationshipId===id?" selected":"";
       const relColor=relationshipColor(rel,id);
-      html.push(`<button type="button" class="rel-card${selected}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}" style="--rel-color:${relColor}">
+      const relStrongColor=relationshipStrongColor(rel,id);
+      html.push(`<button type="button" class="rel-card${selected}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}" style="--rel-color:${relColor};--rel-strong:${relStrongColor}">
         <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
         <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}${rel.biblearcLabel?` <span class="rel-original">(${escapeHtml(rel.biblearcLabel)})</span>`:""}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
         <span class="cardinality">${escapeHtml(cardinalityText(rel))}</span>
@@ -602,13 +606,16 @@ function setMode(mode){
   render(); schedulePersist();
 }
 function setTool(tool){
-  activeTool=tool;
+  activeTool=normalizeProjectTool(tool);
   selectionStartId=null;
-  if(tool!=="verbinden"){
+  if(activeTool!=="verbinden"){
     selectedRelationId=null;
     if(els.relationshipDialog.open) closeRelationshipDialog();
   }
+  const project=activeProject();
+  if(project) project.activeTool=activeTool;
   render();
+  schedulePersist();
 }
 function setExtended(enabled){
   state.settings.includeExtended=!!enabled;
