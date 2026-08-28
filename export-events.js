@@ -420,6 +420,7 @@ els.textForm.addEventListener("submit",e=>{e.preventDefault();applyTextFromDialo
 els.editModeButton.addEventListener("click",()=>setMode("bearbeiten"));
 els.viewModeButton.addEventListener("click",()=>setMode("ansicht"));
 els.splitToolButton.addEventListener("click",()=>setTool("teilen"));
+if(els.autoSplitButton) els.autoSplitButton.addEventListener("click",autoSplitText);
 els.connectToolButton.addEventListener("click",()=>setTool("verbinden"));
 els.undoButton.addEventListener("click",undo);
 els.redoButton.addEventListener("click",redo);

@@ -567,6 +567,99 @@ function handleUnitClick(nodeId){
   if(newId && getNode(newId)) openRelationshipDialog(newId);
 }
 
+function autoSplitNormalizedWord(token){
+  return String(token??"").normalize("NFKC").toLocaleLowerCase("de")
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,"");
+}
+function autoSplitTokenEndsWithPeriod(token){
+  return /\.(?:["'»”’\)\]\}]+)?$/u.test(String(token??"").trim());
+}
+function automaticSplitCutIndices(){
+  const words=[];
+  for(let tokenIndex=0;tokenIndex<state.tokens.length;tokenIndex++){
+    const raw=state.tokens[tokenIndex];
+    if(isWhitespaceToken(raw)) continue;
+    const word=autoSplitNormalizedWord(raw);
+    if(word) words.push({tokenIndex,word,raw});
+  }
+  const cuts=new Set();
+  const first=firstContentToken();
+
+  // Bewusst grammatische Konjunktionen/Konjunktionsgefüge statt aller
+  // Beziehungs-Signalwörter verwenden: Präpositionen wie „vor“ oder „durch“
+  // sollen beim Auto-Teilen nicht pauschal neue Propositionen erzeugen.
+  const conjunctionLabels=[
+    "aber","als","als dass","als ob","anstatt dass","auch wenn","außer dass",
+    "beziehungsweise","bis","da","damit","dass","denn","doch","ehe","entweder",
+    "es sei denn","falls","indem","je","nachdem","nicht nur","noch","ob","obgleich",
+    "obschon","obwohl","oder","ohne dass","seitdem","selbst wenn","sobald","so dass",
+    "sodass","solange","sondern","sooft","sowie","sowohl","statt dass","und","während",
+    "weil","wenn","wenngleich","weder","wie","wohingegen","zumal"
+  ];
+  const multiPatterns=conjunctionLabels
+    .map(label=>label.split(/\s+/u).map(autoSplitNormalizedWord).filter(Boolean))
+    .filter(parts=>parts.length>1)
+    .sort((a,b)=>b.length-a.length);
+  const singleWords=new Set(conjunctionLabels
+    .map(label=>label.split(/\s+/u).map(autoSplitNormalizedWord).filter(Boolean))
+    .filter(parts=>parts.length===1)
+    .map(parts=>parts[0]));
+  const coveredByPhrase=new Set();
+
+  // Zuerst längere Gefüge erkennen, damit z. B. „es sei denn“ nur vor „es“
+  // und nicht zusätzlich vor dem darin enthaltenen „denn“ geteilt wird.
+  for(const parts of multiPatterns){
+    for(let wi=0;wi+parts.length<=words.length;wi++){
+      const matches=parts.every((part,offset)=>words[wi+offset]?.word===part);
+      if(!matches) continue;
+      if(words[wi].tokenIndex!==first) cuts.add(words[wi].tokenIndex);
+      for(let offset=1;offset<parts.length;offset++) coveredByPhrase.add(wi+offset);
+    }
+  }
+  for(let wi=0;wi<words.length;wi++){
+    if(coveredByPhrase.has(wi)) continue;
+    if(singleWords.has(words[wi].word) && words[wi].tokenIndex!==first) cuts.add(words[wi].tokenIndex);
+  }
+
+  // „um … zu“ ist ein diskontinuierliches Konjunktionsgefüge. Nur vor „um“
+  // teilen, wenn im selben Satz tatsächlich ein „zu“ folgt.
+  for(let wi=0;wi<words.length;wi++){
+    if(words[wi].word!=="um") continue;
+    let isPurposeConstruction=false;
+    for(let look=wi+1;look<words.length;look++){
+      if(words[look].word==="zu"){isPurposeConstruction=true;break;}
+      if(autoSplitTokenEndsWithPeriod(words[look].raw)) break;
+    }
+    if(isPurposeConstruction && words[wi].tokenIndex!==first) cuts.add(words[wi].tokenIndex);
+  }
+
+  // Nach jedem Satzpunkt am nächsten Inhalts-Token teilen.
+  for(let wi=0;wi<words.length-1;wi++){
+    if(!autoSplitTokenEndsWithPeriod(words[wi].raw)) continue;
+    const nextToken=words[wi+1].tokenIndex;
+    if(nextToken!==first) cuts.add(nextToken);
+  }
+
+  return [...cuts].filter(index=>!state.cuts.includes(index)).sort((a,b)=>a-b);
+}
+function autoSplitText(){
+  if(state.settings.mode!=="bearbeiten" || activeTool!=="teilen" || !state.rawText.trim()) return;
+  const newCuts=automaticSplitCutIndices();
+  if(!newCuts.length){
+    announce("Keine weiteren automatischen Teilungspunkte gefunden.");
+    return;
+  }
+  if(hasRelations() && !confirm("Das automatische Teilen löscht alle Beziehungen. Fortfahren?")) return;
+  selectionStartId=null;
+  selectedRelationId=null;
+  performAction(`${newCuts.length} automatische Teilung${newCuts.length===1?"":"en"} gesetzt`,()=>{
+    if(hasRelations()) resetRelationsKeepSegmentation();
+    state.cuts=[...new Set([...state.cuts,...newCuts])].sort((a,b)=>a-b);
+    rebuildPropositions();
+    state.rootIds=state.propositions.map(p=>p.id);
+  });
+}
+
 function splitBefore(tokenIndex){
   if(state.settings.mode!=="bearbeiten" || activeTool!=="teilen") return;
   if(tokenIndex===firstContentToken() || state.cuts.includes(tokenIndex)) return;

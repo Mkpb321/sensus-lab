@@ -156,6 +156,10 @@ function render(){
   els.splitToolButton.setAttribute("aria-pressed",activeTool==="teilen");
   els.connectToolButton.setAttribute("aria-pressed",activeTool==="verbinden");
   els.toolGroup.style.display=state.settings.mode==="bearbeiten"?"flex":"none";
+  if(els.autoSplitButton){
+    els.autoSplitButton.hidden=state.settings.mode!=="bearbeiten" || activeTool!=="teilen";
+    els.autoSplitButton.disabled=!state.rawText || !state.rawText.trim();
+  }
   els.documentHeading.hidden=!state.title;
   els.documentHeading.textContent=state.title||"";
   els.textButton.textContent="Text";

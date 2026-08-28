@@ -162,7 +162,7 @@ const $ = (sel,root=document)=>root.querySelector(sel);
 const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
 const els = {
   textButton:$("#textButton"), editModeButton:$("#editModeButton"), viewModeButton:$("#viewModeButton"),
-  splitToolButton:$("#splitToolButton"), connectToolButton:$("#connectToolButton"), toolGroup:$("#toolGroup"),
+  splitToolButton:$("#splitToolButton"), connectToolButton:$("#connectToolButton"), autoSplitButton:$("#autoSplitButton"), toolGroup:$("#toolGroup"),
   undoButton:$("#undoButton"), redoButton:$("#redoButton"), helpButton:$("#helpButton"), resetButton:$("#resetButton"),
   extendedToggle:$("#extendedToggle"), finishPill:$("#finishPill"), propStatus:$("#propStatus"), openStatus:$("#openStatus"),
   rootStatus:$("#rootStatus"), errorStatus:$("#errorStatus"), saveStatus:$("#saveStatus"), selectionStatus:$("#selectionStatus"), validationStrip:$("#validationStrip"),
