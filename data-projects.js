@@ -343,19 +343,12 @@ function openProjectManager(){
   showDialog(els.projectsDialog);
 }
 function positionProjectMenu(){
-  if(!els.projectMenu || els.projectMenu.hidden) return;
-  const buttonRect=els.projectMenuButton.getBoundingClientRect();
-  const menuRect=els.projectMenu.getBoundingClientRect();
-  const margin=8;
-  const gap=5;
-  const width=Math.min(menuRect.width||210,Math.max(0,window.innerWidth-margin*2));
-  let left=buttonRect.right-width;
-  left=Math.max(margin,Math.min(left,window.innerWidth-width-margin));
-  const top=Math.max(margin,buttonRect.bottom+gap);
-  els.projectMenu.style.left=`${Math.round(left)}px`;
-  els.projectMenu.style.right="auto";
-  els.projectMenu.style.top=`${Math.round(top)}px`;
-  els.projectMenu.style.maxHeight=`${Math.max(120,Math.floor(window.innerHeight-top-margin))}px`;
+  if(!els.projectMenu) return;
+  // Das Dropdown ist direkt am Burger-Button verankert; keine viewport-/scrollabhängigen Inline-Koordinaten.
+  els.projectMenu.style.left="";
+  els.projectMenu.style.right="";
+  els.projectMenu.style.top="";
+  els.projectMenu.style.maxHeight="";
 }
 function openProjectMenu(){
   els.projectMenu.hidden=false;

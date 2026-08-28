@@ -16,7 +16,7 @@ das andere free mini kurs machen und ev daraus andere Ansicht machen wo man auch
 
 nochmal bei allen checken ob der main point richtig ist, wenn ich Probeabo habe
 
-Abkürzungen wie in dem farbigen menü genau gleich also nur einmal im code. und im generierten bild dann jeweils eine Legende der benutzten abkürzungen
+
 
 
 , aber ein ausführliches durchsuchbares hilfe punkt im burger menu der alles erklährt, das mit der bedienung zu tun hat nicht die technische umsetzung. 
