@@ -198,7 +198,7 @@ function buildPublicationExportSvg(){
   const legendStartY=contentBottom+28;
   const legendRowH=19;
   const legendSectionTitleH=20;
-  const legendTitleH=18;
+  const legendTitleH=0;
   const legendColumnGap=18;
   const legendSectionLayouts=legendSections.map(section=>{
     const titleWidth=exportMeasureText(section.title.toUpperCase(),`700 10px ${fontStack}`);
@@ -325,8 +325,7 @@ function buildPublicationExportSvg(){
   // Kompakte, druckartige Legende ohne umschließende Karte.
   if(legendHeight){
     pieces.push(`<line x1="${pageX}" y1="${legendStartY-13}" x2="${canvasW-pageX}" y2="${legendStartY-13}" stroke="${hairline}" stroke-width="1"/>`);
-    pieces.push(`<text x="${pageX}" y="${legendStartY}" font-size="11" font-weight="700" fill="${ink}" letter-spacing=".02em">LEGENDE</text>`);
-    const sectionTop=legendStartY+legendTitleH;
+    const sectionTop=legendStartY;
     legendLayouts.forEach(section=>{
       if(!section.items.length) return;
       pieces.push(`<text x="${section.x}" y="${sectionTop}" font-size="10" font-weight="700" fill="${muted}" letter-spacing=".04em">${safeSvgText(section.title.toUpperCase())}</text>`);
