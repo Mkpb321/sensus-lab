@@ -306,6 +306,7 @@ els.jsonExportButton.addEventListener("click",()=>{closeProjectMenu();exportJson
 els.importButton.addEventListener("click",()=>{closeProjectMenu();els.importInput.click();});
 els.importInput.addEventListener("change",e=>{if(e.target.files&&e.target.files[0]) importJsonFile(e.target.files[0]);});
 els.projectMenuButton.addEventListener("click",e=>{e.stopPropagation();toggleProjectMenu();});
+window.addEventListener("resize",()=>{if(els.projectMenu && !els.projectMenu.hidden) positionProjectMenu();});
 els.projectManagerButton.addEventListener("click",e=>{e.stopPropagation();openProjectManager();});
 els.settingsMenuButton.addEventListener("click",e=>{e.stopPropagation();openSettingsDialog();});
 els.lineAttachmentToggle.addEventListener("change",e=>{

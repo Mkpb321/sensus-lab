@@ -342,9 +342,25 @@ function openProjectManager(){
   renderProjectManager();
   showDialog(els.projectsDialog);
 }
+function positionProjectMenu(){
+  if(!els.projectMenu || els.projectMenu.hidden) return;
+  const buttonRect=els.projectMenuButton.getBoundingClientRect();
+  const menuRect=els.projectMenu.getBoundingClientRect();
+  const margin=8;
+  const gap=5;
+  const width=Math.min(menuRect.width||210,Math.max(0,window.innerWidth-margin*2));
+  let left=buttonRect.right-width;
+  left=Math.max(margin,Math.min(left,window.innerWidth-width-margin));
+  const top=Math.max(margin,buttonRect.bottom+gap);
+  els.projectMenu.style.left=`${Math.round(left)}px`;
+  els.projectMenu.style.right="auto";
+  els.projectMenu.style.top=`${Math.round(top)}px`;
+  els.projectMenu.style.maxHeight=`${Math.max(120,Math.floor(window.innerHeight-top-margin))}px`;
+}
 function openProjectMenu(){
   els.projectMenu.hidden=false;
   els.projectMenuButton.setAttribute("aria-expanded","true");
+  positionProjectMenu();
 }
 function closeProjectMenu(){
   if(!els.projectMenu) return;

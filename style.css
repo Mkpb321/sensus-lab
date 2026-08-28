@@ -56,12 +56,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .mode-group .seg-button,.tool-group .seg-button{height:26px;min-height:26px;border:0;padding:0 9px}
 .seg-button[aria-pressed="true"]{background:var(--surface);color:var(--ink-strong);font-weight:680;box-shadow:0 1px 2px rgba(16,24,40,.08)}
 .icon-button{width:30px;padding:0;font-size:18px;line-height:1;font-weight:400;color:#5f6b77}
-.project-menu-wrap{position:relative;display:flex;align-items:center}
+.project-menu-wrap{position:relative;display:flex;align-items:center;flex:0 0 32px;z-index:90}
 .project-menu-button{width:32px;height:30px;min-height:30px;padding:0;border:1px solid transparent;background:transparent;color:#4b5561;border-radius:5px;display:inline-flex;align-items:center;justify-content:center}
 .project-menu-button:hover,.project-menu-button[aria-expanded="true"]{background:var(--surface-subtle);border-color:var(--line)}
 .project-menu-icon{width:15px;height:12px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
 .project-menu-icon span{height:1.5px;background:currentColor;width:100%}
-.project-menu{position:absolute;right:0;top:calc(100% + 5px);width:210px;padding:4px;background:#fff;border:1px solid var(--line-strong);border-radius:7px;box-shadow:0 14px 40px rgba(15,23,32,.16);z-index:80}
+.project-menu{position:fixed;right:auto;top:0;left:0;width:min(210px,calc(100vw - 16px));max-height:calc(100dvh - 60px);overflow-y:auto;overscroll-behavior:contain;padding:4px;background:#fff;border:1px solid var(--line-strong);border-radius:7px;box-shadow:0 14px 40px rgba(15,23,32,.16);z-index:1000}
 .project-menu[hidden]{display:none}
 .project-menu-entry{width:100%;min-height:31px;border:0;background:transparent;color:#303b46;border-radius:4px;padding:6px 8px;text-align:left;font-size:12px;font-weight:520}
 .project-menu-entry:hover{background:#f3f5f7}
