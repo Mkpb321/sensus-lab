@@ -137,9 +137,17 @@ button:disabled{cursor:not-allowed;opacity:.48}
 .prop-content{padding:10px 10px;line-height:1.55;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
 .anchor-cell{display:flex;align-items:center;justify-content:center}
 .unit-anchor{
-  width:36px;height:36px;min-height:36px;padding:0;border-radius:999px;border:1px solid #8fa4b7;background:#fff;color:#22557c;font-weight:800;
+  position:relative;width:14px;height:14px;min-height:14px;padding:0;border-radius:999px;
+  border:1.4px solid #94a3b8;background:#fff;color:transparent;font-size:0;line-height:0;
+  box-shadow:0 1px 1px rgba(15,23,42,.12);flex:0 0 14px;
 }
-.unit-anchor:hover{background:#edf6fd;border-color:#3f7dab}
+/* Die sichtbare Größe entspricht exakt dem SVG-Anker (r=7). Die unsichtbare
+   Hitbox bleibt 26px groß, damit der kleine Kreis komfortabel anklickbar ist. */
+.unit-anchor::after{
+  content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);border-radius:999px;
+}
+.unit-anchor:hover{border-color:#2563eb;border-width:2px;background:#fff}
+.unit-anchor.selected{border-color:#2563eb;border-width:2.6px;background:#fff}
 .word-token{white-space:pre-wrap}
 .split-word{
   min-height:36px;display:inline-block;vertical-align:middle;position:relative;border:0;background:transparent;color:inherit;padding:0;margin:0;border-radius:2px;line-height:inherit;text-align:left;
@@ -236,6 +244,7 @@ textarea{
 .svg-connection-anchor{pointer-events:all;cursor:pointer}
 .svg-connection-anchor-hit{fill:transparent;stroke:none;pointer-events:all}
 .svg-connection-anchor-dot{pointer-events:none;filter:drop-shadow(0 1px 1px rgba(15,23,42,.12))}
+.svg-connection-anchor:hover .svg-connection-anchor-dot{stroke:#2563eb;stroke-width:2}
 .svg-role{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:9.75px;fill:#3f4c5f;font-weight:400;pointer-events:none;text-anchor:middle;text-rendering:auto;font-kerning:normal;-webkit-font-smoothing:antialiased;dominant-baseline:middle;alignment-baseline:middle}
 .svg-role-bg{fill:#fff;stroke:#e4e9ef;stroke-width:.7;pointer-events:none;transition:stroke-width .12s ease,filter .12s ease}
 .svg-code{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:9.75px;font-weight:500;text-anchor:middle;pointer-events:none;letter-spacing:.005em;text-rendering:auto;font-kerning:normal;-webkit-font-smoothing:antialiased;dominant-baseline:middle;alignment-baseline:middle}
@@ -435,8 +444,9 @@ body{
 .prop-card.selected{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(37,99,235,.09)}
 .prop-id{background:#f8fafc;border-color:#e8edf3;border-radius:12px 0 0 12px;color:#667085;font-size:11px}
 .prop-content{padding:12px 13px;font-size:13.5px;line-height:1.6;color:#253045}
-.unit-anchor{width:30px;height:30px;min-height:30px;border-color:#cbd5e1;color:#64748b;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.03)}
-.unit-anchor:hover{background:#eff6ff;border-color:#93c5fd;color:#2563eb}
+.unit-anchor{width:14px;height:14px;min-height:14px;border-color:#94a3b8;background:#fff;box-shadow:0 1px 1px rgba(15,23,42,.12)}
+.unit-anchor:hover{border-color:#2563eb;background:#fff}
+.unit-anchor.selected{border-color:#2563eb;background:#fff}
 .merge-button{
   top:-5px;width:30px;height:30px;min-height:30px;border-color:#e2e8f0;color:#94a3b8;box-shadow:0 2px 8px rgba(15,23,42,.06)
 }
