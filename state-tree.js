@@ -505,15 +505,35 @@ function validateContiguousSelection(selectedIds,parentId){
   return true;
 }
 function canGroupInside(parentId,selectedCount){
-  if(parentId==null) return selectedCount>=2;
-  const p=getNode(parentId);
-  if(!p || p.kind!=="relation") return false;
-  const newCount=p.children.length-selectedCount+1;
-  // Auch eine offene Gruppe muss nach dem Untergruppieren mindestens zwei Kinder behalten.
-  if(p.relationshipId==null) return newCount>=2;
-  const rel=RELATIONSHIPS[p.relationshipId];
-  if(!rel || rel.primary!=="all") return false;
-  return cardinalityOk(rel,newCount);
+  const siblings=siblingArray(parentId);
+  if(!siblings || !Number.isInteger(selectedCount) || selectedCount<2 || selectedCount>siblings.length) return false;
+
+  // Auf der Wurzelebene darf ein Bereich bis hin zum gesamten verbleibenden
+  // Text verbunden werden: genau so entsteht die äußerste Klammer.
+  if(parentId==null) return true;
+
+  const parent=getNode(parentId);
+  if(!parent || parent.kind!=="relation") return false;
+
+  // Innerhalb einer vorhandenen Klammer muss die neue Klammer ein echter
+  // Teilbereich sein. Die komplette Elternklammer nochmals einzupacken würde
+  // keinen neuen logischen Level erzeugen und ließe die Elternbeziehung mit
+  // nur einem Kind zurück.
+  if(selectedCount===siblings.length) return false;
+
+  const newCount=siblings.length-selectedCount+1;
+  if(newCount<2) return false;
+
+  // Eine graue/offene Klammer ist strukturell noch nicht typgebunden.
+  if(parent.relationshipId==null) return true;
+
+  // Bei einer bereits typisierten Elternbeziehung ist eine Unterklammer genau
+  // dann zulässig, wenn die Elternbeziehung nach dem Ersetzen des gewählten
+  // Geschwisterbereichs durch das neue Piece weiterhin ihre Kardinalität erfüllt.
+  // Damit gilt dieselbe Regel für heutige und zukünftige Beziehungstypen und
+  // nicht nur für explizit koordinierende Beziehungen.
+  const rel=RELATIONSHIPS[parent.relationshipId];
+  return !!rel && cardinalityOk(rel,newCount);
 }
 function connectionRangeForEndpoints(firstId,secondId){
   if(!firstId || !secondId || firstId===secondId) return null;
@@ -525,22 +545,29 @@ function connectionRangeForEndpoints(firstId,secondId){
   if(!canGroupInside(a.parentId,selected.length)) return null;
   return {parentId:a.parentId,selected};
 }
-function canUseConnectionAnchor(nodeId,startId=selectionStartId){
-  if(!getNode(nodeId)) return false;
+function connectionTargetsForAnchor(nodeId){
   const info=findParentInfo(nodeId);
-  if(!info) return false;
+  if(!getNode(nodeId) || !info) return [];
+  return info.siblings.filter(otherId=>otherId!==nodeId && !!connectionRangeForEndpoints(nodeId,otherId));
+}
+function canUseConnectionAnchor(nodeId,startId=selectionStartId){
+  if(!getNode(nodeId) || !findParentInfo(nodeId)) return false;
 
-  // Nach dem ersten Klick bleibt dieser Anker als Abwahlmöglichkeit sichtbar;
-  // alle anderen Anker erscheinen nur noch, wenn der Bereich zwischen beiden
-  // Endpunkten tatsächlich als neue Untergruppe angelegt werden darf.
+  // Nach dem ersten Klick bleibt der Startpunkt als Abwahlmöglichkeit sichtbar.
+  // Jeder andere sichtbare Punkt ist dagegen garantiert ein tatsächlich
+  // zulässiger Endpunkt für genau diese Startauswahl.
   if(startId){
     if(nodeId===startId) return true;
     return !!connectionRangeForEndpoints(startId,nodeId);
   }
 
-  // Ohne Startauswahl ist ein Anker nur sinnvoll, wenn es auf derselben Ebene
-  // wenigstens einen Partner gibt, mit dem eine gültige neue Gruppe entsteht.
-  return info.siblings.some(otherId=>otherId!==nodeId && !!connectionRangeForEndpoints(nodeId,otherId));
+  // Ohne Startauswahl existiert ein Punkt nur dann, wenn von ihm mindestens
+  // eine echte neue Klammer gezogen werden kann. "Besetzt" ist damit nicht
+  // pauschal "hat bereits einen Elternknoten": Ein bestehendes Piece darf wie
+  // bei Biblearc auf einer höheren Ebene weiterverbunden oder innerhalb einer
+  // offenen/mehrteiligen Klammer weiter untergliedert werden, sofern der Baum
+  // danach gültig bleibt.
+  return connectionTargetsForAnchor(nodeId).length>0;
 }
 function connectOpen(selectedIds,parentId,firstSelectedChildId=null){
   if(!validateContiguousSelection(selectedIds,parentId)) throw new Error("Nur ein direkt benachbarter Geschwisterbereich kann verbunden werden.");

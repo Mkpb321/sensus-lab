@@ -250,13 +250,13 @@ function renderPropositions(){
 function allSelectableUnits(){
   const ids=[];
   const add=id=>{if(id && getNode(id) && canUseConnectionAnchor(id) && !ids.includes(id)) ids.push(id);};
-  state.rootIds.forEach(add);
-  for(const rel of relationNodes()){
-    if(rel.relationshipId==null || (RELATIONSHIPS[rel.relationshipId] && RELATIONSHIPS[rel.relationshipId].primary==="all")){
-      (rel.children||[]).forEach(add);
-    }
-    add(rel.id);
-  }
+
+  // Keine zweite, abweichende Verfügbarkeitslogik in der Einheitenleiste:
+  // Jeder Knoten wird ausschließlich durch canUseConnectionAnchor geprüft.
+  // So stimmen Proposition-Anker, Beziehungs-Anker, Leiste und Klicklogik exakt überein.
+  state.propositions.forEach(p=>add(p.id));
+  relationNodes().forEach(rel=>add(rel.id));
+
   ids.sort((a,b)=>{
     const sa=nodeSpan(a),sb=nodeSpan(b);
     if(sa.start!==sb.start) return sa.start-sb.start;
