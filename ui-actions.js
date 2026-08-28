@@ -66,7 +66,7 @@ function computeAdaptiveBracketGeometry(data){
   for(let d=1;d<=maxDepth;d++) cumulative[d]=cumulative[d-1]+laneWidths[d];
   const outerHalf=relationThicknessByDepth[maxDepth]/2;
   const leftGutter=Math.ceil(Math.max(18,outerHalf+12));
-  const rightGutter=22;
+  const rightGutter=4;
   const needed=leftGutter+rightGutter+cumulative[maxDepth]+8;
 
   return {
@@ -320,7 +320,7 @@ function renderRelationshipDialog(){
       const relStrongColor=relationshipStrongColor(rel,id);
       html.push(`<button type="button" class="rel-card${selected}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}" style="--rel-color:${relColor};--rel-strong:${relStrongColor}">
         <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
-        <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}${rel.biblearcLabel?` <span class="rel-original">(${escapeHtml(rel.biblearcLabel)})</span>`:""}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
+        <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
         <span class="cardinality">${escapeHtml(cardinalityText(rel))}</span>
       </button>`);
     }

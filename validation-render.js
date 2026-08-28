@@ -229,10 +229,11 @@ function propositionHtml(p,i){
       content.push(`<span class="word-token">${escapeHtml(tok)}</span>`);
     }
   }
-  const anchor=connect && canUseConnectionAnchor(p.id)?`<button class="unit-anchor${selectionStartId===p.id?" selected":""}" type="button" data-unit-id="${p.id}" aria-label="${nodeLabel(p.id)} zum Verbinden auswählen"></button>`:"";
+  const anchorAvailable=connect && canUseConnectionAnchor(p.id);
+  const anchor=anchorAvailable?`<button class="unit-anchor${selectionStartId===p.id?" selected":""}" type="button" data-unit-id="${p.id}" aria-label="${nodeLabel(p.id)} zum Verbinden auswählen"></button>`:"";
   return `<div class="prop-wrap" data-prop-wrap="${p.id}">
     ${edit && activeTool==="teilen" && i>0?`<button class="merge-button" type="button" data-merge-index="${i}" title="Grenze entfernen" aria-label="Grenze vor P${i+1} entfernen">×</button>`:""}
-    <article class="prop-card${selected}" data-prop-id="${p.id}">
+    <article class="prop-card${selected}${anchorAvailable?" has-anchor":""}" data-prop-id="${p.id}">
       <div class="anchor-cell">${anchor}</div>
       <div class="prop-content"><span class="sr-only">P${i+1}: </span>${content.join("")}</div>
     </article>
@@ -442,8 +443,9 @@ function bracketTextMetrics(lines,{minWidth=34,maxWidth=132,charWidth=5.55,lineH
   return {width,height,lineHeight,padX,padY};
 }
 function svgMultilineText(lines,x,centerY,className,fill,lineHeight=12){
-  const verticalOffset=((Math.max(1,lines.length)-1)*lineHeight)/2;
-  return `<text x="${x}" y="${centerY}" class="${className}" dominant-baseline="middle" alignment-baseline="middle"${fill?` fill="${fill}"`:""}>${lines.map((line,i)=>`<tspan x="${x}" dy="${i===0?-verticalOffset:lineHeight}">${safeSvgText(line)}</tspan>`).join("")}</text>`;
+  const safeLines=lines&&lines.length?lines:[""];
+  const middle=(safeLines.length-1)/2;
+  return `<text x="${x}" y="${centerY}" class="${className}" dominant-baseline="middle" alignment-baseline="middle"${fill?` fill="${fill}"`:""}>${safeLines.map((line,i)=>`<tspan x="${x}" y="${centerY+(i-middle)*lineHeight}" dominant-baseline="middle" alignment-baseline="middle">${safeSvgText(line)}</tspan>`).join("")}</text>`;
 }
 function chooseRelationLabelY({topY,bottomY,portY,labelHeight,canvasHeight,occupied,forbiddenYs=[]}){
   const half=labelHeight/2;
