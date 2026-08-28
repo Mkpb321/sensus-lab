@@ -380,28 +380,21 @@ function compactRole(role){
   };
   return map[role]||String(role||"");
 }
-function compactRelation(label){
-  const map={
-    "Abfolge":"Abf.",
-    "Alternative":"Altern.",
-    "Begründung":"Begr.",
-    "Folgerung":"Folg.",
-    "Beidseitige Begründung":"Beids. Begr.",
-    "Handlung–Ergebnis":"Handl.–Erg.",
-    "Handlung–Zweck":"Handl.–Zweck",
-    "Bedingung–Folge":"Beding.–Folge",
-    "Handlung–Art und Weise":"Handl.–Art/Weise",
-    "Verneinung–Bejahung":"+/−",
-    "Aussage–Erklärung":"Aussage–Erklär.",
-    "Frage–Antwort":"Q/A",
-    "Einräumung":"Einräum.",
-    "Situation–Reaktion":"Situat.–Reakt.",
-    "Allgemein–Spezifisch":"Allg.–Spez.",
-    "Tatsache–Deutung":"Tats.–Deutung",
-    "Ankündigung–Erfüllung":"Ankünd.–Erfüll.",
-    "Offene Gruppe":"Offen"
-  };
-  return map[label]||String(label||"");
+function relationShortCode(relationshipOrNode){
+  if(relationshipOrNode && typeof relationshipOrNode==="object" && !Array.isArray(relationshipOrNode)){
+    return relationShortCode(relationshipOrNode.relationshipId??null);
+  }
+  if(relationshipOrNode==null) return "Offen";
+  const rel=RELATIONSHIPS[relationshipOrNode];
+  return rel && rel.uiCode ? String(rel.uiCode) : String(relationshipOrNode||"");
+}
+function relationLegendLabel(relationshipOrNode){
+  if(relationshipOrNode && typeof relationshipOrNode==="object" && !Array.isArray(relationshipOrNode)){
+    return relationLegendLabel(relationshipOrNode.relationshipId??null);
+  }
+  if(relationshipOrNode==null) return "Offene Gruppe";
+  const rel=RELATIONSHIPS[relationshipOrNode];
+  return rel && rel.label ? String(rel.label) : String(relationshipOrNode||"");
 }
 function relationLaneX(depth,canvasWidth,gap=108,rightEdge=24){
   // Tiefe 1 liegt direkt am Text. Jede weitere Verschachtelung bekommt eine

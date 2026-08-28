@@ -24,8 +24,8 @@ function computeAdaptiveBracketGeometry(data){
     const {node}=item;
     const {rel}=relationStrokeInfo(node);
     const title=rel?rel.label:"Offene Gruppe";
-    const displayTitle=compactRelation(title);
-    const relationLines=wrapBracketText(displayTitle,14,3);
+    const displayTitle=relationShortCode(node);
+    const relationLines=[displayTitle];
     const relationMetrics=bracketTextMetrics(relationLines,{minWidth:44,maxWidth:96,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.3});
     relationMetricsById.set(node.id,{title,displayTitle,lines:relationLines,metrics:relationMetrics});
     // Nach der 90°-Drehung entspricht die sichtbare horizontale Dicke der ursprünglichen Höhe.
@@ -139,7 +139,7 @@ function renderBracketSvg(anchorMap,height){
     const isSelected=selectedRelationId===node.id;
     const relationInfo=relationMetricsById.get(node.id);
     const title=relationInfo?.title||(rel?rel.label:"Offene Gruppe");
-    const relationLines=relationInfo?.lines||[compactRelation(title)];
+    const relationLines=relationInfo?.lines||[relationShortCode(node)];
     const relationMetrics=relationInfo?.metrics||bracketTextMetrics(relationLines,{minWidth:44,maxWidth:96,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.3});
 
     pieces.push(`<g class="svg-rel" data-relation-id="${node.id}">`);
@@ -291,7 +291,7 @@ function relationshipEntriesForDialog(){
     if(!visible) return false;
     if(allowedByConjunction && !allowedByConjunction.has(id)) return false;
     if(!q) return true;
-    const hay=[rel.label,rel.biblearcLabel,rel.uiCode,rel.compatibilityCode,rel.definition,rel.test,...rel.signals].filter(Boolean).join(" ").toLocaleLowerCase("de");
+    const hay=[rel.label,rel.biblearcLabel,rel.uiCode,rel.definition,rel.test,...rel.signals].filter(Boolean).join(" ").toLocaleLowerCase("de");
     return hay.includes(q);
   });
 }

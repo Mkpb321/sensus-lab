@@ -36,6 +36,12 @@ function exportTextLines(text,maxWidth,font){
   while(lines.length>1 && lines[lines.length-1]==="") lines.pop();
   return lines.length?lines:[""];
 }
+function exportMeasureText(text,font){
+  const canvas=exportTextLines._canvas||(exportTextLines._canvas=document.createElement("canvas"));
+  const ctx=canvas.getContext("2d");
+  ctx.font=font;
+  return ctx.measureText(String(text??"")).width;
+}
 function exportRelationStyle(node){
   const rel=RELATIONSHIPS[node.relationshipId];
   if(node.relationshipId==null) return {rel:null,color:"#98a2b3",dash:"7 6",width:1.8};
@@ -85,8 +91,39 @@ function buildPublicationExportSvg(){
   const outerReserve=data.length?Math.max(20,Math.ceil((exportGeometry.relationThicknessByDepth[maxDepth]||0)/2+10)):0;
   const bracketRight=data.length?pageLeft+outerReserve+exportGeometry.cumulative[maxDepth]:pageLeft;
   const textStart=data.length?bracketRight+bracketTextGap:pageLeft;
-  const canvasW=Math.ceil(textStart+propTextWidth+pageRight);
-  const canvasH=Math.ceil(contentBottom+28);
+
+  const legendItems=[];
+  const seenLegend=new Set();
+  data.forEach(({node})=>{
+    const key=node.relationshipId==null?"__open__":String(node.relationshipId);
+    if(seenLegend.has(key)) return;
+    seenLegend.add(key);
+    const rel=RELATIONSHIPS[node.relationshipId];
+    legendItems.push({
+      key,
+      code:relationShortCode(node),
+      label:relationLegendLabel(node),
+      color:node.relationshipId==null?"#98a2b3":relationshipColor(rel,node.relationshipId),
+      dash:node.relationshipId==null?"7 6":""
+    });
+  });
+  const legendTitle=legendItems.length?"Legende":null;
+  const legendTitleFont=`700 12px system-ui, -apple-system, "Segoe UI", sans-serif`;
+  const legendFont=`500 12px system-ui, -apple-system, "Segoe UI", sans-serif`;
+  const legendLineH=18;
+  const legendPadX=10;
+  const legendPadY=9;
+  const legendSwatchW=16;
+  const legendGap=9;
+  const legendTextGap=8;
+  const legendTextWidth=Math.max(0,...legendItems.map(item=>exportMeasureText(`${item.code} = ${item.label}`,legendFont)));
+  const legendTitleWidth=legendTitle?exportMeasureText(legendTitle,legendTitleFont):0;
+  const legendWidth=legendItems.length?Math.ceil(Math.max(legendTitleWidth,legendSwatchW+legendTextGap+legendTextWidth)+legendPadX*2):0;
+  const legendRows=legendItems.length + (legendTitle?1:0);
+  const legendHeight=legendItems.length?Math.ceil(legendPadY*2 + legendRows*legendLineH - 2):0;
+
+  const canvasW=Math.ceil(Math.max(textStart+propTextWidth+pageRight,pageLeft+legendWidth+pageRight));
+  const canvasH=Math.ceil(contentBottom + (legendItems.length?legendHeight+22:28));
   const xForDepth=(depth)=>bracketRight-exportGeometry.cumulative[depth];
   const xById=new Map(data.map(item=>[item.node.id,xForDepth(item.depth)]));
   const portMemo=new Map();
@@ -159,8 +196,8 @@ function buildPublicationExportSvg(){
     const portY=bracketNodePortY(node.id,anchorMap,portMemo);
     const dashAttr=dash?` stroke-dasharray="${dash}"`:"";
     const relationTitle=rel?rel.label:"Offene Gruppe";
-    const displayRelationTitle=compactRelation(relationTitle);
-    const lines=wrapBracketText(displayRelationTitle,14,3);
+    const displayRelationTitle=relationShortCode(node);
+    const lines=[displayRelationTitle];
     const metrics=bracketTextMetrics(lines,{minWidth:42,maxWidth:labelMaxWidth,charWidth:4.35,lineHeight:9.5,padX:4,padY:2.8});
     const labelScreenHeight=metrics.width;
     const labelScreenWidth=metrics.height;
@@ -209,6 +246,25 @@ function buildPublicationExportSvg(){
   // Auch im Export werden Kästchen bewusst zuletzt gemalt. Dadurch liegen alle Linien
   // garantiert hinter den weißen Label-Flächen.
   pieces.push(...boxOverlays);
+
+  if(legendItems.length){
+    const legendX=pageLeft;
+    const legendY=canvasH-legendHeight-12;
+    let cursorY=legendY+legendPadY+12;
+    pieces.push(`<g aria-label="Legende">`);
+    pieces.push(`<rect x="${legendX}" y="${legendY}" width="${legendWidth}" height="${legendHeight}" rx="6" fill="#ffffff" stroke="#d0d5dd" stroke-width="1"/>`);
+    pieces.push(`<text x="${legendX+legendPadX}" y="${cursorY}" font-size="12" font-weight="700" fill="#101828">${safeSvgText(legendTitle)}</text>`);
+    cursorY+=legendLineH;
+    legendItems.forEach(item=>{
+      const y=cursorY-4;
+      const dashAttr=item.dash?` stroke-dasharray="${item.dash}"`:"";
+      pieces.push(`<line x1="${legendX+legendPadX}" y1="${y}" x2="${legendX+legendPadX+legendSwatchW}" y2="${y}" stroke="${item.color}" stroke-width="2"${dashAttr}/>`);
+      pieces.push(`<text x="${legendX+legendPadX+legendSwatchW+legendTextGap}" y="${cursorY}" font-size="12" font-weight="500" fill="#344054">${safeSvgText(item.code)} = ${safeSvgText(item.label)}</text>`);
+      cursorY+=legendLineH;
+    });
+    pieces.push(`</g>`);
+  }
+
   pieces.push(`</svg>`);
   return {svg:pieces.join(""),width:canvasW,height:canvasH};
 }
