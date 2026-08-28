@@ -391,6 +391,12 @@ function compactRole(role){
   };
   return map[role]||String(role||"");
 }
+function roleDisplayText(node,childId,fullRole){
+  const short=compactRole(fullRole);
+  const rel=node&&node.relationshipId!=null?RELATIONSHIPS[node.relationshipId]:null;
+  const isPrimary=!!rel && rel.primary!=="all" && (node.primaryChildIds||[]).includes(childId);
+  return isPrimary && uiSettings.emphasizePrimaryLines===false ? `★ ${short}` : short;
+}
 function relationShortCode(relationshipOrNode){
   if(relationshipOrNode && typeof relationshipOrNode==="object" && !Array.isArray(relationshipOrNode)){
     return relationShortCode(relationshipOrNode.relationshipId??null);

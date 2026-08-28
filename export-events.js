@@ -68,30 +68,27 @@ function exportLegendSections(data){
     });
   }
 
-  // Ein Rollenkürzel wird nur dann durch ein vertikales Kürzel ersetzt, wenn
-  // genau die Beziehung, an deren Linie diese Rolle steht, es selbst enthält.
-  // Taucht dasselbe Kürzel lediglich bei einer anderen Beziehung auf, bleibt
-  // der Rolleneintrag in der Legende erhalten.
-  const roleUsage=new Map();
+  // Alle im Bild verwendeten Rollen werden erklärt. Keine Rolle wird mehr
+  // aufgrund eines vertikalen Beziehungskürzels aus der Legende entfernt.
+  const roleItems=[];
+  const roleSeen=new Set();
   for(const {node} of data){
     const rel=RELATIONSHIPS[node.relationshipId];
     if(!rel || rel.primary==="all") continue;
-    const localRelationParts=new Set(exportCodeParts(relationShortCode(node)));
     (node.roleOrder||[]).forEach((fullRole,i)=>{
       const roleLabel=String(fullRole||`Teil ${i+1}`);
       const code=compactRole(roleLabel);
-      if(!code) return;
-      const entry=roleUsage.get(code)||{code,label:roleLabel,needsLegend:false,kind:"role"};
-      if(!localRelationParts.has(code)) entry.needsLegend=true;
-      roleUsage.set(code,entry);
+      const key=`${code}|${roleLabel}`;
+      if(!code || roleSeen.has(key)) return;
+      roleSeen.add(key);
+      roleItems.push({code,label:roleLabel,kind:"role"});
     });
   }
-  const roleItems=[...roleUsage.values()].filter(item=>item.needsLegend).map(({needsLegend,...item})=>item);
 
-  const sections=[];
-  if(relationItems.length) sections.push({title:"Beziehungen",items:relationItems,kind:"relation"});
-  if(roleItems.length) sections.push({title:"Rollen",items:roleItems,kind:"role"});
-  return sections;
+  return [
+    {title:"Beziehungen",items:relationItems,kind:"relation"},
+    {title:"Rollen",items:roleItems,kind:"role"}
+  ];
 }
 function buildPublicationExportSvg(){
   // Publikations-Renderer: bewusst keine App-Oberfläche nachzeichnen.
@@ -184,7 +181,7 @@ function buildPublicationExportSvg(){
       const child=getNode(childId);
       const targetX=child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
       const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
-      const shortRole=compactRole(fullRole);
+      const shortRole=roleDisplayText(node,childId,fullRole);
       const lines=[shortRole];
       const metrics=bracketTextMetrics(lines,{minWidth:16,maxWidth:roleMaxWidth,charWidth:4.7,lineHeight:9.2,padX:3.2,padY:1.8});
       const startX=(cy>=labelTop-2&&cy<=labelBottom+2)?x+labelScreenW/2:x;
@@ -196,26 +193,25 @@ function buildPublicationExportSvg(){
     });
   }
 
-  // Legende: horizontale Kürzel nur aufnehmen, wenn sie nicht bereits als Teil
-  // eines verwendeten vertikalen Beziehungskürzels erklärt sind.
+  // Legende als zwei echte Listen nebeneinander: Beziehungen links, Rollen rechts.
   const legendSections=exportLegendSections(data);
   const legendStartY=contentBottom+28;
   const legendContentW=canvasW-pageX*2;
+  const legendColumnGap=28;
+  const legendColW=(legendContentW-legendColumnGap)/2;
   const legendRowH=19;
   const legendSectionTitleH=20;
-  const legendSectionGap=12;
-  const legendLayouts=[];
-  let legendY=legendStartY;
-  for(const section of legendSections){
-    const count=section.items.length;
-    if(!count) continue;
-    const columns=Math.min(3,Math.max(1,Math.ceil(count/5)));
-    const rows=Math.ceil(count/columns);
-    const h=legendSectionTitleH+rows*legendRowH;
-    legendLayouts.push({...section,columns,rows,y:legendY,h,colW:legendContentW/columns});
-    legendY+=h+legendSectionGap;
-  }
-  const legendHeight=legendLayouts.length?legendY-legendStartY-legendSectionGap:0;
+  const legendTitleH=18;
+  const legendLayouts=legendSections.map((section,index)=>({
+    ...section,
+    x:pageX+index*(legendColW+legendColumnGap),
+    width:legendColW,
+    rows:section.items.length
+  }));
+  const legendMaxRows=Math.max(0,...legendLayouts.map(section=>section.rows));
+  const legendHeight=legendLayouts.some(section=>section.rows)
+    ? legendTitleH+legendSectionTitleH+legendMaxRows*legendRowH
+    : 0;
   const canvasH=Math.ceil((legendHeight?legendStartY+legendHeight:contentBottom)+pageBottom);
 
   const pieces=[];
@@ -285,9 +281,9 @@ function buildPublicationExportSvg(){
       const child=getNode(childId);
       const targetX=child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
       const primary=(node.primaryChildIds||[]).includes(childId);
-      const hasStar=primary && !!rel && rel.primary!=="all";
+      const isPrimaryBranch=primary && !!rel && rel.primary!=="all";
       const startX=(cy>=labelTop-2&&cy<=labelBottom+2)?x+labelScreenW/2:x;
-      const branchWidth=hasStar&&uiSettings.emphasizePrimaryLines!==false?width*2:width;
+      const branchWidth=isPrimaryBranch&&uiSettings.emphasizePrimaryLines!==false?width*2:width;
       pieces.push(`<path class="pub-line" d="M ${startX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${branchWidth}"${dashAttr}/>`);
 
       const placement=rolePlacementByKey.get(`${node.id}:${i}`);
@@ -297,10 +293,6 @@ function buildPublicationExportSvg(){
         overlays.push(`<rect x="${rx-metrics.width/2-2}" y="${roleY-metrics.height/2-1}" width="${metrics.width+4}" height="${metrics.height+2}" fill="#ffffff"/>`);
         overlays.push(svgMultilineText(lines,rx,roleY,"pub-role",null,metrics.lineHeight));
         overlays.push(`</g>`);
-      }
-      if(hasStar){
-        const sx=startX+8;
-        pieces.push(`<text x="${sx}" y="${cy}" text-anchor="middle" font-size="8" font-weight="700" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
       }
     });
 
@@ -312,20 +304,17 @@ function buildPublicationExportSvg(){
   pieces.push(...overlays);
 
   // Kompakte, druckartige Legende ohne umschließende Karte.
-  if(legendLayouts.length){
+  if(legendHeight){
     pieces.push(`<line x1="${pageX}" y1="${legendStartY-13}" x2="${canvasW-pageX}" y2="${legendStartY-13}" stroke="${hairline}" stroke-width="1"/>`);
     pieces.push(`<text x="${pageX}" y="${legendStartY}" font-size="11" font-weight="700" fill="${ink}" letter-spacing=".02em">LEGENDE</text>`);
-    const legendBaseY=legendStartY+18;
-    let priorOffset=0;
+    const sectionTop=legendStartY+legendTitleH;
     legendLayouts.forEach(section=>{
-      const sy=legendBaseY+priorOffset;
-      pieces.push(`<text x="${pageX}" y="${sy}" font-size="10" font-weight="700" fill="${muted}" letter-spacing=".04em">${safeSvgText(section.title.toUpperCase())}</text>`);
-      const itemTop=sy+15;
+      if(!section.items.length) return;
+      pieces.push(`<text x="${section.x}" y="${sectionTop}" font-size="10" font-weight="700" fill="${muted}" letter-spacing=".04em">${safeSvgText(section.title.toUpperCase())}</text>`);
+      const itemTop=sectionTop+15;
       section.items.forEach((entry,index)=>{
-        const col=Math.floor(index/section.rows);
-        const row=index%section.rows;
-        const ix=pageX+col*section.colW;
-        const iy=itemTop+row*legendRowH;
+        const ix=section.x;
+        const iy=itemTop+index*legendRowH;
         const codeX=ix+22;
         if(entry.kind==="relation"){
           const d=entry.dash?` stroke-dasharray="${entry.dash}"`:"";
@@ -337,7 +326,6 @@ function buildPublicationExportSvg(){
         const codeW=exportMeasureText(entry.code,`700 10.5px ${fontStack}`);
         pieces.push(`<text x="${codeX+codeW+6}" y="${iy}" font-size="10.5" font-weight="400" fill="${muted}">${safeSvgText(entry.label)}</text>`);
       });
-      priorOffset+=section.h+legendSectionGap;
     });
   }
 

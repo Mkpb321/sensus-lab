@@ -17,7 +17,6 @@ function computeAdaptiveBracketGeometry(data){
   const relationThicknessByDepth=Array(maxDepth+1).fill(0);
   const maxRoleWidthByDepth=Array(maxDepth+1).fill(0);
   const maxRoleWidthByNode=new Map();
-  const hasDirectionalRoleByDepth=Array(maxDepth+1).fill(false);
 
   // Alle Bahnbreiten werden ausschließlich aus den tatsächlich gerenderten
   // Kurzlabels berechnet. Keine großzügigen Raster-/Mindestkorridore.
@@ -33,11 +32,10 @@ function computeAdaptiveBracketGeometry(data){
     relationThicknessByDepth[item.depth]=Math.max(relationThicknessByDepth[item.depth],relationMetrics.height);
 
     if(!rel || rel.primary==="all") continue;
-    hasDirectionalRoleByDepth[item.depth]=true;
     let nodeMaxRoleWidth=0;
     (node.children||[]).forEach((childId,i)=>{
       const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
-      const displayRole=compactRole(fullRole);
+      const displayRole=roleDisplayText(node,childId,fullRole);
       const roleLines=[displayRole];
       const roleMetrics=bracketTextMetrics(roleLines,{minWidth:16,maxWidth:94,charWidth:4.75,lineHeight:9.6,padX:3.2,padY:1.8});
       roleDataByKey.set(`${node.id}:${i}`,{fullRole,displayRole,lines:roleLines,metrics:roleMetrics});
@@ -48,18 +46,18 @@ function computeAdaptiveBracketGeometry(data){
   }
 
   // Korridor d: außen liegt das Vertikallabel der Beziehung auf Tiefe d,
-  // innen ggf. das nächste Vertikallabel. Dazwischen muss nur das reale
-  // horizontale Rollenlabel (+ Stern bei gerichteten Beziehungen) Platz finden.
+  // innen ggf. das nächste Vertikallabel. Dazwischen muss nur das tatsächlich
+  // gerenderte horizontale Rollenlabel Platz finden; ein Hauptpunkt-Stern ist
+  // bei dünnen Linien bereits Teil dieses Labels.
   const laneWidths=Array(maxDepth+1).fill(0);
   for(let d=1;d<=maxDepth;d++){
     const parentHalf=relationThicknessByDepth[d]/2;
     const innerHalf=d===1?0:relationThicknessByDepth[d-1]/2;
     const edgeGap=3;
     const roleWidth=maxRoleWidthByDepth[d];
-    const starReserve=hasDirectionalRoleByDepth[d]?14:0;
     const bareNeed=parentHalf+innerHalf+edgeGap*2;
     const roleNeed=roleWidth
-      ? parentHalf+starReserve+roleWidth+innerHalf+edgeGap*3
+      ? parentHalf+roleWidth+innerHalf+edgeGap*3
       : 0;
     laneWidths[d]=Math.ceil(Math.max(18,bareNeed,roleNeed));
   }
@@ -176,9 +174,9 @@ function renderBracketSvg(anchorMap,height){
       const child=getNode(childId);
       const targetX=child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
       const primary=(node.primaryChildIds||[]).includes(childId);
-      const hasMainPointStar=primary && !!rel && rel.primary!=="all";
-      const lineClass=hasMainPointStar?"svg-tree-line svg-primary-line":"svg-tree-line";
-      const branchStrokeWidth=hasMainPointStar && uiSettings.emphasizePrimaryLines!==false?strokeWidth*2:strokeWidth;
+      const isPrimaryBranch=primary && !!rel && rel.primary!=="all";
+      const lineClass=isPrimaryBranch?"svg-tree-line svg-primary-line":"svg-tree-line";
+      const branchStrokeWidth=isPrimaryBranch && uiSettings.emphasizePrimaryLines!==false?strokeWidth*2:strokeWidth;
 
       const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+relationLabelScreenWidth/2 : x;
       pieces.push(`<path class="svg-hit-line" d="M ${branchStartX} ${cy} H ${targetX}"/>`);
@@ -196,10 +194,6 @@ function renderBracketSvg(anchorMap,height){
         labelPieces.push(`</g>`);
       }
 
-      if(hasMainPointStar){
-        const sx=branchStartX+10;
-        pieces.push(`<circle cx="${sx}" cy="${cy}" r="5.1" fill="#fff" stroke="${color}" stroke-width="1.2"/><text x="${sx}" y="${cy}" class="svg-star" fill="${color}" dominant-baseline="middle" alignment-baseline="middle">★</text>`);
-      }
     });
 
     const labelX=x;
