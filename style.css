@@ -488,3 +488,12 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] [data-unit-id]{cursor:pointe
   .topbar{padding:10px}
   .statusbar{padding:8px 10px}
 }
+
+/* Originale Biblearc-Bezeichnung direkt beim deutschen Beziehungstitel. */
+.rel-original{
+  font-size:.84em;
+  font-weight:400;
+  color:#667085;
+  letter-spacing:0;
+}
+.rel-details h3 .rel-original{font-size:.78em;font-weight:400;color:#667085}

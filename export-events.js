@@ -394,9 +394,12 @@ els.dialogExtendedToggle.addEventListener("change",e=>setExtended(e.target.check
 els.relationshipList.addEventListener("click",e=>{
   const card=e.target.closest("[data-rel-id]");
   if(!card || card.disabled) return;
-  chosenRelationshipId=card.dataset.relId;
-  if(chosenRelationshipId!=="handlung_ergebnis") selectedPrimaryRoleChoice=null;
-  renderRelationshipDialog();
+  chooseRelationshipForDialog(card.dataset.relId);
+});
+els.relationshipList.addEventListener("dblclick",e=>{
+  const card=e.target.closest("[data-rel-id]");
+  if(!card || card.disabled) return;
+  if(chooseRelationshipForDialog(card.dataset.relId)) applyRelationship();
 });
 els.relationshipDetails.addEventListener("change",e=>{
   const control=e.target.closest('input[name="handlungErgebnisPrimaryRole"]');

@@ -289,7 +289,7 @@ function relationshipEntriesForDialog(){
     if(!visible) return false;
     if(allowedByConjunction && !allowedByConjunction.has(id)) return false;
     if(!q) return true;
-    const hay=[rel.label,rel.uiCode,rel.compatibilityCode,rel.definition,rel.test,...rel.signals].join(" ").toLocaleLowerCase("de");
+    const hay=[rel.label,rel.biblearcLabel,rel.uiCode,rel.compatibilityCode,rel.definition,rel.test,...rel.signals].filter(Boolean).join(" ").toLocaleLowerCase("de");
     return hay.includes(q);
   });
 }
@@ -315,7 +315,7 @@ function renderRelationshipDialog(){
       const relColor=CATEGORY_COLORS[rel.category]||"#475467";
       html.push(`<button type="button" class="rel-card${selected}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}" style="--rel-color:${relColor}">
         <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
-        <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
+        <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}${rel.biblearcLabel?` <span class="rel-original">(${escapeHtml(rel.biblearcLabel)})</span>`:""}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
         <span class="cardinality">${escapeHtml(cardinalityText(rel))}</span>
       </button>`);
     }
@@ -349,6 +349,20 @@ function renderConjunctionFilter(){
   els.conjunctionFilterInfo.hidden=false;
   els.conjunctionFilterInfo.innerHTML=`<strong>${escapeHtml(item.label)}</strong> → ${escapeHtml(names.join(" · "))}${item.note?`<br>${escapeHtml(item.note)}`:""}`;
 }
+function chooseRelationshipForDialog(id){
+  const node=getNode(activeRelationId);
+  const rel=RELATIONSHIPS[id];
+  if(!node || node.kind!=="relation" || !rel || !cardinalityOk(rel,node.children.length)) return false;
+  chosenRelationshipId=id;
+  syncDialogRelationOptions();
+  els.relationshipList.querySelectorAll("[data-rel-id]").forEach(card=>{
+    const selected=card.dataset.relId===id;
+    card.classList.toggle("selected",selected);
+    card.setAttribute("aria-pressed",String(selected));
+  });
+  renderRelationshipDetails();
+  return true;
+}
 function renderRelationshipDetails(){
   const node=getNode(activeRelationId);
   if(!node || node.kind!=="relation") return;
@@ -369,7 +383,7 @@ function renderRelationshipDetails(){
       ${current?`Aktuell: ${escapeHtml(current.label)}`:"Aktuell: offene Gruppe"}<br>
       <span class="small-note">${escapeHtml(relationRoleSummary(node))}</span>
     </div>
-    ${rel?`<h3>${escapeHtml(rel.label)}</h3>
+    ${rel?`<h3>${escapeHtml(rel.label)}${rel.biblearcLabel?` <span class="rel-original">(${escapeHtml(rel.biblearcLabel)})</span>`:""}</h3>
       <div class="rel-meta"><span class="rel-color-chip" style="--chip-color:${CATEGORY_COLORS[rel.category]||"#475467"}"></span>${escapeHtml(CATEGORY_LABELS[rel.category])} · ${escapeHtml(cardinalityText(rel))}</div>
       <dl>
         <dt>Definition</dt><dd>${escapeHtml(rel.definition)}</dd>
