@@ -193,21 +193,35 @@ function buildPublicationExportSvg(){
     });
   }
 
-  // Legende als zwei echte Listen nebeneinander: Beziehungen links, Rollen rechts.
+  // Legende als zwei kompakte Listen nebeneinander: Beziehungen links, Rollen rechts.
   const legendSections=exportLegendSections(data);
   const legendStartY=contentBottom+28;
-  const legendContentW=canvasW-pageX*2;
-  const legendColumnGap=28;
-  const legendColW=(legendContentW-legendColumnGap)/2;
   const legendRowH=19;
   const legendSectionTitleH=20;
   const legendTitleH=18;
-  const legendLayouts=legendSections.map((section,index)=>({
-    ...section,
-    x:pageX+index*(legendColW+legendColumnGap),
-    width:legendColW,
-    rows:section.items.length
-  }));
+  const legendColumnGap=18;
+  const legendSectionLayouts=legendSections.map(section=>{
+    const titleWidth=exportMeasureText(section.title.toUpperCase(),`700 10px ${fontStack}`);
+    const entryWidths=section.items.map(entry=>{
+      const codeW=exportMeasureText(entry.code,`700 10.5px ${fontStack}`);
+      const labelW=exportMeasureText(entry.label,`400 10.5px ${fontStack}`);
+      return 22 + codeW + 6 + labelW;
+    });
+    const contentWidth=Math.max(titleWidth,...entryWidths,80);
+    return {
+      ...section,
+      rows:section.items.length,
+      width:Math.ceil(contentWidth)
+    };
+  });
+  const compactLegendWidth=legendSectionLayouts.reduce((sum,section,idx)=>sum+section.width+(idx>0?legendColumnGap:0),0);
+  const legendBaseX=pageX;
+  let legendCursorX=legendBaseX;
+  const legendLayouts=legendSectionLayouts.map(section=>{
+    const layout={...section,x:legendCursorX};
+    legendCursorX+=section.width+legendColumnGap;
+    return layout;
+  });
   const legendMaxRows=Math.max(0,...legendLayouts.map(section=>section.rows));
   const legendHeight=legendLayouts.some(section=>section.rows)
     ? legendTitleH+legendSectionTitleH+legendMaxRows*legendRowH
