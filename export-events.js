@@ -160,16 +160,24 @@ function buildPublicationExportSvg(){
   const xById=new Map(data.map(item=>[item.node.id,xForDepth(item.depth)]));
   const portMemo=new Map();
 
-  // Rollenlabels werden als kurze Cutouts direkt auf ihrer Linie platziert.
+  // Rollenlabels werden – sofern genügend Platz vorhanden ist – exakt in der
+  // Mitte der sichtbaren horizontalen Exportlinie platziert.
   const rolePlacementByKey=new Map();
   for(const item of data){
     const {node}=item;
     const {rel}=exportRelationStyle(node);
     if(!rel || rel.primary==="all") continue;
     const x=xById.get(node.id);
-    const parentHalf=(geometry.relationMetricsById.get(node.id)?.metrics.height||0)/2;
-    const maxRoleWidth=Math.min(roleMaxWidth,geometry.maxRoleWidthByNode.get(node.id)||0);
-    const commonX=x+parentHalf+14+maxRoleWidth/2+3;
+    const relationMetrics=geometry.relationMetricsById.get(node.id)?.metrics;
+    const labelScreenH=relationMetrics?.width||0;
+    const labelScreenW=relationMetrics?.height||0;
+    const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
+    const validPorts=childPorts.filter(Number.isFinite);
+    const topY=validPorts.length?Math.min(...validPorts):0;
+    const bottomY=validPorts.length?Math.max(...validPorts):0;
+    const labelY=(topY+bottomY)/2;
+    const labelTop=labelY-labelScreenH/2;
+    const labelBottom=labelY+labelScreenH/2;
     (node.children||[]).forEach((childId,i)=>{
       const cy=bracketNodePortY(childId,anchorMap,portMemo);
       if(!Number.isFinite(cy)) return;
@@ -179,9 +187,11 @@ function buildPublicationExportSvg(){
       const shortRole=compactRole(fullRole);
       const lines=[shortRole];
       const metrics=bracketTextMetrics(lines,{minWidth:16,maxWidth:roleMaxWidth,charWidth:4.7,lineHeight:9.2,padX:3.2,padY:1.8});
-      const minX=x+parentHalf+14+metrics.width/2+3;
+      const startX=(cy>=labelTop-2&&cy<=labelBottom+2)?x+labelScreenW/2:x;
+      const idealX=(startX+targetX)/2;
+      const minX=startX+metrics.width/2+3;
       const maxX=targetX-metrics.width/2-3;
-      const rx=Math.max(minX,Math.min(commonX,maxX));
+      const rx=Math.max(minX,Math.min(idealX,maxX));
       rolePlacementByKey.set(`${node.id}:${i}`,{rx,cy,lines,metrics,fullRole});
     });
   }

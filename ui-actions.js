@@ -88,8 +88,9 @@ function renderBracketSvg(anchorMap,height){
   const xById=new Map(data.map(x=>[x.node.id,xForDepth(x.depth)]));
   const portMemo=new Map();
 
-  // Rollen derselben Beziehung erhalten weiterhin exakt dieselbe x-Position.
-  // Anders als zuvor wird diese Position aus der real benötigten Badge-Breite berechnet.
+  // Rollenlabels werden – sofern Platz vorhanden ist – exakt in der Mitte der
+  // tatsächlich sichtbaren horizontalen Linie platziert. Nur bei zu kurzen
+  // Segmenten wird defensiv auf die maximal mögliche Position eingegrenzt.
   const rolePlacementByKey=new Map();
   for(const item of data){
     const {node}=item;
@@ -97,24 +98,30 @@ function renderBracketSvg(anchorMap,height){
     if(!rel || rel.primary==="all") continue;
     const x=xById.get(node.id);
     const relationInfo=relationMetricsById.get(node.id);
-    const parentHalf=(relationInfo?.metrics.height||0)/2;
-    const nodeMaxRoleWidth=maxRoleWidthByNode.get(node.id)||0;
-    const commonRoleX=x+parentHalf+14+nodeMaxRoleWidth/2+3;
+    const relationMetrics=relationInfo?.metrics;
+    const labelScreenHeight=relationMetrics?.width||0;
+    const labelScreenWidth=relationMetrics?.height||0;
     const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
     const childTargets=(node.children||[]).map(childId=>{
       const child=getNode(childId);
       return child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
     });
+    const validPorts=childPorts.filter(Number.isFinite);
+    const topY=validPorts.length?Math.min(...validPorts):0;
+    const bottomY=validPorts.length?Math.max(...validPorts):0;
+    const labelY=(topY+bottomY)/2;
+    const labelTop=labelY-labelScreenHeight/2;
+    const labelBottom=labelY+labelScreenHeight/2;
     (node.children||[]).forEach((childId,i)=>{
       const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
       const roleInfo=roleDataByKey.get(`${node.id}:${i}`); if(!roleInfo) return;
       const targetX=childTargets[i];
       const {lines:roleLines,metrics:roleMetrics,fullRole}=roleInfo;
-      // Defensive Begrenzung für importierte/ungewöhnliche Bäume. Im Normalfall greift
-      // sie nicht, weil die adaptive Bahnbreite den benötigten Platz bereits garantiert.
+      const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+labelScreenWidth/2 : x;
+      const idealX=(branchStartX+targetX)/2;
+      const minX=branchStartX+roleMetrics.width/2+3;
       const maxX=targetX-roleMetrics.width/2-3;
-      const minX=x+parentHalf+14+roleMetrics.width/2+3;
-      const rx=Math.max(minX,Math.min(commonRoleX,maxX));
+      const rx=Math.max(minX,Math.min(idealX,maxX));
       rolePlacementByKey.set(`${node.id}:${i}`,{rx,roleCenterY:cy,roleLines,roleMetrics,fullRole});
     });
   }
