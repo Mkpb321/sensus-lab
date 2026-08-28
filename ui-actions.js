@@ -76,10 +76,11 @@ function computeAdaptiveBracketGeometry(data){
 }
 function renderBracketSvg(anchorMap,height){
   const svg=els.bracketSvg;
-  const clientWidth=Math.max(svg.parentElement.clientWidth,320);
   const data=relationLayoutData(anchorMap);
   const geometry=computeAdaptiveBracketGeometry(data);
+  const clientWidth=Math.max(svg.parentElement.clientWidth,1);
   const {maxDepth,cumulative,leftGutter,rightGutter,needed,relationMetricsById,roleDataByKey,maxRoleWidthByNode}=geometry;
+  svg.dataset.minWidth=String(Math.ceil(needed));
   const w=Math.max(clientWidth,needed);
   const effectiveRight=w-rightGutter;
   const xForDepth=(depth)=>effectiveRight-cumulative[depth];
@@ -615,17 +616,39 @@ function setPrimaryLineEmphasis(enabled){
   render();
   announce(next?"Hauptlinien werden stärker hervorgehoben.":"Hauptlinien verwenden normale Linienstärke.");
 }
+function workspaceSplitBounds(){
+  const rect=els.canvasGrid?.getBoundingClientRect();
+  const width=Math.max(1,rect?.width||0);
+  const graphNeeded=Math.max(42,Number(els.bracketSvg?.dataset.minWidth)||42);
+  // Propositionstext darf stark umbrechen; nur eine kleine arbeitsfähige Restbreite
+  // bleibt reserviert. Die Graph-Seite stoppt dagegen erst an ihrer real benötigten
+  // Geometriebreite statt an einem pauschalen Prozentwert.
+  const textNeeded=Math.min(180,Math.max(120,width*.14));
+  const min=Math.max(.03,Math.min(.82,(graphNeeded+4)/width));
+  const max=Math.min(.97,Math.max(min,1-(textNeeded+2)/width));
+  return {min,max};
+}
+function clampWorkspaceSplit(split){
+  const n=normalizeProjectWorkspaceSplit(split);
+  const {min,max}=workspaceSplitBounds();
+  return Math.min(max,Math.max(min,n));
+}
 function applyWorkspaceSplit(){
   if(!els.canvasGrid) return;
   const project=activeProject();
-  const split=normalizeProjectWorkspaceSplit(project?.workspaceSplit);
+  const split=clampWorkspaceSplit(project?.workspaceSplit);
   els.canvasGrid.style.setProperty("--workspace-split",`${(split*100).toFixed(2)}%`);
-  if(els.workspaceDivider) els.workspaceDivider.setAttribute("aria-valuenow",String(Math.round(split*100)));
+  if(els.workspaceDivider){
+    const {min,max}=workspaceSplitBounds();
+    els.workspaceDivider.setAttribute("aria-valuemin",String(Math.round(min*100)));
+    els.workspaceDivider.setAttribute("aria-valuemax",String(Math.round(max*100)));
+    els.workspaceDivider.setAttribute("aria-valuenow",String(Math.round(split*100)));
+  }
 }
 function setWorkspaceSplit(split,{persist=false}={}){
   const project=activeProject();
   if(!project || !els.canvasGrid) return;
-  project.workspaceSplit=normalizeProjectWorkspaceSplit(split);
+  project.workspaceSplit=clampWorkspaceSplit(split);
   applyWorkspaceSplit();
   requestAnimationFrame(measureAndRenderSvgs);
   if(persist){

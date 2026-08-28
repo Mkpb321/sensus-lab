@@ -455,7 +455,7 @@ let workspaceDividerDrag=null;
 function workspaceSplitFromClientX(clientX){
   const rect=els.canvasGrid?.getBoundingClientRect();
   if(!rect || rect.width<=0) return null;
-  return normalizeProjectWorkspaceSplit((clientX-rect.left)/rect.width);
+  return clampWorkspaceSplit((clientX-rect.left)/rect.width);
 }
 if(els.workspaceDivider){
   els.workspaceDivider.addEventListener("pointerdown",e=>{
@@ -484,8 +484,9 @@ if(els.workspaceDivider){
   els.workspaceDivider.addEventListener("keydown",e=>{
     if(e.key!=="ArrowLeft" && e.key!=="ArrowRight" && e.key!=="Home" && e.key!=="End") return;
     const project=activeProject();
-    const current=normalizeProjectWorkspaceSplit(project?.workspaceSplit);
-    const next=e.key==="Home"?.25:e.key==="End"?.72:current+(e.key==="ArrowRight"?.025:-.025);
+    const current=clampWorkspaceSplit(project?.workspaceSplit);
+    const {min,max}=workspaceSplitBounds();
+    const next=e.key==="Home"?min:e.key==="End"?max:current+(e.key==="ArrowRight"?.025:-.025);
     setWorkspaceSplit(next,{persist:true});
     e.preventDefault();
   });
@@ -661,7 +662,10 @@ window.addEventListener("beforeunload",()=>{
   clearTimeout(saveTimer);
   try{ syncStateIntoActiveProject(); storeProjectsNow(); }catch(_){ }
 });
-window.addEventListener("resize",()=>requestAnimationFrame(measureAndRenderSvgs));
+window.addEventListener("resize",()=>{
+  applyWorkspaceSplit();
+  requestAnimationFrame(measureAndRenderSvgs);
+});
 if("ResizeObserver" in window){
   resizeObserver=new ResizeObserver(()=>requestAnimationFrame(measureAndRenderSvgs));
   resizeObserver.observe(els.propList);

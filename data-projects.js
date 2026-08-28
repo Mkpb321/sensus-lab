@@ -230,7 +230,7 @@ function cloneDocument(doc){ return JSON.parse(JSON.stringify(doc)); }
 function normalizeProjectTool(tool){ return tool==="verbinden"?"verbinden":"teilen"; }
 function normalizeProjectWorkspaceSplit(value){
   const n=Number(value);
-  return Number.isFinite(n)?Math.min(.72,Math.max(.25,n)):.42;
+  return Number.isFinite(n)?Math.min(.95,Math.max(.05,n)):.42;
 }
 function createProject(documentState=createEmptyState()){
   const now=new Date().toISOString();
