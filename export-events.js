@@ -403,8 +403,39 @@ async function importJsonFile(file){
   }
 }
 
-function renderSignalTable(){
-  els.signalTableBody.innerHTML=SIGNAL_WORDS.map(row=>`<tr>${row.map(cell=>`<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("");
+function normalizedHelpText(value){
+  return String(value??"").toLocaleLowerCase("de").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/ß/g,"ss");
+}
+function filterHelpTopics(){
+  if(!els.helpDialog) return;
+  const query=normalizedHelpText(els.helpSearch?.value||"").trim();
+  const terms=query.split(/\s+/u).filter(Boolean);
+  const topics=$$(".help-topic",els.helpDialog);
+  let visible=0;
+  topics.forEach(topic=>{
+    const topicText=normalizedHelpText(`${topic.dataset.helpKeywords||""} ${topic.textContent||""}`);
+    const matches=!terms.length || terms.every(term=>topicText.includes(term));
+    topic.hidden=!matches;
+    if(matches) visible++;
+    const nav=els.helpDialog.querySelector(`[data-help-nav="${topic.id}"]`);
+    if(nav) nav.hidden=!matches;
+    $$('details.help-detail',topic).forEach(detail=>{
+      detail.hidden=false;
+      if(!terms.length) return;
+      const detailText=normalizedHelpText(`${detail.dataset.helpKeywords||""} ${detail.textContent||""}`);
+      if(terms.every(term=>detailText.includes(term))) detail.open=true;
+    });
+  });
+  if(els.helpNoResults) els.helpNoResults.hidden=visible!==0;
+  if(els.helpSearchStatus){
+    els.helpSearchStatus.textContent=terms.length ? `${visible} ${visible===1?"Thema":"Themen"}` : `${topics.length} Themen`;
+  }
+}
+function openHelpDialog(){
+  closeProjectMenu();
+  showDialog(els.helpDialog);
+  filterHelpTopics();
+  requestAnimationFrame(()=>els.helpSearch?.focus());
 }
 
 function moveFocusAmongUnits(current,delta){
@@ -424,7 +455,16 @@ if(els.autoSplitButton) els.autoSplitButton.addEventListener("click",autoSplitTe
 els.connectToolButton.addEventListener("click",()=>setTool("verbinden"));
 els.undoButton.addEventListener("click",undo);
 els.redoButton.addEventListener("click",redo);
-els.helpButton.addEventListener("click",()=>{closeProjectMenu();showDialog(els.helpDialog);});
+els.helpButton.addEventListener("click",openHelpDialog);
+if(els.helpSearch) els.helpSearch.addEventListener("input",filterHelpTopics);
+if(els.helpDialog) els.helpDialog.addEventListener("click",e=>{
+  const link=e.target.closest("[data-help-nav]");
+  if(!link) return;
+  const target=document.getElementById(link.dataset.helpNav);
+  if(!target || target.hidden) return;
+  e.preventDefault();
+  target.scrollIntoView({block:"start",behavior:"smooth"});
+});
 els.resetButton.addEventListener("click",()=>{closeProjectMenu();resetAll();});
 els.extendedToggle.addEventListener("change",e=>setExtended(e.target.checked));
 els.statusDetailsButton.addEventListener("click",openStatusDetails);
@@ -671,7 +711,7 @@ if("ResizeObserver" in window){
   resizeObserver=new ResizeObserver(()=>requestAnimationFrame(measureAndRenderSvgs));
   resizeObserver.observe(els.propList);
 }
-renderSignalTable();
+filterHelpTopics();
 loadUiSettings();
 loadProjects();
 render();

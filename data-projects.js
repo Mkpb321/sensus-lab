@@ -182,7 +182,7 @@ const els = {
   relationshipDetails:$("#relationshipDetails"), directionFlipButton:$("#directionFlipButton"),
   dissolveGroupButton:$("#dissolveGroupButton"),
   deleteSubtreeButton:$("#deleteSubtreeButton"), leaveOpenButton:$("#leaveOpenButton"),
-  applyRelationshipButton:$("#applyRelationshipButton"), helpDialog:$("#helpDialog"), signalTableBody:$("#signalTableBody"),
+  applyRelationshipButton:$("#applyRelationshipButton"), helpDialog:$("#helpDialog"), helpSearch:$("#helpSearch"), helpSearchStatus:$("#helpSearchStatus"), helpNoResults:$("#helpNoResults"), helpContent:$("#helpContent"),
   statusDialog:$("#statusDialog"), statusDialogBody:$("#statusDialogBody")
 };
 

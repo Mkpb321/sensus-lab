@@ -193,48 +193,215 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
 </dialog>
 
 <dialog id="helpDialog" aria-labelledby="helpDialogTitle">
-  <div class="dialog-shell">
+  <div class="dialog-shell help-dialog-shell">
     <div class="dialog-head">
-      <h2 id="helpDialogTitle">Hilfe: Teilen, verbinden, prüfen</h2>
+      <h2 id="helpDialogTitle">Hilfe</h2>
       <button class="close-button" type="button" data-close-dialog="helpDialog" aria-label="Dialog schließen">×</button>
     </div>
-    <div class="dialog-body">
-      <div class="help-grid">
-        <section>
-          <h3>Arbeitsablauf</h3>
-          <ol>
-            <li>Optional einen Titel setzen und eigenen Text einfügen. Der Text startet als P1.</li>
-            <li>Im Werkzeug <strong>Teilen</strong> vor einem Wort klicken, das eine neue Proposition beginnen soll.</li>
-            <li>Im Werkzeug <strong>Verbinden</strong> eine Einheit und anschließend das Ende eines zusammenhängenden Geschwisterbereichs wählen.</li>
-            <li>Eine Klammer anklicken, um die Verbindung auszuwählen. Ein Klick direkt auf den ausgeschriebenen Beziehungsnamen in der Grafik öffnet die Beziehungsauswahl zum Bearbeiten. Mit <strong>Entf</strong> oder <strong>Backspace</strong> wird genau die ausgewählte Verbindung aufgelöst; Untergruppen bleiben erhalten.</li>
-            <li>Eine logische Beziehung auswählen oder die Gruppe zunächst offen lassen.</li>
-            <li>Schrittweise weiter verbinden, bis genau eine beschriftete Wurzel den ganzen Text umfasst.</li>
-          </ol>
-          <h3>Fachliche Orientierung</h3>
-          <ul>
-            <li>Eine Proposition ist eine verbale Idee; Grammatik wird nicht automatisch geprüft.</li>
-            <li>Nur benachbarte, lückenlose Einheiten derselben Ebene werden verbunden.</li>
-            <li>Mit klaren Verbindungen beginnen, oft zunächst innerhalb eines Satzes.</li>
-            <li>Ist die Struktur klar, die Beziehung aber noch unklar, darf eine offene graue Gruppe bestehen bleiben.</li>
-            <li>Signalwörter sind Hinweise, keine automatische Klassifikation.</li>
-          </ul>
-          <p class="small-note"><strong>Hinweis:</strong> Besonders „und“, „aber“, „so“, „dass“, „wenn/als“ und „während“ sind mehrdeutig. Kontext, Grammatik und Inhalt entscheiden.</p>
-        </section>
-        <section>
-          <h3>Deutsche Signalwörter</h3>
-          <div class="signal-table-wrap">
-            <table class="signal-table">
-              <thead><tr><th>Wort / Muster</th><th>Mögliche Beziehungen</th><th>Typischer Test</th><th>Hinweis</th></tr></thead>
-              <tbody id="signalTableBody"></tbody>
-            </table>
-          </div>
-        </section>
+    <div class="help-search-bar">
+      <input id="helpSearch" type="search" placeholder="Funktion oder Begriff suchen …" aria-label="Hilfe durchsuchen" autocomplete="off">
+      <span class="help-search-status" id="helpSearchStatus" aria-live="polite"></span>
+    </div>
+    <div class="dialog-body help-dialog-body">
+      <div class="help-layout">
+        <nav class="help-nav" aria-label="Hilfethemen">
+          <a href="#help-workflow" data-help-nav="help-workflow">Arbeitsablauf</a>
+          <a href="#help-segmentation" data-help-nav="help-segmentation">Text &amp; Teilen</a>
+          <a href="#help-structure" data-help-nav="help-structure">Verbinden &amp; Anker</a>
+          <a href="#help-relationships" data-help-nav="help-relationships">Beziehungen</a>
+          <a href="#help-display" data-help-nav="help-display">Darstellung</a>
+          <a href="#help-projects" data-help-nav="help-projects">Projekte &amp; Speichern</a>
+          <a href="#help-export" data-help-nav="help-export">Export &amp; Austausch</a>
+          <a href="#help-status" data-help-nav="help-status">Status &amp; Fehler</a>
+          <a href="#help-keyboard" data-help-nav="help-keyboard">Tastatur</a>
+        </nav>
+
+        <div class="help-content" id="helpContent">
+          <div class="help-no-results" id="helpNoResults" hidden>Kein Hilfethema passt zur Suche.</div>
+
+          <section class="help-topic" id="help-workflow" data-help-keywords="start workflow analyse fertig wurzel">
+            <h3>Arbeitsablauf</h3>
+            <p class="help-intro">Die Hilfe setzt die Bracketing-Methode voraus und beschreibt die Bedienung von Sensus Lab.</p>
+            <ol class="help-steps">
+              <li><strong>Text</strong> öffnen und Text, optional Titel und Hauptaussage eintragen.</li>
+              <li><strong>Teilen</strong>: Propositionen manuell setzen oder <strong>Auto teilen</strong> als Ausgangspunkt verwenden.</li>
+              <li><strong>Verbinden</strong>: ersten Anker und danach einen gültigen zweiten Anker derselben Strukturebene wählen.</li>
+              <li>Für die neue Klammer eine <strong>Beziehung</strong> zuweisen oder sie vorläufig offen lassen.</li>
+              <li>Von innen nach außen weiterarbeiten, bis der gesamte Text in einer Wurzel liegt.</li>
+              <li><strong>Statusdetails</strong> prüfen und bei Bedarf Bild oder JSON exportieren.</li>
+            </ol>
+            <details class="help-detail">
+              <summary>Was Sensus Lab nicht automatisch entscheidet</summary>
+              <div class="help-detail-body">
+                <p>Die Software interpretiert weder Propositionen noch Beziehungen semantisch. Auto-Teilen ist nur eine Segmentierungshilfe. Beziehungstyp, Rollen, Richtung und Hauptpunkt werden aus deiner Auswahl abgeleitet.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="help-topic" id="help-segmentation" data-help-keywords="text proposition segmentierung teilen zusammenführen merge auto konjunktion punkt titel hauptaussage">
+            <h3>Text &amp; Teilen</h3>
+            <div class="help-reference">
+              <div class="help-reference-row"><strong>Text</strong><span>Öffnet Text, Titel und optionale Hauptaussage. Nur Titel/Hauptaussage zu ändern lässt die Struktur bestehen; eine Änderung des eigentlichen Textes setzt Segmentierung und Beziehungen nach Bestätigung zurück.</span></div>
+              <div class="help-reference-row"><strong>Teilen</strong><span>Im Bearbeiten-Modus vor ein Wort klicken, das eine neue Proposition beginnen soll.</span></div>
+              <div class="help-reference-row"><strong>Zusammenführen</strong><span>Das × an einer Proposition-Grenze entfernt genau diese Teilung. Bestehende Beziehungen werden nach Bestätigung verworfen.</span></div>
+              <div class="help-reference-row"><strong>Auto teilen</strong><span>Ergänzt gefundene Teilungspunkte, entfernt vorhandene manuelle Teilungen nicht und läuft als eine einzige Undo-Aktion.</span></div>
+            </div>
+            <details class="help-detail" data-help-keywords="auto teilen konjunktionen es sei denn um zu punkt heuristik">
+              <summary>Auto teilen: genaue Regeln</summary>
+              <div class="help-detail-body">
+                <p>Gesetzt wird vor erkannten deutschen Konjunktionen/Konjunktionsgefügen und am nächsten Inhaltswort nach einem Satzpunkt. Mehrwortmuster wie „es sei denn“, „auch wenn“, „so dass“ oder „nicht nur“ werden als ein Muster behandelt. „um … zu“ wird nur erkannt, wenn vor dem nächsten Satzpunkt tatsächlich ein „zu“ folgt.</p>
+                <p>Die Erkennung ist bewusst grammatisch und nicht beziehungssemantisch: Präpositionen oder bloße Signalwörter werden nicht pauschal getrennt. Existieren bereits Beziehungen, verlangt Auto-Teilen vor dem Zurücksetzen der Beziehungen eine Bestätigung.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="help-topic" id="help-structure" data-help-keywords="verbinden anker kreis geschwister zusammenhängend klammer untergruppe wurzel löschen entf backspace">
+            <h3>Verbinden &amp; Anker</h3>
+            <div class="help-reference">
+              <div class="help-reference-row"><strong>Anker</strong><span>Ein Kreis erscheint nur dort, wo von dieser Einheit aus mindestens eine strukturell gültige neue Verbindung möglich ist.</span></div>
+              <div class="help-reference-row"><strong>Neue Verbindung</strong><span>Ersten Anker wählen, dann einen gültigen zweiten Anker. Der zusammenhängende Geschwisterbereich zwischen beiden wird gruppiert.</span></div>
+              <div class="help-reference-row"><strong>Bestehende Klammer</strong><span>Eine fertige Beziehung ist selbst wieder eine Einheit und kann auf der nächsthöheren Ebene verbunden werden.</span></div>
+              <div class="help-reference-row"><strong>Auswahl löschen</strong><span>Klammer auswählen und Entf/Backspace drücken. Nur diese Verbindung wird aufgelöst; enthaltene Untergruppen bleiben bestehen.</span></div>
+            </div>
+            <details class="help-detail" data-help-keywords="anker verfügbar untergruppe parent cardinality koordinierend offen kreuzen">
+              <summary>Wann ein Anker verfügbar ist</summary>
+              <div class="help-detail-body">
+                <p>Verbindbar sind nur direkt benachbarte Einheiten derselben Geschwisterebene. Eine neue Untergruppe darf die Elternbeziehung nicht strukturell ungültig machen. Deshalb verschwinden Anker, wenn eine mögliche Gruppierung die zulässige Kinderzahl oder Struktur der Elternbeziehung verletzen würde.</p>
+                <p>Nach Wahl des ersten Ankers bleiben nur noch gültige Endpunkte sichtbar. So kann keine Auswahl eine bestehende Klammergrenze kreuzen.</p>
+              </div>
+            </details>
+            <details class="help-detail" data-help-keywords="beziehung auswählen klammer label farbiges kürzel editieren">
+              <summary>Klammern auswählen oder bearbeiten</summary>
+              <div class="help-detail-body">
+                <p>Im Werkzeug <strong>Verbinden</strong> wählt ein Klick auf die Klammer die Beziehung aus. Ein Klick auf das farbige vertikale Beziehungskürzel öffnet direkt <strong>Beziehung ändern</strong>. Horizontale Rollenkürzel sind nicht klickbar; sie zeigen nur ihren Tooltip.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="help-topic" id="help-relationships" data-help-keywords="beziehung wählen ändern suche konjunktion erweiterte doppelklick rollen richtung umkehren hauptpunkt handlung ergebnis verbindung löschen teilbaum offen">
+            <h3>Beziehungen wählen &amp; ändern</h3>
+            <div class="help-reference">
+              <div class="help-reference-row"><strong>Suche</strong><span>Filtert nach deutschem/englischem Namen, Kürzel, Definition, Prüffrage und Signalwörtern.</span></div>
+              <div class="help-reference-row"><strong>Konjunktion</strong><span>Filtert die Liste auf Beziehungstypen, die für das gewählte Signalwort hinterlegt sind. Das ist eine Suchhilfe, keine automatische Klassifikation.</span></div>
+              <div class="help-reference-row"><strong>Erweiterte Beziehungen</strong><span>Blendet die zusätzlichen Biblearc-Beziehungstypen in die Auswahl ein.</span></div>
+              <div class="help-reference-row"><strong>Übernehmen</strong><span>Einfachklick wählt einen Typ; „Übernehmen“ speichert ihn. Doppelklick auf einen Beziehungstyp wählt und übernimmt sofort.</span></div>
+              <div class="help-reference-row"><strong>Richtung umkehren</strong><span>Bei gerichteten binären Beziehungen werden Rollen und Hauptpunkt so neu berechnet, als wären die beiden Einheiten ursprünglich in umgekehrter Reihenfolge gewählt worden.</span></div>
+            </div>
+            <details class="help-detail" data-help-keywords="handlung ergebnis hauptpunkt radio rollen">
+              <summary>Sonderfall Handlung–Ergebnis</summary>
+              <div class="help-detail-body">
+                <p>Für Handlung–Ergebnis kann im Detailbereich explizit festgelegt werden, ob <strong>Handlung</strong> oder <strong>Ergebnis</strong> der Hauptpunkt ist. Diese Wahl beeinflusst die semantische Hauptteilmarkierung und damit die daraus abgeleitete Darstellung.</p>
+              </div>
+            </details>
+            <details class="help-detail" data-help-keywords="verbindung löschen teilbaum löschen offen lassen abbrechen destruktiv">
+              <summary>Löschen, Teilbaum löschen und offen lassen</summary>
+              <div class="help-detail-body">
+                <div class="help-reference compact">
+                  <div class="help-reference-row"><strong>Verbindung löschen</strong><span>Entfernt nur die aktuelle Klammer. Darunterliegende Beziehungen bleiben erhalten.</span></div>
+                  <div class="help-reference-row"><strong>Teilbaum löschen</strong><span>Entfernt alle Beziehungen innerhalb dieser Gruppe; der Text und seine Propositionen bleiben bestehen.</span></div>
+                  <div class="help-reference-row"><strong>Offen lassen</strong><span>Eine neu angelegte Klammer bleibt ohne Beziehungstyp bestehen und wird im Status als offene Gruppe geführt.</span></div>
+                </div>
+              </div>
+            </details>
+          </section>
+
+          <section class="help-topic" id="help-display" data-help-keywords="ansicht bearbeiten darstellung trennlinie breite graph propositionen hauptlinie stern zentriert hauptpunkt einstellungen">
+            <h3>Darstellung &amp; Arbeitsfläche</h3>
+            <div class="help-reference">
+              <div class="help-reference-row"><strong>Bearbeiten / Ansicht</strong><span>Bearbeiten aktiviert Strukturwerkzeuge. Ansicht entfernt Bearbeitungsinteraktionen und dient der ruhigen Kontrolle.</span></div>
+              <div class="help-reference-row"><strong>Trennlinie</strong><span>Zwischen Struktur und Propositionen ziehen, um die Breite zu ändern. Die Position wird pro Projekt gespeichert. Mit fokussierter Trennlinie ändern ←/→ die Breite ebenfalls.</span></div>
+              <div class="help-reference-row"><strong>Linien am Hauptpunkt</strong><span>Ein: Elternanschlüsse folgen dem Hauptpunkt. Aus: Anschlüsse werden geometrisch zentriert. Rein visuell.</span></div>
+              <div class="help-reference-row"><strong>Hauptlinien dicker</strong><span>Ein: Hauptteile werden durch die dickere horizontale Linie markiert. Aus: die Linie bleibt normal und der Hauptpunkt wird als ★ im horizontalen Rollenlabel angezeigt. Rein visuell.</span></div>
+            </div>
+            <details class="help-detail" data-help-keywords="kürzel farben vertikal horizontal tooltip biblearc">
+              <summary>Labels, Farben und Tooltips</summary>
+              <div class="help-detail-body">
+                <p>Vertikale Kürzel bezeichnen Beziehungen und verwenden die Farbe ihrer Beziehungsgruppe. Horizontale graue Kürzel bezeichnen Rollen. Der Tooltip zeigt jeweils den ausgeschriebenen Begriff; ein Hauptpunkt-Stern im Rollenlabel wird im Tooltip nicht zusätzlich genannt.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="help-topic" id="help-projects" data-help-keywords="projekt speichern lokal browser autosave umbenennen löschen neues projekt werkzeug trennlinie reload">
+            <h3>Projekte &amp; Speichern</h3>
+            <div class="help-reference">
+              <div class="help-reference-row"><strong>Automatisch speichern</strong><span>Änderungen werden lokal im Browser gespeichert. Der Speicherstatus steht rechts in der Statusleiste.</span></div>
+              <div class="help-reference-row"><strong>Projekte</strong><span>Im Burger-Menü Projekte anlegen, öffnen, umbenennen oder löschen. Der Projekttitel ist zugleich der Texttitel.</span></div>
+              <div class="help-reference-row"><strong>Pro Projekt</strong><span>Das zuletzt verwendete Werkzeug „Teilen/Verbinden“ und die Position der Trennlinie werden für jedes Projekt separat wiederhergestellt.</span></div>
+              <div class="help-reference-row"><strong>Globale Darstellung</strong><span>Die Einstellungen für Linienanschluss und Hauptlinien-Stärke gelten als lokale App-Darstellung und verändern die Analysedaten nicht.</span></div>
+              <div class="help-reference-row"><strong>Analyse zurücksetzen</strong><span>Leert Text, Struktur und Verlauf des aktuellen Projekts nach Bestätigung. Andere Projekte bleiben unverändert; der Reset selbst ist nicht per Undo rückgängig zu machen.</span></div>
+            </div>
+            <details class="help-detail" data-help-keywords="projekt löschen rückgängig localstorage browserdaten">
+              <summary>Wichtige Grenze der lokalen Speicherung</summary>
+              <div class="help-detail-body">
+                <p>Projekte liegen im lokalen Browser-Speicher. Das Löschen eines Projekts ist nicht über Undo rückgängig zu machen. Für Austausch oder Sicherung einer Analyse den JSON-Export verwenden.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="help-topic" id="help-export" data-help-keywords="bild export png svg json import export austausch backup legende">
+            <h3>Export &amp; Austausch</h3>
+            <div class="help-reference">
+              <div class="help-reference-row"><strong>Bild exportieren</strong><span>Erzeugt eine eigenständige Publikationsgrafik aus Text und Struktur. Die aktuelle Darstellungsoption für Hauptlinien wird berücksichtigt. Verwendete Beziehungs- und Rollenkürzel werden in der Legende erklärt.</span></div>
+              <div class="help-reference-row"><strong>JSON exportieren</strong><span>Exportiert den aktuellen Analysezustand als editierbare Datei. Projektliste und rein lokale UI-Metadaten werden nicht als Projektpaket exportiert.</span></div>
+              <div class="help-reference-row"><strong>JSON importieren</strong><span>Lädt einen gültigen Sensus-Lab-Zustand in das aktuelle Projekt. Der vorherige Zustand bleibt als Undo-Schritt verfügbar.</span></div>
+            </div>
+            <details class="help-detail" data-help-keywords="png fallback svg fehler export">
+              <summary>Bildformat und Fallback</summary>
+              <div class="help-detail-body">
+                <p>Primär wird PNG erzeugt. Kann der Browser die PNG-Erzeugung nicht abschließen, wird die optimierte Grafik als SVG ausgegeben.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="help-topic" id="help-status" data-help-keywords="status fehler offen wurzel vollständig propositionen validierung details speichern">
+            <h3>Status &amp; Validierung</h3>
+            <div class="help-reference">
+              <div class="help-reference-row"><strong>Propositionen</strong><span>Anzahl der aktuellen Textsegmente.</span></div>
+              <div class="help-reference-row"><strong>Offene Gruppen</strong><span>Klammern ohne zugewiesenen Beziehungstyp.</span></div>
+              <div class="help-reference-row"><strong>Wurzeln</strong><span>Aktuell getrennte oberste Struktureinheiten. Eine fertige Gesamtanalyse besitzt genau eine Wurzel.</span></div>
+              <div class="help-reference-row"><strong>Fehler</strong><span>Strukturelle oder beziehungsspezifische Validierungsprobleme. „Details“ zeigt die konkreten Meldungen.</span></div>
+            </div>
+            <details class="help-detail" data-help-keywords="vollständig complete bedingung fehler root offene gruppe">
+              <summary>Wann die Analyse als vollständig gilt</summary>
+              <div class="help-detail-body">
+                <p>Es muss Text mit mindestens zwei Propositionen vorhanden sein, die Validierung darf keinen Fehler melden und die gesamte Struktur muss genau eine Wurzel besitzen. Eine offene Gruppe erzeugt einen Validierungsfehler, bis ihr eine Beziehung zugewiesen wurde.</p>
+              </div>
+            </details>
+            <details class="help-detail" data-help-keywords="typische fehler kinder kardinalität rollen richtung kreuzen verwaist">
+              <summary>Typische Fehlermeldungen</summary>
+              <div class="help-detail-body">
+                <p>Geprüft werden unter anderem: gültige und zusammenhängende Kinder, zulässige Kinderzahl des Beziehungstyps, Rollen/Hauptpunkt, gespeicherte Richtung, offene Gruppen, mehrere Wurzeln, kreuzende Strukturen sowie fehlende oder verwaiste Knoten.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="help-topic" id="help-keyboard" data-help-keywords="tastatur shortcut shortcuts ctrl cmd z delete backspace escape space pfeile tab">
+            <h3>Tastatur &amp; schnelle Bedienung</h3>
+            <div class="help-shortcuts">
+              <div><kbd>Ctrl/Cmd</kbd> + <kbd>Z</kbd><span>Rückgängig</span></div>
+              <div><kbd>Ctrl/Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd><span>Wiederholen</span></div>
+              <div><kbd>Entf</kbd> / <kbd>Backspace</kbd><span>Ausgewählte Verbindung löschen; in Formularfeldern wird Backspace nicht abgefangen.</span></div>
+              <div><kbd>Esc</kbd><span>Auswahl bzw. offenes Burger-Menü abbrechen; Dialoge lassen sich ebenfalls mit Escape schließen.</span></div>
+              <div><kbd>Leertaste</kbd><span>Zwischen Bearbeiten und Ansicht wechseln, sofern kein Formularfeld oder Button fokussiert ist.</span></div>
+              <div><kbd>← ↑ → ↓</kbd><span>Zwischen fokussierbaren Verbindungsankern wechseln.</span></div>
+              <div><kbd>←</kbd> / <kbd>→</kbd><span>Bei fokussierter Trennlinie Struktur-/Textbreite ändern.</span></div>
+            </div>
+            <details class="help-detail" data-help-keywords="undo verlauf was rückgängig projekt löschen darstellung">
+              <summary>Was im Undo-Verlauf liegt</summary>
+              <div class="help-detail-body">
+                <p>Analyseänderungen wie Teilen, Auto-Teilen, Beziehungen, Richtung und Text-/Titeländerungen werden über den Analyseverlauf geführt. Reine UI-Darstellung, Werkzeugwahl, Trennlinienposition und das Löschen eines Projekts sind keine Analyse-Undo-Schritte.</p>
+              </div>
+            </details>
+          </section>
+        </div>
       </div>
     </div>
-    <div class="dialog-foot"><button class="primary-action" type="button" data-close-dialog="helpDialog">Schließen</button></div>
+    <div class="dialog-foot help-dialog-foot">
+      <span class="help-footnote">Bracketing-Fachwissen wird vorausgesetzt.</span>
+      <button class="primary-action" type="button" data-close-dialog="helpDialog">Schließen</button>
+    </div>
   </div>
 </dialog>
-
 <dialog id="statusDialog" aria-labelledby="statusDialogTitle">
   <div class="dialog-shell">
     <div class="dialog-head">
