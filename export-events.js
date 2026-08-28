@@ -40,7 +40,7 @@ function exportRelationStyle(node){
   const rel=RELATIONSHIPS[node.relationshipId];
   if(node.relationshipId==null) return {rel:null,color:"#98a2b3",dash:"7 6",width:1.8};
   if(!rel) return {rel:null,color:"#98a2b3",dash:"5 5",width:1.8};
-  return {rel,color:CATEGORY_COLORS[rel.category]||"#475467",dash:"",width:1.85};
+  return {rel,color:relationshipColor(rel,node.relationshipId),dash:"",width:1.85};
 }
 function buildPublicationExportSvg(){
   // Eigenständiger, bewusst reduzierter Export-Renderer: nur Titel, Text und Analysezeichnung.
@@ -308,9 +308,8 @@ els.importInput.addEventListener("change",e=>{if(e.target.files&&e.target.files[
 els.projectMenuButton.addEventListener("click",e=>{e.stopPropagation();toggleProjectMenu();});
 els.projectManagerButton.addEventListener("click",e=>{e.stopPropagation();openProjectManager();});
 els.settingsMenuButton.addEventListener("click",e=>{e.stopPropagation();openSettingsDialog();});
-els.settingsDialog.addEventListener("change",e=>{
-  const control=e.target.closest('input[name="lineAttachment"]');
-  if(control) setLineAttachmentMode(control.value);
+els.lineAttachmentToggle.addEventListener("change",e=>{
+  setLineAttachmentMode(e.target.checked?"primary":"center");
 });
 els.newProjectButton.addEventListener("click",()=>createNewProject());
 els.projectList.addEventListener("click",e=>{

@@ -19,7 +19,9 @@ nochmal bei allen checken ob der main point richtig ist, wenn ich Probeabo habe
 Abkürzungen wie in dem farbigen menü genau gleich also nur einmal im code. und im generierten bild dann jeweils eine Legende der benutzten abkürzungen
 
 
+, aber ein ausführliches durchsuchbares hilfe punkt im burger menu der alles erklährt, das mit der bedienung zu tun hat nicht die technische umsetzung. 
 
+zusätzlich das der main point ein stern hat soll seine horizontale linie auch doppelt so dick sein
 
 Kurs Notizen
 Rethorische fragen nicht  Q/A sondern als Statements behandeln. diese haben keine Antwort. Auch Serien von Fragen ohne Antworten sind ein Hinweis.

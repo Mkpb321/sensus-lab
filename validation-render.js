@@ -347,7 +347,7 @@ function relationLayoutData(anchorMap){
 }
 function relationStrokeInfo(node){
   const rel=RELATIONSHIPS[node.relationshipId];
-  let color=node.relationshipId==null?"#77818c":(rel?CATEGORY_COLORS[rel.category]:"#77818c");
+  let color=node.relationshipId==null?"#77818c":(rel?relationshipColor(rel,node.relationshipId):"#77818c");
   let dash=node.relationshipId==null?"6 5":"";
   let width=2;
   if(lastValidation && lastValidation.nodeErrors.has(node.id)){color="#b42318";width=2.5;dash=node.relationshipId==null?"6 5":"";}

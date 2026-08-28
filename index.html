@@ -116,20 +116,15 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
       <button class="close-button" type="button" data-close-dialog="settingsDialog" aria-label="Dialog schließen">×</button>
     </div>
     <div class="dialog-body">
-      <section class="settings-section" aria-labelledby="lineAttachmentTitle">
-        <h3 id="lineAttachmentTitle">Linienausrichtung</h3>
-        <p class="settings-description">Legt fest, auf welcher Höhe eine übergeordnete Linie an einer Beziehung anschließt. Diese Einstellung verändert nur die Darstellung; Beziehungen, Rollen und Hauptpunkte bleiben unverändert.</p>
-        <div class="settings-options" role="radiogroup" aria-labelledby="lineAttachmentTitle">
-          <label class="settings-option">
-            <input id="lineAttachmentPrimary" type="radio" name="lineAttachment" value="primary">
-            <span><strong>Am Hauptpunkt</strong><small>Die Linie schließt auf Höhe des Hauptpunkts an. Dies entspricht der bisherigen Darstellung.</small></span>
-          </label>
-          <label class="settings-option">
-            <input id="lineAttachmentCenter" type="radio" name="lineAttachment" value="center">
-            <span><strong>Zentriert</strong><small>Die Linie schließt immer in der geometrischen Mitte der jeweiligen Beziehung an.</small></span>
-          </label>
-        </div>
-      </section>
+      <div class="settings-list" aria-label="Darstellungseinstellungen">
+        <label class="settings-row" title="Ein: Linien schließen am Hauptpunkt an · Aus: Linien werden zentriert angeschlossen">
+          <span class="settings-row-label">Linien am Hauptpunkt</span>
+          <span class="settings-toggle">
+            <input id="lineAttachmentToggle" type="checkbox" role="switch" aria-label="Linien am Hauptpunkt; ausgeschaltet bedeutet zentrierte Linien">
+            <span class="settings-toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </div>
     </div>
     <div class="dialog-foot"><button class="primary-action" type="button" data-close-dialog="settingsDialog">Schließen</button></div>
   </div>

@@ -109,13 +109,27 @@ const CATEGORY_LABELS = Object.freeze({
   gegensaetzliche_stuetze:"Unterordnend – gegensätzliche Stütze",
   erweitert:"Erweiterte Beziehungen"
 });
+// Biblearc-Farblogik: Coordinate = grün, Restatement = blau,
+// Distinct Statement = rot, Contrary Statement = orange.
 const CATEGORY_COLORS = Object.freeze({
-  koordination:"#2878b8",
-  eigenstaendige_stuetze:"#d35e52",
-  erlaeuternde_stuetze:"#668a4f",
-  gegensaetzliche_stuetze:"#8060a2",
-  erweitert:"#9a6b32"
+  koordination:"#9ab889",
+  eigenstaendige_stuetze:"#cc5045",
+  erlaeuternde_stuetze:"#638ea4",
+  gegensaetzliche_stuetze:"#df903f",
+  erweitert:"#667085"
 });
+// Biblearc führt die optionalen Beziehungen nicht als eigene Farbkategorie:
+// Both-And gehört zu Coordinate; die übrigen drei zu Subordinate—Restatement.
+const EXTENDED_BIBLEARC_COLOR_CATEGORY = Object.freeze({
+  sowohl_als_auch:"koordination",
+  allgemein_spezifisch:"erlaeuternde_stuetze",
+  tatsache_deutung:"erlaeuternde_stuetze",
+  ankuendigung_erfuellung:"erlaeuternde_stuetze"
+});
+function relationshipColor(rel,relationshipId=null){
+  const category=(relationshipId&&EXTENDED_BIBLEARC_COLOR_CATEGORY[relationshipId]) || rel?.category;
+  return CATEGORY_COLORS[category]||"#475467";
+}
 const STORAGE_KEY = "sensusLab.v1"; // alte Einzelanalyse, nur noch für Migration
 const LEGACY_STORAGE_KEY = "bracketingArcingMvp.v1"; // ältere Einzelanalyse, nur noch für Migration
 const PROJECTS_STORAGE_KEY = "sensusLab.projects.v1";
@@ -135,7 +149,7 @@ const els = {
   statusDetailsButton:$("#statusDetailsButton"), exportButton:$("#exportButton"), jsonExportButton:$("#jsonExportButton"), importButton:$("#importButton"), importInput:$("#importInput"),
   projectMenuWrap:$("#projectMenuWrap"), projectMenuButton:$("#projectMenuButton"), projectMenu:$("#projectMenu"),
   projectManagerButton:$("#projectManagerButton"), settingsMenuButton:$("#settingsMenuButton"), projectsDialog:$("#projectsDialog"),
-  settingsDialog:$("#settingsDialog"), lineAttachmentPrimary:$("#lineAttachmentPrimary"), lineAttachmentCenter:$("#lineAttachmentCenter"),
+  settingsDialog:$("#settingsDialog"), lineAttachmentToggle:$("#lineAttachmentToggle"),
   projectMenuCurrent:$("#projectMenuCurrent"), newProjectButton:$("#newProjectButton"), projectList:$("#projectList"),
   unitBar:$("#unitBar"), unitButtons:$("#unitButtons"),
   unitHint:$("#unitHint"), propList:$("#propList"), documentHeading:$("#documentHeading"), centerModeLabel:$("#centerModeLabel"), bracketSvg:$("#bracketSvg"),

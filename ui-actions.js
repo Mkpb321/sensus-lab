@@ -312,7 +312,7 @@ function renderRelationshipDialog(){
     for(const [id,rel] of rows){
       const ok=cardinalityOk(rel,node.children.length);
       const selected=chosenRelationshipId===id?" selected":"";
-      const relColor=CATEGORY_COLORS[rel.category]||"#475467";
+      const relColor=relationshipColor(rel,id);
       html.push(`<button type="button" class="rel-card${selected}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}" style="--rel-color:${relColor}">
         <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
         <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}${rel.biblearcLabel?` <span class="rel-original">(${escapeHtml(rel.biblearcLabel)})</span>`:""}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
@@ -384,7 +384,7 @@ function renderRelationshipDetails(){
       <span class="small-note">${escapeHtml(relationRoleSummary(node))}</span>
     </div>
     ${rel?`<h3>${escapeHtml(rel.label)}${rel.biblearcLabel?` <span class="rel-original">(${escapeHtml(rel.biblearcLabel)})</span>`:""}</h3>
-      <div class="rel-meta"><span class="rel-color-chip" style="--chip-color:${CATEGORY_COLORS[rel.category]||"#475467"}"></span>${escapeHtml(CATEGORY_LABELS[rel.category])} · ${escapeHtml(cardinalityText(rel))}</div>
+      <div class="rel-meta"><span class="rel-color-chip" style="--chip-color:${relationshipColor(rel,chosenRelationshipId)}"></span>${escapeHtml(CATEGORY_LABELS[rel.category])} · ${escapeHtml(cardinalityText(rel))}</div>
       <dl>
         <dt>Definition</dt><dd>${escapeHtml(rel.definition)}</dd>
         <dt>Alltagsbeispiel</dt><dd class="rel-example">${escapeHtml(EVERYDAY_EXAMPLES[chosenRelationshipId]||"—")}</dd>
@@ -579,9 +579,7 @@ function mergeAtPropIndex(index){
 }
 function openSettingsDialog(){
   closeProjectMenu();
-  const mode=uiSettings.lineAttachment==="center"?"center":"primary";
-  els.lineAttachmentPrimary.checked=mode==="primary";
-  els.lineAttachmentCenter.checked=mode==="center";
+  els.lineAttachmentToggle.checked=uiSettings.lineAttachment!=="center";
   showDialog(els.settingsDialog);
 }
 function setLineAttachmentMode(mode){
