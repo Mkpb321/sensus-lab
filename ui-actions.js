@@ -74,30 +74,6 @@ function computeAdaptiveBracketGeometry(data){
     relationMetricsById,roleDataByKey,relationThicknessByDepth,maxRoleWidthByNode
   };
 }
-function bracketVisibleTargetX(childId,incomingY,xById,relationMetricsById,anchorMap,portMemo,defaultRight){
-  const child=getNode(childId);
-  if(!child || child.kind!=="relation") return defaultRight;
-  const childX=xById.get(childId);
-  if(!Number.isFinite(childX)) return defaultRight;
-  const info=relationMetricsById.get(childId);
-  const metrics=info?.metrics;
-  const childPorts=(child.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo)).filter(Number.isFinite);
-  if(metrics && childPorts.length){
-    const labelY=(Math.min(...childPorts)+Math.max(...childPorts))/2;
-    const labelTop=labelY-metrics.width/2;
-    const labelBottom=labelY+metrics.width/2;
-    // Trifft die eingehende Linie auf das gedrehte Kürzel, endet sie an dessen
-    // linker sichtbarer Kante statt unter der weißen Textaussparung.
-    if(incomingY>=labelTop-2 && incomingY<=labelBottom+2){
-      return childX-metrics.height/2-1;
-    }
-  }
-  // Sonst bis exakt an die linke Kante der vertikalen Kindlinie führen. So
-  // überdecken sich unterschiedlich gefärbte Linien am T-Anschluss nicht.
-  const childStroke=relationStrokeInfo(child).width||2;
-  return childX-childStroke/2;
-}
-
 function renderBracketSvg(anchorMap,height){
   const svg=els.bracketSvg;
   const clientWidth=Math.max(svg.parentElement.clientWidth,320);
@@ -124,6 +100,10 @@ function renderBracketSvg(anchorMap,height){
     const labelScreenHeight=relationMetrics?.width||0;
     const labelScreenWidth=relationMetrics?.height||0;
     const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
+    const childTargets=(node.children||[]).map(childId=>{
+      const child=getNode(childId);
+      return child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
+    });
     const validPorts=childPorts.filter(Number.isFinite);
     const topY=validPorts.length?Math.min(...validPorts):0;
     const bottomY=validPorts.length?Math.max(...validPorts):0;
@@ -133,7 +113,7 @@ function renderBracketSvg(anchorMap,height){
     (node.children||[]).forEach((childId,i)=>{
       const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
       const roleInfo=roleDataByKey.get(`${node.id}:${i}`); if(!roleInfo) return;
-      const targetX=bracketVisibleTargetX(childId,cy,xById,relationMetricsById,anchorMap,portMemo,effectiveRight);
+      const targetX=childTargets[i];
       const {lines:roleLines,metrics:roleMetrics,fullRole}=roleInfo;
       const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+labelScreenWidth/2 : x;
       const idealX=(branchStartX+targetX)/2;
@@ -150,6 +130,8 @@ function renderBracketSvg(anchorMap,height){
   setBracketCanvasWidth(svg,w);
 
   const pieces=[];
+  const normalLinePieces=[];
+  const primaryLinePieces=[];
   const labelPieces=[];
   const anchorPieces=[];
   for(const item of data){
@@ -183,24 +165,29 @@ function renderBracketSvg(anchorMap,height){
       if(labelTop>topY+4) verticalSegments.push([topY,labelTop]);
       if(labelBottom<bottomY-4) verticalSegments.push([labelBottom,bottomY]);
       verticalSegments.forEach(([segTop,segBottom])=>{
-        pieces.push(`<path class="svg-hit-line" d="M ${x} ${segTop} V ${segBottom}"/>`);
-        if(isSelected) pieces.push(`<path class="svg-selected-halo" d="M ${x} ${segTop} V ${segBottom}"/>`);
-        pieces.push(`<path class="svg-tree-line" d="M ${x} ${segTop} V ${segBottom}" stroke="${color}" stroke-width="${strokeWidth}"${dashAttr}/>`);
+        normalLinePieces.push(`<path class="svg-hit-line" d="M ${x} ${segTop} V ${segBottom}"/>`);
+        if(isSelected) normalLinePieces.push(`<path class="svg-selected-halo" d="M ${x} ${segTop} V ${segBottom}"/>`);
+        normalLinePieces.push(`<path class="svg-tree-line" d="M ${x} ${segTop} V ${segBottom}" stroke="${color}" stroke-width="${strokeWidth}"${dashAttr}/>`);
       });
     }
 
     (node.children||[]).forEach((childId,i)=>{
       const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
-      const targetX=bracketVisibleTargetX(childId,cy,xById,relationMetricsById,anchorMap,portMemo,effectiveRight);
+      const child=getNode(childId);
+      const targetX=child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
       const primary=(node.primaryChildIds||[]).includes(childId);
       const isPrimaryBranch=primary && !!rel && rel.primary!=="all";
       const lineClass=isPrimaryBranch?"svg-tree-line svg-primary-line":"svg-tree-line";
       const branchStrokeWidth=isPrimaryBranch && uiSettings.emphasizePrimaryLines!==false?strokeWidth*2:strokeWidth;
 
       const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+relationLabelScreenWidth/2 : x;
-      pieces.push(`<path class="svg-hit-line" d="M ${branchStartX} ${cy} H ${targetX}"/>`);
-      if(isSelected) pieces.push(`<path class="svg-selected-halo" d="M ${branchStartX} ${cy} H ${targetX}"/>`);
-      pieces.push(`<path class="${lineClass}" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${branchStrokeWidth}"${dashAttr}/>`);
+      const branchHit=`<path class="svg-hit-line" d="M ${branchStartX} ${cy} H ${targetX}"/>`;
+      const branchHalo=isSelected?`<path class="svg-selected-halo" d="M ${branchStartX} ${cy} H ${targetX}"/>`:"";
+      const branchPath=`<path class="${lineClass}" d="M ${branchStartX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${branchStrokeWidth}"${dashAttr}/>`;
+      const branchLayer=(isPrimaryBranch && uiSettings.emphasizePrimaryLines!==false)?primaryLinePieces:normalLinePieces;
+      branchLayer.push(branchHit);
+      if(branchHalo) branchLayer.push(branchHalo);
+      branchLayer.push(branchPath);
 
       const placement=rolePlacementByKey.get(`${node.id}:${i}`);
       if(placement){
@@ -243,7 +230,7 @@ function renderBracketSvg(anchorMap,height){
 
   // Labels liegen über den Linien; Verbindungsanker bilden die oberste Ebene,
   // damit weder Linien noch Badges die anklickbaren Kreise überzeichnen.
-  svg.innerHTML=pieces.join("")+`<g class="svg-label-layer">${labelPieces.join("")}</g><g class="svg-anchor-layer">${anchorPieces.join("")}</g>`;
+  svg.innerHTML=pieces.join("")+`<g class="svg-line-layer">${normalLinePieces.join("")}</g><g class="svg-primary-line-layer">${primaryLinePieces.join("")}</g><g class="svg-label-layer">${labelPieces.join("")}</g><g class="svg-anchor-layer">${anchorPieces.join("")}</g>`;
 
   els.bracketEmpty.textContent="";
   els.bracketEmpty.style.display=data.length?"none":"flex";

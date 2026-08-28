@@ -90,25 +90,6 @@ function exportLegendSections(data){
     {title:"Rollen",items:roleItems,kind:"role"}
   ];
 }
-function exportVisibleTargetX(childId,incomingY,xById,geometry,anchorMap,portMemo,defaultRight){
-  const child=getNode(childId);
-  if(!child || child.kind!=="relation") return defaultRight;
-  const childX=xById.get(childId);
-  if(!Number.isFinite(childX)) return defaultRight;
-  const metrics=geometry.relationMetricsById.get(childId)?.metrics;
-  const childPorts=(child.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo)).filter(Number.isFinite);
-  if(metrics && childPorts.length){
-    const labelY=(Math.min(...childPorts)+Math.max(...childPorts))/2;
-    const labelTop=labelY-metrics.width/2;
-    const labelBottom=labelY+metrics.width/2;
-    if(incomingY>=labelTop-2 && incomingY<=labelBottom+2){
-      return childX-metrics.height/2-1;
-    }
-  }
-  const childStroke=exportRelationStyle(child).width||1.7;
-  return childX-childStroke/2;
-}
-
 function buildPublicationExportSvg(){
   // Publikations-Renderer: bewusst keine App-Oberfläche nachzeichnen.
   // Die Ausgabe besteht nur aus Titel, Analysezeichnung, Text und einer kompakten Legende.
@@ -197,7 +178,8 @@ function buildPublicationExportSvg(){
     (node.children||[]).forEach((childId,i)=>{
       const cy=bracketNodePortY(childId,anchorMap,portMemo);
       if(!Number.isFinite(cy)) return;
-      const targetX=exportVisibleTargetX(childId,cy,xById,geometry,anchorMap,portMemo,bracketRight);
+      const child=getNode(childId);
+      const targetX=child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
       const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
       const shortRole=roleDisplayText(node,childId,fullRole);
       const lines=[shortRole];
@@ -233,12 +215,14 @@ function buildPublicationExportSvg(){
   const canvasH=Math.ceil((legendHeight?legendStartY+legendHeight:contentBottom)+pageBottom);
 
   const pieces=[];
+  const normalLinePieces=[];
+  const primaryLinePieces=[];
   const overlays=[];
   pieces.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`);
   pieces.push(`<rect width="${canvasW}" height="${canvasH}" fill="#ffffff"/>`);
   pieces.push(`<style>
     text{font-family:${fontStack};text-rendering:auto;font-kerning:normal}
-    .pub-line{fill:none;stroke-linecap:butt;stroke-linejoin:miter}
+    .pub-line{fill:none;stroke-linecap:square;stroke-linejoin:miter}
     .pub-rel{font-size:10px;font-weight:700;text-anchor:middle;letter-spacing:.005em}
     .pub-role{font-size:9.5px;font-weight:600;fill:#475467;text-anchor:middle}
     .pub-prop{font-size:${propFontSize}px;font-weight:500;fill:${ink}}
@@ -289,19 +273,21 @@ function buildPublicationExportSvg(){
     const labelBottom=labelY+labelScreenH/2;
 
     if(topY!==bottomY){
-      if(labelTop>topY+3) pieces.push(`<path class="pub-line" d="M ${x} ${topY} V ${labelTop}" stroke="${color}" stroke-width="${width}"${dashAttr}/>`);
-      if(labelBottom<bottomY-3) pieces.push(`<path class="pub-line" d="M ${x} ${labelBottom} V ${bottomY}" stroke="${color}" stroke-width="${width}"${dashAttr}/>`);
+      if(labelTop>topY+3) normalLinePieces.push(`<path class="pub-line" d="M ${x} ${topY} V ${labelTop}" stroke="${color}" stroke-width="${width}"${dashAttr}/>`);
+      if(labelBottom<bottomY-3) normalLinePieces.push(`<path class="pub-line" d="M ${x} ${labelBottom} V ${bottomY}" stroke="${color}" stroke-width="${width}"${dashAttr}/>`);
     }
 
     (node.children||[]).forEach((childId,i)=>{
       const cy=childPorts[i];
       if(!Number.isFinite(cy)) return;
-      const targetX=exportVisibleTargetX(childId,cy,xById,geometry,anchorMap,portMemo,bracketRight);
+      const child=getNode(childId);
+      const targetX=child&&child.kind==="relation"?(xById.get(childId)??bracketRight):bracketRight;
       const primary=(node.primaryChildIds||[]).includes(childId);
       const isPrimaryBranch=primary && !!rel && rel.primary!=="all";
       const startX=(cy>=labelTop-2&&cy<=labelBottom+2)?x+labelScreenW/2:x;
       const branchWidth=isPrimaryBranch&&uiSettings.emphasizePrimaryLines!==false?width*2:width;
-      pieces.push(`<path class="pub-line" d="M ${startX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${branchWidth}"${dashAttr}/>`);
+      const branchPath=`<path class="pub-line" d="M ${startX} ${cy} H ${targetX}" stroke="${color}" stroke-width="${branchWidth}"${dashAttr}/>`;
+      ((isPrimaryBranch&&uiSettings.emphasizePrimaryLines!==false)?primaryLinePieces:normalLinePieces).push(branchPath);
 
       const placement=rolePlacementByKey.get(`${node.id}:${i}`);
       if(placement){
@@ -318,6 +304,8 @@ function buildPublicationExportSvg(){
     overlays.push(svgMultilineText(relationLines,x,labelY,"pub-rel",color,relationMetrics.lineHeight).replace('<text ','<text transform="rotate(-90 '+x+' '+labelY+')" '));
     overlays.push(`</g>`);
   }
+  pieces.push(...normalLinePieces);
+  pieces.push(...primaryLinePieces);
   pieces.push(...overlays);
 
   // Kompakte, druckartige Legende ohne umschließende Karte.
