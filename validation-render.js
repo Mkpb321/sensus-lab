@@ -490,9 +490,13 @@ function bracketNodePortY(nodeId,anchorMap,memo=new Map()){
     .map(cid=>bracketNodePortY(cid,anchorMap,memo))
     .filter(v=>Number.isFinite(v));
   let y;
-  if(primaryPorts.length===1) y=primaryPorts[0];
+  if(uiSettings.lineAttachment==="center"){
+    // Rein visuelle Alternative: Der Port der Beziehung liegt unabhängig vom
+    // semantischen Hauptpunkt exakt in der Mitte ihrer sichtbaren Kind-Ports.
+    y=(Math.min(...childPorts)+Math.max(...childPorts))/2;
+  }else if(primaryPorts.length===1) y=primaryPorts[0];
   else if(primaryPorts.length>1) y=(Math.min(...primaryPorts)+Math.max(...primaryPorts))/2;
-  else y=(childPorts[0]+childPorts[childPorts.length-1])/2;
+  else y=(Math.min(...childPorts)+Math.max(...childPorts))/2;
   memo.set(nodeId,y);
   return y;
 }

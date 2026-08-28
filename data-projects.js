@@ -122,6 +122,7 @@ const PROJECTS_STORAGE_KEY = "sensusLab.projects.v1";
 const ACTIVE_PROJECT_STORAGE_KEY = "sensusLab.activeProject.v1";
 const PROJECTS_SCHEMA_VERSION = 1;
 const MAX_HISTORY = 100;
+const UI_SETTINGS_STORAGE_KEY = "sensusLab.uiSettings.v1";
 
 const $ = (sel,root=document)=>root.querySelector(sel);
 const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
@@ -133,7 +134,8 @@ const els = {
   rootStatus:$("#rootStatus"), errorStatus:$("#errorStatus"), saveStatus:$("#saveStatus"), selectionStatus:$("#selectionStatus"), validationStrip:$("#validationStrip"),
   statusDetailsButton:$("#statusDetailsButton"), exportButton:$("#exportButton"), jsonExportButton:$("#jsonExportButton"), importButton:$("#importButton"), importInput:$("#importInput"),
   projectMenuWrap:$("#projectMenuWrap"), projectMenuButton:$("#projectMenuButton"), projectMenu:$("#projectMenu"),
-  projectManagerButton:$("#projectManagerButton"), projectsDialog:$("#projectsDialog"),
+  projectManagerButton:$("#projectManagerButton"), settingsMenuButton:$("#settingsMenuButton"), projectsDialog:$("#projectsDialog"),
+  settingsDialog:$("#settingsDialog"), lineAttachmentPrimary:$("#lineAttachmentPrimary"), lineAttachmentCenter:$("#lineAttachmentCenter"),
   projectMenuCurrent:$("#projectMenuCurrent"), newProjectButton:$("#newProjectButton"), projectList:$("#projectList"),
   unitBar:$("#unitBar"), unitButtons:$("#unitButtons"),
   unitHint:$("#unitHint"), propList:$("#propList"), documentHeading:$("#documentHeading"), centerModeLabel:$("#centerModeLabel"), bracketSvg:$("#bracketSvg"),
@@ -171,6 +173,19 @@ let saveStateText = "Nicht gespeichert";
 let resizeObserver = null;
 let projects = [];
 let activeProjectId = null;
+// App-weite Darstellungspräferenzen liegen bewusst außerhalb des Analysezustands.
+// Dadurch verändern sie weder Projekte noch JSON-Exporte oder die Undo-Historie.
+let uiSettings = {lineAttachment:"primary"};
+function loadUiSettings(){
+  try{
+    const raw=localStorage.getItem(UI_SETTINGS_STORAGE_KEY);
+    const parsed=raw?JSON.parse(raw):null;
+    uiSettings.lineAttachment=parsed?.lineAttachment==="center"?"center":"primary";
+  }catch(_){ uiSettings.lineAttachment="primary"; }
+}
+function storeUiSettings(){
+  try{ localStorage.setItem(UI_SETTINGS_STORAGE_KEY,JSON.stringify({lineAttachment:uiSettings.lineAttachment})); }catch(_){ }
+}
 
 function cloneDocument(doc){ return JSON.parse(JSON.stringify(doc)); }
 function createProject(documentState=createEmptyState()){

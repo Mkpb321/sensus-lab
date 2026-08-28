@@ -307,6 +307,11 @@ els.importButton.addEventListener("click",()=>els.importInput.click());
 els.importInput.addEventListener("change",e=>{if(e.target.files&&e.target.files[0]) importJsonFile(e.target.files[0]);});
 els.projectMenuButton.addEventListener("click",e=>{e.stopPropagation();toggleProjectMenu();});
 els.projectManagerButton.addEventListener("click",e=>{e.stopPropagation();openProjectManager();});
+els.settingsMenuButton.addEventListener("click",e=>{e.stopPropagation();openSettingsDialog();});
+els.settingsDialog.addEventListener("change",e=>{
+  const control=e.target.closest('input[name="lineAttachment"]');
+  if(control) setLineAttachmentMode(control.value);
+});
 els.newProjectButton.addEventListener("click",()=>createNewProject());
 els.projectList.addEventListener("click",e=>{
   const rename=e.target.closest("[data-project-rename]");
@@ -493,5 +498,6 @@ if("ResizeObserver" in window){
   resizeObserver.observe(els.propList);
 }
 renderSignalTable();
+loadUiSettings();
 loadProjects();
 render();

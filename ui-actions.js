@@ -577,6 +577,23 @@ function mergeAtPropIndex(index){
     state.rootIds=state.propositions.map(p=>p.id);
   });
 }
+function openSettingsDialog(){
+  closeProjectMenu();
+  const mode=uiSettings.lineAttachment==="center"?"center":"primary";
+  els.lineAttachmentPrimary.checked=mode==="primary";
+  els.lineAttachmentCenter.checked=mode==="center";
+  showDialog(els.settingsDialog);
+}
+function setLineAttachmentMode(mode){
+  const next=mode==="center"?"center":"primary";
+  if(uiSettings.lineAttachment===next) return;
+  // Nur die app-weite Darstellungspräferenz wird geändert. Der Analysezustand,
+  // Knoten, Rollen, Hauptpunkte, Projekte und JSON-Daten bleiben unangetastet.
+  uiSettings.lineAttachment=next;
+  storeUiSettings();
+  render();
+  announce(next==="center"?"Linien werden jetzt zentriert angeschlossen.":"Linien werden jetzt am Hauptpunkt angeschlossen.");
+}
 function setMode(mode){
   state.settings.mode=mode;
   if(mode!=="bearbeiten"){
