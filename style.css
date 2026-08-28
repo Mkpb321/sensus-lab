@@ -163,8 +163,8 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .relationship-layout{display:grid;grid-template-columns:minmax(360px,1.08fr) minmax(300px,.92fr);gap:0;min-height:460px;margin:-14px}
 .relationship-list-pane{min-width:0;padding:0 0 14px;border-right:1px solid var(--line);overflow:hidden}
 .relationship-controls{display:grid;grid-template-columns:minmax(150px,1fr) minmax(160px,210px) auto;gap:6px;align-items:center;padding:12px 12px 9px;border-bottom:1px solid var(--line);background:#fff}
-.relationship-controls select{min-height:32px;border:1px solid var(--line-strong);border-radius:4px;padding:5px 8px;background:#fff;color:var(--ink);font:inherit;font-size:12px}
-.relationship-controls select{padding-right:26px}
+.relationship-controls select,.relationship-controls input[type="search"]{min-height:32px;height:32px;border:1px solid var(--line-strong);border-radius:4px;padding:5px 8px;background:#fff;color:var(--ink);font:inherit;font-size:12px;line-height:1.2;box-shadow:none;outline:none}
+.relationship-controls select{padding-right:26px}.relationship-controls input[type="search"]{-webkit-appearance:none;appearance:none}.relationship-controls input[type="search"]::-webkit-search-cancel-button{opacity:.55}
 .check-inline{display:flex;align-items:center;gap:5px;font-size:11px;color:#596572;white-space:nowrap}
 .check-inline input{width:15px;height:15px;accent-color:var(--accent)}
 .conjunction-filter-info{margin:0;padding:6px 12px;border-bottom:1px solid var(--line);font-size:10.5px;line-height:1.35;color:#6e7984;background:#fafbfb}
@@ -257,9 +257,9 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] [data-unit-id]{cursor:pointe
 .svg-connection-anchor-dot{pointer-events:none;filter:none}
 .svg-connection-anchor:hover .svg-connection-anchor-dot{stroke:var(--accent);stroke-width:2}
 .svg-role{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:9.6px;fill:#48535f;font-weight:400;pointer-events:none;text-anchor:middle;text-rendering:auto;font-kerning:normal;-webkit-font-smoothing:antialiased;dominant-baseline:middle;alignment-baseline:middle}
-.svg-role-bg{fill:#fff;stroke:#e0e5e9;stroke-width:.7;pointer-events:none}
+.svg-role-bg{fill:#fff;stroke:none;pointer-events:none}
 .svg-code{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:9.6px;font-weight:520;text-anchor:middle;pointer-events:none;letter-spacing:.005em;text-rendering:auto;font-kerning:normal;-webkit-font-smoothing:antialiased;dominant-baseline:middle;alignment-baseline:middle}
-.svg-code-bg{fill:#fff;stroke-width:1;pointer-events:none}
+.svg-code-bg{fill:#fff;stroke:none;pointer-events:none}
 .svg-star{font-size:8px;text-anchor:middle;dominant-baseline:middle;alignment-baseline:middle;pointer-events:none}
 .svg-label-bg{fill:#fff;stroke-width:1}
 .svg-tree-line{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
@@ -269,8 +269,7 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] [data-unit-id]{cursor:pointe
 .diagram-label-box{pointer-events:none}
 .diagram-label-hit{fill:transparent;stroke:none;pointer-events:all}
 .diagram-role-label .diagram-label-hit,.diagram-relation-label .diagram-label-hit{cursor:default}
-.diagram-role-label:hover .svg-role-bg,.diagram-relation-label:hover .svg-code-bg{stroke-width:1.5}
-.diagram-relation-label:hover .svg-code{font-weight:600}
+.diagram-relation-label:hover .svg-code{font-weight:650}
 body[data-mode="bearbeiten"][data-tool="verbinden"] .diagram-relation-label .diagram-label-hit{cursor:pointer}
 .diagram-tooltip{position:fixed;z-index:9999;pointer-events:none;max-width:280px;padding:5px 7px;border-radius:4px;background:#18212a;color:#fff;font:500 11px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;box-shadow:0 6px 18px rgba(15,23,32,.18);opacity:0;transform:translateY(2px);transition:opacity .08s ease,transform .08s ease;white-space:normal;visibility:hidden}
 .diagram-tooltip.visible{opacity:1;transform:translateY(0);visibility:visible}

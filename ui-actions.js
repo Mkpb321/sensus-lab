@@ -17,27 +17,29 @@ function computeAdaptiveBracketGeometry(data){
   const relationThicknessByDepth=Array(maxDepth+1).fill(0);
   const maxRoleWidthByDepth=Array(maxDepth+1).fill(0);
   const maxRoleWidthByNode=new Map();
+  const hasDirectionalRoleByDepth=Array(maxDepth+1).fill(false);
 
-  // Zuerst werden ausschließlich die tatsächlich vorkommenden Beschriftungen vermessen.
-  // Die Bahnbreiten entstehen anschließend aus diesen Messwerten, nicht aus einem festen Raster.
+  // Alle Bahnbreiten werden ausschließlich aus den tatsächlich gerenderten
+  // Kurzlabels berechnet. Keine großzügigen Raster-/Mindestkorridore.
   for(const item of data){
     const {node}=item;
     const {rel}=relationStrokeInfo(node);
     const title=rel?rel.label:"Offene Gruppe";
     const displayTitle=relationShortCode(node);
     const relationLines=[displayTitle];
-    const relationMetrics=bracketTextMetrics(relationLines,{minWidth:44,maxWidth:96,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.3});
+    const relationMetrics=bracketTextMetrics(relationLines,{minWidth:18,maxWidth:96,charWidth:4.75,lineHeight:9.8,padX:3.5,padY:2.0});
     relationMetricsById.set(node.id,{title,displayTitle,lines:relationLines,metrics:relationMetrics});
-    // Nach der 90°-Drehung entspricht die sichtbare horizontale Dicke der ursprünglichen Höhe.
+    // Nach 90° Drehung ist metrics.height die horizontale Dicke des Vertikallabels.
     relationThicknessByDepth[item.depth]=Math.max(relationThicknessByDepth[item.depth],relationMetrics.height);
 
     if(!rel || rel.primary==="all") continue;
+    hasDirectionalRoleByDepth[item.depth]=true;
     let nodeMaxRoleWidth=0;
     (node.children||[]).forEach((childId,i)=>{
       const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
       const displayRole=compactRole(fullRole);
-      const roleLines=wrapBracketText(displayRole,13,2);
-      const roleMetrics=bracketTextMetrics(roleLines,{minWidth:34,maxWidth:94,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.1});
+      const roleLines=[displayRole];
+      const roleMetrics=bracketTextMetrics(roleLines,{minWidth:16,maxWidth:94,charWidth:4.75,lineHeight:9.6,padX:3.2,padY:1.8});
       roleDataByKey.set(`${node.id}:${i}`,{fullRole,displayRole,lines:roleLines,metrics:roleMetrics});
       nodeMaxRoleWidth=Math.max(nodeMaxRoleWidth,roleMetrics.width);
       maxRoleWidthByDepth[item.depth]=Math.max(maxRoleWidthByDepth[item.depth],roleMetrics.width);
@@ -45,29 +47,29 @@ function computeAdaptiveBracketGeometry(data){
     maxRoleWidthByNode.set(node.id,nodeMaxRoleWidth);
   }
 
-  // Korridor d liegt zwischen der Stamm-Linie der Tiefe d und der nächstinneren Bahn.
-  // Er wird nur so breit wie nötig. Dabei werden berücksichtigt:
-  //  - die sichtbare Dicke der vertikalen Beziehungs-Badges an beiden Korridorrändern,
-  //  - ein möglicher Stern direkt nach der Elternlinie,
-  //  - die breiteste horizontale Rollenbeschriftung dieser Tiefe,
-  //  - Sicherheitsabstände, damit kein Badge eine Linie oder ein Nachbar-Badge berührt.
+  // Korridor d: außen liegt das Vertikallabel der Beziehung auf Tiefe d,
+  // innen ggf. das nächste Vertikallabel. Dazwischen muss nur das reale
+  // horizontale Rollenlabel (+ Stern bei gerichteten Beziehungen) Platz finden.
   const laneWidths=Array(maxDepth+1).fill(0);
   for(let d=1;d<=maxDepth;d++){
     const parentHalf=relationThicknessByDepth[d]/2;
     const innerHalf=d===1?0:relationThicknessByDepth[d-1]/2;
-    const labelOnlyNeed=parentHalf+innerHalf+22;
+    const edgeGap=3;
     const roleWidth=maxRoleWidthByDepth[d];
-    const roleLeftClear=Math.max(parentHalf+10,22); // Badge + Stern + Luft
-    const roleNeed=roleWidth?roleLeftClear+roleWidth+innerHalf+12:0;
-    laneWidths[d]=Math.ceil(Math.max(46,labelOnlyNeed,roleNeed));
+    const starReserve=hasDirectionalRoleByDepth[d]?14:0;
+    const bareNeed=parentHalf+innerHalf+edgeGap*2;
+    const roleNeed=roleWidth
+      ? parentHalf+starReserve+roleWidth+innerHalf+edgeGap*3
+      : 0;
+    laneWidths[d]=Math.ceil(Math.max(18,bareNeed,roleNeed));
   }
 
   const cumulative=Array(maxDepth+1).fill(0);
   for(let d=1;d<=maxDepth;d++) cumulative[d]=cumulative[d-1]+laneWidths[d];
   const outerHalf=relationThicknessByDepth[maxDepth]/2;
-  const leftGutter=Math.ceil(Math.max(18,outerHalf+12));
-  const rightGutter=4;
-  const needed=leftGutter+rightGutter+cumulative[maxDepth]+8;
+  const leftGutter=Math.ceil(Math.max(10,outerHalf+5));
+  const rightGutter=2;
+  const needed=leftGutter+rightGutter+cumulative[maxDepth]+3;
 
   return {
     maxDepth,laneWidths,cumulative,leftGutter,rightGutter,needed,
@@ -97,7 +99,7 @@ function renderBracketSvg(anchorMap,height){
     const relationInfo=relationMetricsById.get(node.id);
     const parentHalf=(relationInfo?.metrics.height||0)/2;
     const nodeMaxRoleWidth=maxRoleWidthByNode.get(node.id)||0;
-    const commonRoleX=x+Math.max(parentHalf+10,22)+nodeMaxRoleWidth/2;
+    const commonRoleX=x+parentHalf+14+nodeMaxRoleWidth/2+3;
     const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
     const childTargets=(node.children||[]).map(childId=>{
       const child=getNode(childId);
@@ -110,8 +112,8 @@ function renderBracketSvg(anchorMap,height){
       const {lines:roleLines,metrics:roleMetrics,fullRole}=roleInfo;
       // Defensive Begrenzung für importierte/ungewöhnliche Bäume. Im Normalfall greift
       // sie nicht, weil die adaptive Bahnbreite den benötigten Platz bereits garantiert.
-      const maxX=targetX-roleMetrics.width/2-8;
-      const minX=x+Math.max(parentHalf+10,22)+roleMetrics.width/2;
+      const maxX=targetX-roleMetrics.width/2-3;
+      const minX=x+parentHalf+14+roleMetrics.width/2+3;
       const rx=Math.max(minX,Math.min(commonRoleX,maxX));
       rolePlacementByKey.set(`${node.id}:${i}`,{rx,roleCenterY:cy,roleLines,roleMetrics,fullRole});
     });
@@ -140,7 +142,7 @@ function renderBracketSvg(anchorMap,height){
     const relationInfo=relationMetricsById.get(node.id);
     const title=relationInfo?.title||(rel?rel.label:"Offene Gruppe");
     const relationLines=relationInfo?.lines||[relationShortCode(node)];
-    const relationMetrics=relationInfo?.metrics||bracketTextMetrics(relationLines,{minWidth:44,maxWidth:96,charWidth:4.75,lineHeight:10.5,padX:5.5,padY:3.3});
+    const relationMetrics=relationInfo?.metrics||bracketTextMetrics(relationLines,{minWidth:18,maxWidth:96,charWidth:4.75,lineHeight:9.8,padX:3.5,padY:2.0});
 
     pieces.push(`<g class="svg-rel" data-relation-id="${node.id}">`);
 
@@ -181,7 +183,7 @@ function renderBracketSvg(anchorMap,height){
         const {rx,roleCenterY,roleLines,roleMetrics,fullRole}=placement;
         const roleX=rx-roleMetrics.width/2, roleY=roleCenterY-roleMetrics.height/2;
         labelPieces.push(`<g class="diagram-label-box diagram-role-label">`);
-        labelPieces.push(`<rect class="svg-role-bg" x="${roleX}" y="${roleY}" width="${roleMetrics.width}" height="${roleMetrics.height}" rx="5"></rect>`);
+        labelPieces.push(`<rect class="svg-role-bg" x="${roleX-1}" y="${roleY}" width="${roleMetrics.width+2}" height="${roleMetrics.height}" rx="0"></rect>`);
         labelPieces.push(svgMultilineText(roleLines,rx,roleCenterY,"svg-role",null,roleMetrics.lineHeight));
         labelPieces.push(`<rect class="diagram-label-hit role-label-hit" data-diagram-tooltip="${escapeHtml(fullRole)}" x="${roleX}" y="${roleY}" width="${roleMetrics.width}" height="${roleMetrics.height}" rx="5"></rect>`);
         labelPieces.push(`</g>`);
@@ -196,7 +198,7 @@ function renderBracketSvg(anchorMap,height){
     const labelX=x;
     const relX=labelX-relationMetrics.width/2, relY=labelY-relationMetrics.height/2;
     labelPieces.push(`<g class="diagram-label-box diagram-relation-label" transform="rotate(-90 ${labelX} ${labelY})">`);
-    labelPieces.push(`<rect class="svg-code-bg" x="${relX}" y="${relY}" width="${relationMetrics.width}" height="${relationMetrics.height}" rx="6" fill="#fff" stroke="${color}"${dashAttr}></rect>`);
+    labelPieces.push(`<rect class="svg-code-bg" x="${relX-1}" y="${relY}" width="${relationMetrics.width+2}" height="${relationMetrics.height}" rx="0"></rect>`);
     labelPieces.push(svgMultilineText(relationLines,labelX,labelY,"svg-code",color,relationMetrics.lineHeight));
     labelPieces.push(`<rect class="diagram-label-hit relation-label-hit" data-edit-relation-id="${node.id}" data-diagram-tooltip="${escapeHtml(title)}" x="${relX}" y="${relY}" width="${relationMetrics.width}" height="${relationMetrics.height}" rx="6"></rect>`);
     labelPieces.push(`</g>`);

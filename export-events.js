@@ -54,35 +54,40 @@ function exportCodeParts(code){
 function exportLegendSections(data){
   const relationItems=[];
   const relationSeen=new Set();
-  const relationParts=new Set();
   for(const {node} of data){
     const key=node.relationshipId==null?"__open__":String(node.relationshipId);
     if(relationSeen.has(key)) continue;
     relationSeen.add(key);
     const rel=RELATIONSHIPS[node.relationshipId];
-    const code=relationShortCode(node);
-    exportCodeParts(code).forEach(part=>relationParts.add(part));
     relationItems.push({
-      code,
+      code:relationShortCode(node),
       label:relationLegendLabel(node),
       color:node.relationshipId==null?"#98a2b3":relationshipColor(rel,node.relationshipId),
       dash:node.relationshipId==null?"7 6":"",
       kind:"relation"
     });
   }
-  const roleItems=[];
-  const roleSeen=new Set();
+
+  // Ein Rollenkürzel wird nur dann durch ein vertikales Kürzel ersetzt, wenn
+  // genau die Beziehung, an deren Linie diese Rolle steht, es selbst enthält.
+  // Taucht dasselbe Kürzel lediglich bei einer anderen Beziehung auf, bleibt
+  // der Rolleneintrag in der Legende erhalten.
+  const roleUsage=new Map();
   for(const {node} of data){
     const rel=RELATIONSHIPS[node.relationshipId];
     if(!rel || rel.primary==="all") continue;
+    const localRelationParts=new Set(exportCodeParts(relationShortCode(node)));
     (node.roleOrder||[]).forEach((fullRole,i)=>{
       const roleLabel=String(fullRole||`Teil ${i+1}`);
       const code=compactRole(roleLabel);
-      if(!code || roleSeen.has(code) || relationParts.has(code)) return;
-      roleSeen.add(code);
-      roleItems.push({code,label:roleLabel,kind:"role"});
+      if(!code) return;
+      const entry=roleUsage.get(code)||{code,label:roleLabel,needsLegend:false,kind:"role"};
+      if(!localRelationParts.has(code)) entry.needsLegend=true;
+      roleUsage.set(code,entry);
     });
   }
+  const roleItems=[...roleUsage.values()].filter(item=>item.needsLegend).map(({needsLegend,...item})=>item);
+
   const sections=[];
   if(relationItems.length) sections.push({title:"Beziehungen",items:relationItems,kind:"relation"});
   if(roleItems.length) sections.push({title:"Rollen",items:roleItems,kind:"role"});
@@ -95,7 +100,7 @@ function buildPublicationExportSvg(){
   const pageTop=30;
   const pageBottom=30;
   const textWidth=720;
-  const graphTextGap=16;
+  const graphTextGap=8;
   const rowPadY=9;
   const rowGap=2;
   const propFontSize=17;
@@ -164,7 +169,7 @@ function buildPublicationExportSvg(){
     const x=xById.get(node.id);
     const parentHalf=(geometry.relationMetricsById.get(node.id)?.metrics.height||0)/2;
     const maxRoleWidth=Math.min(roleMaxWidth,geometry.maxRoleWidthByNode.get(node.id)||0);
-    const commonX=x+Math.max(parentHalf+9,20)+maxRoleWidth/2;
+    const commonX=x+parentHalf+14+maxRoleWidth/2+3;
     (node.children||[]).forEach((childId,i)=>{
       const cy=bracketNodePortY(childId,anchorMap,portMemo);
       if(!Number.isFinite(cy)) return;
@@ -173,9 +178,9 @@ function buildPublicationExportSvg(){
       const fullRole=node.roleOrder[i]||`Teil ${i+1}`;
       const shortRole=compactRole(fullRole);
       const lines=[shortRole];
-      const metrics=bracketTextMetrics(lines,{minWidth:22,maxWidth:roleMaxWidth,charWidth:4.7,lineHeight:9.2,padX:4,padY:2.3});
-      const minX=x+Math.max(parentHalf+9,20)+metrics.width/2;
-      const maxX=targetX-metrics.width/2-5;
+      const metrics=bracketTextMetrics(lines,{minWidth:16,maxWidth:roleMaxWidth,charWidth:4.7,lineHeight:9.2,padX:3.2,padY:1.8});
+      const minX=x+parentHalf+14+metrics.width/2+3;
+      const maxX=targetX-metrics.width/2-3;
       const rx=Math.max(minX,Math.min(commonX,maxX));
       rolePlacementByKey.set(`${node.id}:${i}`,{rx,cy,lines,metrics,fullRole});
     });
@@ -252,7 +257,7 @@ function buildPublicationExportSvg(){
     const relationTitle=rel?rel.label:"Offene Gruppe";
     const short=relationShortCode(node);
     const relationLines=[short];
-    const relationMetrics=bracketTextMetrics(relationLines,{minWidth:34,maxWidth:relationLabelMaxWidth,charWidth:4.65,lineHeight:9.4,padX:4,padY:2.5});
+    const relationMetrics=bracketTextMetrics(relationLines,{minWidth:18,maxWidth:relationLabelMaxWidth,charWidth:4.65,lineHeight:9.4,padX:3.3,padY:1.8});
     const labelScreenH=relationMetrics.width;
     const labelScreenW=relationMetrics.height;
     const labelY=(topY+bottomY)/2;
@@ -290,7 +295,7 @@ function buildPublicationExportSvg(){
     });
 
     overlays.push(`<g><title>${safeSvgText(relationTitle)}</title>`);
-    overlays.push(`<rect x="${x-relationMetrics.width/2-2}" y="${labelY-relationMetrics.height/2-1}" width="${relationMetrics.width+4}" height="${relationMetrics.height+2}" rx="3" fill="#ffffff" stroke="${color}" stroke-width="0.9"${dashAttr} transform="rotate(-90 ${x} ${labelY})"/>`);
+    overlays.push(`<rect x="${x-relationMetrics.width/2-2}" y="${labelY-relationMetrics.height/2-1}" width="${relationMetrics.width+4}" height="${relationMetrics.height+2}" fill="#ffffff" transform="rotate(-90 ${x} ${labelY})"/>`);
     overlays.push(svgMultilineText(relationLines,x,labelY,"pub-rel",color,relationMetrics.lineHeight).replace('<text ','<text transform="rotate(-90 '+x+' '+labelY+')" '));
     overlays.push(`</g>`);
   }
