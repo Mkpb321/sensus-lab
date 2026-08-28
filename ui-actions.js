@@ -74,6 +74,30 @@ function computeAdaptiveBracketGeometry(data){
     relationMetricsById,roleDataByKey,relationThicknessByDepth,maxRoleWidthByNode
   };
 }
+function bracketVisibleTargetX(childId,incomingY,xById,relationMetricsById,anchorMap,portMemo,defaultRight){
+  const child=getNode(childId);
+  if(!child || child.kind!=="relation") return defaultRight;
+  const childX=xById.get(childId);
+  if(!Number.isFinite(childX)) return defaultRight;
+  const info=relationMetricsById.get(childId);
+  const metrics=info?.metrics;
+  const childPorts=(child.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo)).filter(Number.isFinite);
+  if(metrics && childPorts.length){
+    const labelY=(Math.min(...childPorts)+Math.max(...childPorts))/2;
+    const labelTop=labelY-metrics.width/2;
+    const labelBottom=labelY+metrics.width/2;
+    // Trifft die eingehende Linie auf das gedrehte Kürzel, endet sie an dessen
+    // linker sichtbarer Kante statt unter der weißen Textaussparung.
+    if(incomingY>=labelTop-2 && incomingY<=labelBottom+2){
+      return childX-metrics.height/2-1;
+    }
+  }
+  // Sonst bis exakt an die linke Kante der vertikalen Kindlinie führen. So
+  // überdecken sich unterschiedlich gefärbte Linien am T-Anschluss nicht.
+  const childStroke=relationStrokeInfo(child).width||2;
+  return childX-childStroke/2;
+}
+
 function renderBracketSvg(anchorMap,height){
   const svg=els.bracketSvg;
   const clientWidth=Math.max(svg.parentElement.clientWidth,320);
@@ -100,10 +124,6 @@ function renderBracketSvg(anchorMap,height){
     const labelScreenHeight=relationMetrics?.width||0;
     const labelScreenWidth=relationMetrics?.height||0;
     const childPorts=(node.children||[]).map(cid=>bracketNodePortY(cid,anchorMap,portMemo));
-    const childTargets=(node.children||[]).map(childId=>{
-      const child=getNode(childId);
-      return child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
-    });
     const validPorts=childPorts.filter(Number.isFinite);
     const topY=validPorts.length?Math.min(...validPorts):0;
     const bottomY=validPorts.length?Math.max(...validPorts):0;
@@ -113,7 +133,7 @@ function renderBracketSvg(anchorMap,height){
     (node.children||[]).forEach((childId,i)=>{
       const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
       const roleInfo=roleDataByKey.get(`${node.id}:${i}`); if(!roleInfo) return;
-      const targetX=childTargets[i];
+      const targetX=bracketVisibleTargetX(childId,cy,xById,relationMetricsById,anchorMap,portMemo,effectiveRight);
       const {lines:roleLines,metrics:roleMetrics,fullRole}=roleInfo;
       const branchStartX=(cy>=labelTop-2 && cy<=labelBottom+2) ? x+labelScreenWidth/2 : x;
       const idealX=(branchStartX+targetX)/2;
@@ -171,8 +191,7 @@ function renderBracketSvg(anchorMap,height){
 
     (node.children||[]).forEach((childId,i)=>{
       const cy=childPorts[i]; if(!Number.isFinite(cy)) return;
-      const child=getNode(childId);
-      const targetX=child && child.kind==="relation" ? (xById.get(childId) ?? effectiveRight) : effectiveRight;
+      const targetX=bracketVisibleTargetX(childId,cy,xById,relationMetricsById,anchorMap,portMemo,effectiveRight);
       const primary=(node.primaryChildIds||[]).includes(childId);
       const isPrimaryBranch=primary && !!rel && rel.primary!=="all";
       const lineClass=isPrimaryBranch?"svg-tree-line svg-primary-line":"svg-tree-line";
