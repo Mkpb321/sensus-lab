@@ -331,7 +331,7 @@ function cardinalityOk(rel,count){
 }
 function cardinalityText(rel){
   if(rel.max==null) return `mindestens ${rel.min}`;
-  if(rel.min===rel.max) return rel.min===2?"genau zwei":rel.min===3?"genau drei":`genau ${rel.min}`;
+  if(rel.min===rel.max) return `genau ${rel.min}`;
   return `${rel.min} bis ${rel.max}`;
 }
 function defaultRoleOrder(rel,count){
