@@ -150,13 +150,15 @@ button:disabled{cursor:not-allowed;opacity:.48}
 .unit-anchor.selected{border-color:#2563eb;border-width:2.6px;background:#fff}
 .word-token{white-space:pre-wrap}
 .split-word{
-  min-height:36px;display:inline-block;vertical-align:middle;position:relative;border:0;background:transparent;color:inherit;padding:0;margin:0;border-radius:2px;line-height:inherit;text-align:left;
+  min-height:0;height:auto;display:inline-block;vertical-align:baseline;position:relative;border:0;background:transparent;color:inherit;padding:0;margin:0;border-radius:2px;line-height:inherit;text-align:left;
 }
 .split-word::after{
   content:"";position:absolute;left:50%;top:50%;width:max(100%,36px);height:36px;transform:translate(-50%,-50%);
 }
+/* Der Teilungsmarker darf die Zeilenbox nicht beeinflussen: Er liegt absolut
+   am Wortanfang, damit normale Wörter und Split-Buttons dieselbe Baseline haben. */
 .split-word::before{
-  content:"";display:inline-block;width:0;border-left:2px solid transparent;height:1.15em;vertical-align:-.18em;margin-left:0;
+  content:"";position:absolute;left:0;top:50%;width:0;height:1.15em;transform:translateY(-50%);border-left:2px solid transparent;
 }
 .split-word:hover::before,.split-word:focus-visible::before{border-left-color:var(--selected)}
 .merge-button{
