@@ -527,7 +527,8 @@ if(els.workspaceDivider){
     const project=activeProject();
     const current=clampWorkspaceSplit(project?.workspaceSplit);
     const {min,max}=workspaceSplitBounds();
-    const next=e.key==="Home"?min:e.key==="End"?max:current+(e.key==="ArrowRight"?.025:-.025);
+    const step=e.shiftKey ? .06 : .025;
+    const next=e.key==="Home"?min:e.key==="End"?max:current+(e.key==="ArrowRight"?step:-step);
     setWorkspaceSplit(next,{persist:true});
     e.preventDefault();
   });
@@ -666,11 +667,42 @@ document.addEventListener("keydown",e=>{
       return;
     }
   }
+
+  // Dialog-spezifische Power-Shortcuts.
+  if(dialog && (e.ctrlKey||e.metaKey) && !e.altKey && e.key==="Enter"){
+    if(dialog===els.relationshipDialog){
+      e.preventDefault();
+      applyRelationship();
+      return;
+    }
+    if(dialog===els.textDialog){
+      e.preventDefault();
+      applyTextFromDialog();
+      return;
+    }
+  }
+  if(dialog && e.key==="/" && !editableFocus && !e.ctrlKey && !e.metaKey && !e.altKey){
+    if(dialog===els.relationshipDialog && els.relationshipSearch){
+      e.preventDefault();
+      els.relationshipSearch.focus();
+      return;
+    }
+    if(dialog===els.helpDialog && els.helpSearch){
+      e.preventDefault();
+      els.helpSearch.focus();
+      return;
+    }
+  }
   if(dialog) return;
   const formFocus=editableFocus || tag==="button";
-  if((e.ctrlKey||e.metaKey) && !e.altKey && e.key.toLowerCase()==="z"){
+  if((e.ctrlKey||e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase()==="z"){
     e.preventDefault();
-    if(e.shiftKey) redo(); else undo();
+    undo();
+    return;
+  }
+  if((e.ctrlKey||e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase()==="y"){
+    e.preventDefault();
+    redo();
     return;
   }
   if(e.key==="Escape"){
@@ -681,6 +713,25 @@ document.addEventListener("keydown",e=>{
     if(changed){render();announce("Auswahl abgebrochen");}
     return;
   }
+  if(!formFocus && !e.ctrlKey && !e.metaKey && !e.altKey){
+    const key=e.key.toLocaleLowerCase("de");
+    if(key==="t"){
+      e.preventDefault();
+      if(state.settings.mode!=="bearbeiten") setMode("bearbeiten");
+      setTool("teilen");
+      return;
+    }
+    if(key==="v"){
+      e.preventDefault();
+      if(state.settings.mode!=="bearbeiten") setMode("bearbeiten");
+      setTool("verbinden");
+      return;
+    }
+    if(key==="?"){e.preventDefault();openHelpDialog();return;}
+    if(key==="p"){e.preventDefault();openProjectManager();return;}
+    if(key==="e"){e.preventDefault();openSettingsDialog();return;}
+    if(key==="d"){e.preventDefault();openStatusDetails();return;}
+  }
   if(e.code==="Space" && !formFocus){
     e.preventDefault();setMode(state.settings.mode==="bearbeiten"?"ansicht":"bearbeiten");return;
   }
@@ -688,9 +739,33 @@ document.addEventListener("keydown",e=>{
 document.addEventListener("keydown",e=>{
   const unit=e.target.closest && e.target.closest(".unit-chip,.unit-anchor");
   if(!unit) return;
-  if(e.key==="ArrowRight"||e.key==="ArrowDown"){e.preventDefault();moveFocusAmongUnits(unit,1);}
-  if(e.key==="ArrowLeft"||e.key==="ArrowUp"){e.preventDefault();moveFocusAmongUnits(unit,-1);}
+  if(e.key==="ArrowRight"||e.key==="ArrowDown"){e.preventDefault();moveFocusAmongUnits(unit,1);return;}
+  if(e.key==="ArrowLeft"||e.key==="ArrowUp"){e.preventDefault();moveFocusAmongUnits(unit,-1);return;}
+  if(e.key==="Home"||e.key==="End"){
+    const controls=$$(".unit-chip:not(:disabled),.unit-anchor:not(:disabled)",document).filter(el=>el.offsetParent!==null);
+    if(!controls.length) return;
+    e.preventDefault();
+    (e.key==="Home"?controls[0]:controls[controls.length-1]).focus();
+  }
 });
+
+if(els.relationshipList){
+  els.relationshipList.addEventListener("keydown",e=>{
+    const current=e.target.closest?.("[data-rel-id]");
+    if(!current) return;
+    if(!["ArrowUp","ArrowDown","Home","End"].includes(e.key)) return;
+    const choices=$$("[data-rel-id]:not(:disabled)",els.relationshipList).filter(el=>el.offsetParent!==null);
+    if(!choices.length) return;
+    const index=choices.indexOf(current);
+    let next=index;
+    if(e.key==="Home") next=0;
+    else if(e.key==="End") next=choices.length-1;
+    else if(e.key==="ArrowDown") next=Math.min(choices.length-1,index+1);
+    else if(e.key==="ArrowUp") next=Math.max(0,index-1);
+    e.preventDefault();
+    choices[Math.max(0,next)].focus();
+  });
+}
 
 els.relationshipDialog.addEventListener("close",()=>{
   activeRelationId=null;chosenRelationshipId=null;els.relationshipSearch.value="";

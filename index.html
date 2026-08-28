@@ -3,7 +3,7 @@
 README – Sensus Lab
 Start: Den gesamten Ordner zusammenhalten und index.html lokal in einem aktuellen Browser öffnen. Es gibt kein Backend und keine externen Bibliotheken.
 Struktur: HTML, CSS und JavaScript sind in lokale Dateien getrennt; die fünf JavaScript-Dateien werden in fester Reihenfolge geladen. Datenmodell: Ein zentraler Analysezustand enthält Titel, rawText, Tokens, Schnittstellen (cuts), Propositionen, rootIds und einen hierarchischen Knotenbaum. Die Klammeransicht wird ausschließlich aus diesem Baum gerendert und nutzt exklusive Tiefenbahnen sowie pixelgenaue Breite statt SVG-Skalierung, damit Verschachtelungen und Beschriftungen nicht überlappen.
-Tastatur: Strg/Cmd+Z = Rückgängig; Strg/Cmd+Umschalt+Z = Wiederholen; Entf/Backspace = ausgewählte Verbindung auflösen; Escape = Auswahl/Dialog abbrechen; Leertaste = Bearbeiten/Ansicht umschalten, sofern kein Formularfeld/Dialog fokussiert ist; Pfeiltasten bewegen zwischen sichtbaren Einheiten.
+Tastatur: Strg/Cmd+Z = Rückgängig; Strg/Cmd+Y = Wiederholen; T/V = Teilen/Verbinden; ? = Hilfe; Entf/Backspace = ausgewählte Verbindung auflösen; Escape = Auswahl/Dialog abbrechen; Leertaste = Bearbeiten/Ansicht umschalten; Pfeiltasten bewegen zwischen sichtbaren Einheiten.
 Export: JSON bleibt als editierbarer Analysezustand verfügbar. Der Bildexport erzeugt unabhängig von der Bedienoberfläche eine eigene, für statische Ausgabe optimierte Strukturgrafik.
 Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und logische Beziehungen werden bewusst durch die Benutzerin oder den Benutzer festgelegt.
 -->
@@ -25,14 +25,14 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
       <button class="seg-button" id="viewModeButton" type="button" aria-pressed="false">Ansicht</button>
     </div>
     <div class="toolbar-group tool-group" id="toolGroup" aria-label="Werkzeug">
-      <button class="seg-button" id="splitToolButton" type="button" aria-pressed="true">Teilen</button>
-      <button class="seg-button" id="connectToolButton" type="button" aria-pressed="false">Verbinden</button>
+      <button class="seg-button" id="splitToolButton" type="button" aria-pressed="true" title="Teilen (T)">Teilen</button>
+      <button class="seg-button" id="connectToolButton" type="button" aria-pressed="false" title="Verbinden (V)">Verbinden</button>
     </div>
     <button class="toolbar-button split-auto-button" id="autoSplitButton" type="button" title="Vor Konjunktionen und nach Punkten automatisch teilen">Auto teilen</button>
     <div class="topbar-spacer"></div>
     <div class="toolbar-group history-group" aria-label="Verlauf">
       <button class="toolbar-button icon-button" id="undoButton" type="button" title="Rückgängig (Strg/Cmd+Z)" aria-label="Rückgängig">↶</button>
-      <button class="toolbar-button icon-button" id="redoButton" type="button" title="Wiederholen (Strg/Cmd+Umschalt+Z)" aria-label="Wiederholen">↷</button>
+      <button class="toolbar-button icon-button" id="redoButton" type="button" title="Wiederholen (Strg/Cmd+Y)" aria-label="Wiederholen">↷</button>
     </div>
     <label class="extended-toggle" hidden><input id="extendedToggle" type="checkbox"> Erweiterte Beziehungen</label>
     <div class="project-menu-wrap" id="projectMenuWrap">
@@ -40,10 +40,10 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
         <span class="project-menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
       </button>
       <div class="project-menu" id="projectMenu" role="menu" hidden>
-        <button class="project-menu-entry" id="projectManagerButton" type="button" role="menuitem">Projekte</button>
-        <button class="project-menu-entry" id="settingsMenuButton" type="button" role="menuitem">Einstellungen</button>
+        <button class="project-menu-entry" id="projectManagerButton" type="button" role="menuitem" title="Projekte (P)">Projekte</button>
+        <button class="project-menu-entry" id="settingsMenuButton" type="button" role="menuitem" title="Einstellungen (E)">Einstellungen</button>
         <div class="project-menu-separator" role="separator"></div>
-        <button class="project-menu-entry" id="helpButton" type="button" role="menuitem">Hilfe</button>
+        <button class="project-menu-entry" id="helpButton" type="button" role="menuitem" title="Hilfe (?)">Hilfe</button>
         <button class="project-menu-entry" id="exportButton" type="button" role="menuitem">Bild exportieren</button>
         <button class="project-menu-entry" id="jsonExportButton" type="button" role="menuitem">JSON exportieren</button>
         <button class="project-menu-entry" id="importButton" type="button" role="menuitem">JSON importieren</button>
@@ -62,7 +62,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
     <span class="status-pill selection-status" id="selectionStatus" hidden></span>
     <div class="status-spacer"></div>
     <span class="status-pill save-status" id="saveStatus">Nicht gespeichert</span>
-    <button class="status-details-button" id="statusDetailsButton" type="button">Details</button>
+    <button class="status-details-button" id="statusDetailsButton" type="button" title="Statusdetails (D)">Details</button>
   </div>
   <div class="validation-strip" id="validationStrip" aria-live="polite"></div>
 </header>
@@ -206,6 +206,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
       <div class="help-layout">
         <nav class="help-nav" aria-label="Hilfethemen">
           <a href="#help-workflow" data-help-nav="help-workflow">Arbeitsablauf</a>
+          <a href="#help-nomenclature" data-help-nav="help-nomenclature">Nomenklatur</a>
           <a href="#help-segmentation" data-help-nav="help-segmentation">Text &amp; Teilen</a>
           <a href="#help-structure" data-help-nav="help-structure">Verbinden &amp; Anker</a>
           <a href="#help-relationships" data-help-nav="help-relationships">Beziehungen</a>
@@ -234,6 +235,61 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
               <summary>Was Sensus Lab nicht automatisch entscheidet</summary>
               <div class="help-detail-body">
                 <p>Die Software interpretiert weder Propositionen noch Beziehungen semantisch. Auto-Teilen ist nur eine Segmentierungshilfe. Beziehungstyp, Rollen, Richtung und Hauptpunkt werden aus deiner Auswahl abgeleitet.</p>
+              </div>
+            </details>
+          </section>
+
+          <section class="help-topic" id="help-nomenclature" data-help-keywords="nomenklatur begriffe proposition trennlinie anker klammer verbindung beziehung rolle rollenlabel kürzel hauptpunkt hauptlinie wurzel offene gruppe geschwister teilbaum strukturebene werkzeug validierung">
+            <h3>Nomenklatur</h3>
+            <p class="help-intro">Programmspezifische Begriffe, wie sie in Oberfläche, Status und Hilfe verwendet werden.</p>
+            <div class="help-reference help-terms">
+              <div class="help-reference-row"><strong>Proposition</strong><span>Ein durch Teilungsgrenzen abgegrenztes Textsegment. Propositionen sind die kleinsten Text-Einheiten des Strukturbaums.</span></div>
+              <div class="help-reference-row"><strong>Teilungsgrenze</strong><span>Stelle zwischen zwei Propositionen. Im Werkzeug <em>Teilen</em> kann sie gesetzt oder mit × wieder entfernt werden.</span></div>
+              <div class="help-reference-row"><strong>Einheit</strong><span>Ein Element, das verbunden werden kann: entweder eine einzelne Proposition oder eine bereits gebildete Klammer.</span></div>
+              <div class="help-reference-row"><strong>Anker</strong><span>Der kleine Kreis zum Erstellen einer neuen Verbindung. Er erscheint nur, wenn von dieser Einheit aus mindestens eine gültige neue Gruppierung möglich ist.</span></div>
+              <div class="help-reference-row"><strong>Klammer / Verbindung</strong><span>Eine Gruppe zusammenhängender Geschwistereinheiten. „Verbindung“ bezeichnet die Struktur; die zugewiesene semantische Klassifikation heißt <em>Beziehung</em>.</span></div>
+              <div class="help-reference-row"><strong>Beziehung</strong><span>Der fachliche Beziehungstyp einer Klammer, z. B. Begründung, Aussage–Erklärung oder Handlung–Zweck.</span></div>
+              <div class="help-reference-row"><strong>Beziehungskürzel</strong><span>Das farbige vertikale Kürzel im Graphen. Es bezeichnet den Beziehungstyp der Klammer.</span></div>
+              <div class="help-reference-row"><strong>Rolle / Rollenlabel</strong><span>Die Funktion eines Kindes innerhalb einer Beziehung, z. B. Grund, Folge oder Zweck. Im Graphen steht sie als graues horizontales Kürzel auf der Linie.</span></div>
+              <div class="help-reference-row"><strong>Hauptpunkt</strong><span>Das semantisch primäre Kind einer gerichteten Beziehung. Je nach Darstellung wird es durch eine dicke Hauptlinie oder durch ★ im Rollenlabel markiert.</span></div>
+              <div class="help-reference-row"><strong>Hauptlinie</strong><span>Die horizontale Linie zum Hauptpunkt. Mit der Einstellung „Hauptlinien dicker“ wird sie gegenüber den übrigen Linien verstärkt dargestellt.</span></div>
+              <div class="help-reference-row"><strong>Strukturebene</strong><span>Die Ebene gemeinsamer Geschwister im Baum. Neue Klammern können nur aus einem zusammenhängenden Bereich derselben Ebene gebildet werden.</span></div>
+              <div class="help-reference-row"><strong>Geschwister</strong><span>Einheiten mit derselben unmittelbaren Elternklammer; auf oberster Ebene sind die Wurzeln Geschwister.</span></div>
+              <div class="help-reference-row"><strong>Untergruppe</strong><span>Eine Klammer, die innerhalb einer größeren Klammer aus einem Teil ihrer Kinder gebildet wird.</span></div>
+              <div class="help-reference-row"><strong>Teilbaum</strong><span>Eine Klammer einschließlich aller darunter verschachtelten Beziehungen. „Teilbaum löschen“ entfernt alle Beziehungen in diesem Bereich, nicht den Text.</span></div>
+              <div class="help-reference-row"><strong>Wurzel</strong><span>Eine oberste Struktureinheit ohne Elternklammer. Eine abgeschlossene Gesamtanalyse besitzt genau eine Wurzel.</span></div>
+              <div class="help-reference-row"><strong>Offene Gruppe</strong><span>Eine bereits gebildete Klammer, der noch kein Beziehungstyp zugewiesen wurde. Sie gilt bis zur Zuweisung als unvollständig.</span></div>
+              <div class="help-reference-row"><strong>Graph</strong><span>Die linke Strukturzeichnung aus Klammern, Beziehungskürzeln, Rollenlabels und Linien.</span></div>
+              <div class="help-reference-row"><strong>Trennlinie</strong><span>Die verschiebbare vertikale Linie zwischen Graph und Propositionstext. Ihre Position wird pro Projekt gespeichert.</span></div>
+              <div class="help-reference-row"><strong>Beziehungsgruppe</strong><span>Farblich zusammengefasste Klasse von Beziehungstypen im Dialog „Beziehung wählen/ändern“, z. B. beiordnend oder unterordnend.</span></div>
+              <div class="help-reference-row"><strong>Bearbeiten / Ansicht</strong><span>Bearbeiten aktiviert Strukturinteraktionen; Ansicht zeigt dieselbe Analyse ohne Bearbeitungswerkzeuge.</span></div>
+              <div class="help-reference-row"><strong>Teilen / Verbinden</strong><span>Die beiden Bearbeitungswerkzeuge: Propositionen segmentieren bzw. Einheiten zu Klammern gruppieren.</span></div>
+              <div class="help-reference-row"><strong>Validierung</strong><span>Automatische Prüfung der strukturellen Konsistenz, z. B. Kinderzahl, Rollen, Richtung, offene Gruppen und Wurzelstruktur.</span></div>
+            </div>
+            <details class="help-detail" data-help-keywords="gui aktionen auto teilen beziehung wählen ändern konjunktion erweitert richtung umkehren offen lassen verbindung löschen teilbaum löschen statusdetails projekt analyse zurücksetzen export import">
+              <summary>Aktionsbegriffe im GUI</summary>
+              <div class="help-detail-body">
+                <div class="help-reference compact">
+                  <div class="help-reference-row"><strong>Auto teilen</strong><span>Heuristische Segmentierungshilfe: ergänzt Teilungsgrenzen vor erkannten Konjunktionen und nach Satzpunkten.</span></div>
+                  <div class="help-reference-row"><strong>Beziehung wählen/ändern</strong><span>Dialog zum Klassifizieren einer Klammer bzw. zum Ändern ihres vorhandenen Beziehungstyps.</span></div>
+                  <div class="help-reference-row"><strong>Konjunktionsfilter</strong><span>Grenzt die Beziehungsliste anhand eines ausgewählten Verbindungsworts ein; er trifft keine semantische Entscheidung.</span></div>
+                  <div class="help-reference-row"><strong>Erweiterte Beziehungen</strong><span>Blendet die optionalen zusätzlichen Beziehungstypen in der Beziehungsauswahl ein.</span></div>
+                  <div class="help-reference-row"><strong>Richtung umkehren</strong><span>Berechnet Rollen und Hauptpunkt einer gerichteten Beziehung so neu, als wären die beiden Seiten in umgekehrter Reihenfolge gewählt worden.</span></div>
+                  <div class="help-reference-row"><strong>Offen lassen</strong><span>Schließt den Beziehungsdialog, ohne der neu gebildeten Klammer einen Beziehungstyp zuzuweisen.</span></div>
+                  <div class="help-reference-row"><strong>Verbindung löschen</strong><span>Löst nur die ausgewählte Klammer auf; enthaltene Untergruppen bleiben erhalten.</span></div>
+                  <div class="help-reference-row"><strong>Teilbaum löschen</strong><span>Entfernt die ausgewählte Klammer und alle darunterliegenden Beziehungen; Propositionen und Text bleiben bestehen.</span></div>
+                  <div class="help-reference-row"><strong>Statusdetails</strong><span>Öffnet die vollständigen Validierungs- und Zustandsmeldungen der aktuellen Analyse.</span></div>
+                  <div class="help-reference-row"><strong>Projekt</strong><span>Eine lokal gespeicherte Analyse mit eigenem Text, Struktur sowie projektbezogenen UI-Metadaten wie Werkzeug und Trennlinienposition.</span></div>
+                  <div class="help-reference-row"><strong>Analyse zurücksetzen</strong><span>Leert Text, Segmentierung, Beziehungen und Analyseverlauf des aktuellen Projekts.</span></div>
+                  <div class="help-reference-row"><strong>Bild exportieren</strong><span>Erzeugt eine eigenständige Publikationsgrafik der aktuellen Analyse.</span></div>
+                  <div class="help-reference-row"><strong>JSON exportieren/importieren</strong><span>Speichert bzw. lädt den editierbaren Analysezustand für Austausch und Sicherung.</span></div>
+                </div>
+              </div>
+            </details>
+            <details class="help-detail" data-help-keywords="struktur baum eltern kind geschwister wurzel teilbaum begriffe">
+              <summary>Baumbegriffe im Zusammenhang</summary>
+              <div class="help-detail-body">
+                <p>Eine Proposition kann Kind einer Klammer sein. Eine Klammer kann wiederum Kind einer äußeren Klammer werden. Einheiten mit demselben Elternknoten sind Geschwister. Der gesamte erreichbare Bereich unter einer Klammer ist ihr Teilbaum; oberste Einheiten ohne Elternknoten heißen Wurzeln.</p>
               </div>
             </details>
           </section>
@@ -375,16 +431,30 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
             </details>
           </section>
 
-          <section class="help-topic" id="help-keyboard" data-help-keywords="tastatur shortcut shortcuts ctrl cmd z delete backspace escape space pfeile tab">
+          <section class="help-topic" id="help-keyboard" data-help-keywords="tastatur shortcut shortcuts ctrl cmd y z delete backspace escape space pfeile tab teilen verbinden projekte einstellungen hilfe status suche enter home end">
             <h3>Tastatur &amp; schnelle Bedienung</h3>
+            <p class="help-intro">Shortcuts greifen nur dort, wo sie keine Texteingabe überschreiben. In Eingabefeldern bleiben normale Browser- und Texteingabefunktionen erhalten.</p>
             <div class="help-shortcuts">
-              <div><kbd>Ctrl/Cmd</kbd> + <kbd>Z</kbd><span>Rückgängig</span></div>
-              <div><kbd>Ctrl/Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd><span>Wiederholen</span></div>
-              <div><kbd>Entf</kbd> / <kbd>Backspace</kbd><span>Ausgewählte Verbindung löschen; in Formularfeldern wird Backspace nicht abgefangen.</span></div>
-              <div><kbd>Esc</kbd><span>Auswahl bzw. offenes Burger-Menü abbrechen; Dialoge lassen sich ebenfalls mit Escape schließen.</span></div>
-              <div><kbd>Leertaste</kbd><span>Zwischen Bearbeiten und Ansicht wechseln, sofern kein Formularfeld oder Button fokussiert ist.</span></div>
-              <div><kbd>← ↑ → ↓</kbd><span>Zwischen fokussierbaren Verbindungsankern wechseln.</span></div>
-              <div><kbd>←</kbd> / <kbd>→</kbd><span>Bei fokussierter Trennlinie Struktur-/Textbreite ändern.</span></div>
+              <div><span class="help-keycombo"><kbd>Ctrl/Cmd</kbd><span>+</span><kbd>Z</kbd></span><span>Rückgängig</span></div>
+              <div><span class="help-keycombo"><kbd>Ctrl/Cmd</kbd><span>+</span><kbd>Y</kbd></span><span>Wiederholen</span></div>
+              <div><span class="help-keycombo"><kbd>Leertaste</kbd></span><span>Zwischen <strong>Bearbeiten</strong> und <strong>Ansicht</strong> wechseln.</span></div>
+              <div><span class="help-keycombo"><kbd>T</kbd></span><span>Bearbeiten aktivieren und Werkzeug <strong>Teilen</strong> wählen.</span></div>
+              <div><span class="help-keycombo"><kbd>V</kbd></span><span>Bearbeiten aktivieren und Werkzeug <strong>Verbinden</strong> wählen.</span></div>
+              <div><span class="help-keycombo"><kbd>?</kbd></span><span>Hilfe öffnen und Suche fokussieren.</span></div>
+              <div><span class="help-keycombo"><kbd>P</kbd></span><span>Projektverwaltung öffnen.</span></div>
+              <div><span class="help-keycombo"><kbd>E</kbd></span><span>Einstellungen öffnen.</span></div>
+              <div><span class="help-keycombo"><kbd>D</kbd></span><span>Statusdetails öffnen.</span></div>
+              <div><span class="help-keycombo"><kbd>Ctrl/Cmd</kbd><span>+</span><kbd>Enter</kbd></span><span>Im Text- oder Beziehungsdialog die aktuelle Auswahl übernehmen.</span></div>
+              <div><span class="help-keycombo"><kbd>/</kbd></span><span>Im Hilfe- oder Beziehungsdialog direkt das jeweilige Suchfeld fokussieren.</span></div>
+              <div><span class="help-keycombo"><kbd>Entf</kbd><span class="help-key-or">oder</span><kbd>Backspace</kbd></span><span>Ausgewählte Verbindung auflösen. In Formularfeldern wird Backspace nicht abgefangen.</span></div>
+              <div><span class="help-keycombo"><kbd>Esc</kbd></span><span>Aktuelle Auswahl bzw. Burger-Menü abbrechen; offene Dialoge schließen.</span></div>
+              <div><span class="help-keycombo"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd></span><span>Zwischen fokussierbaren Verbindungsankern wechseln.</span></div>
+              <div><span class="help-keycombo"><kbd>Home</kbd><span class="help-key-or">/</span><kbd>End</kbd></span><span>Bei einem fokussierten Anker zum ersten bzw. letzten verfügbaren Anker springen.</span></div>
+              <div><span class="help-keycombo"><kbd>↑</kbd><span class="help-key-or">/</span><kbd>↓</kbd></span><span>Im Beziehungsdialog zwischen verfügbaren Beziehungstypen wechseln; <kbd>Home</kbd>/<kbd>End</kbd> springt an Anfang/Ende.</span></div>
+              <div><span class="help-keycombo"><kbd>←</kbd><span class="help-key-or">/</span><kbd>→</kbd></span><span>Bei fokussierter Trennlinie die Struktur-/Textbreite fein ändern.</span></div>
+              <div><span class="help-keycombo"><kbd>Shift</kbd><span>+</span><kbd>←</kbd><span class="help-key-or">/</span><kbd>→</kbd></span><span>Trennlinie in größeren Schritten verschieben; <kbd>Home</kbd>/<kbd>End</kbd> setzt sie an die zulässigen Grenzen.</span></div>
+              <div><span class="help-keycombo"><kbd>Tab</kbd><span class="help-key-or">/</span><kbd>Shift</kbd><span>+</span><kbd>Tab</kbd></span><span>Zwischen Bedienelementen wechseln. In Dialogen bleibt der Fokus innerhalb des Dialogs.</span></div>
+              <div><span class="help-keycombo"><kbd>Enter</kbd><span class="help-key-or">/</span><kbd>Leertaste</kbd></span><span>Fokussierte Buttons, Anker und Beziehungseinträge aktivieren.</span></div>
             </div>
             <details class="help-detail" data-help-keywords="undo verlauf was rückgängig projekt löschen darstellung">
               <summary>Was im Undo-Verlauf liegt</summary>

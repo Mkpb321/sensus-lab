@@ -278,7 +278,11 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .help-detail-body{padding:0 0 10px;max-width:780px}
 .help-detail-body p:last-child{margin-bottom:0}
 .help-shortcuts{border-top:1px solid #e7eaed}
-.help-shortcuts>div{display:grid;grid-template-columns:188px minmax(0,1fr);gap:12px;padding:7px 0;border-bottom:1px solid #edf0f2;font-size:11.5px;line-height:1.42;color:#56626e}
+.help-shortcuts>div{display:grid;grid-template-columns:minmax(210px,250px) minmax(0,1fr);gap:16px;align-items:center;padding:7px 0;border-bottom:1px solid #edf0f2;font-size:11.5px;line-height:1.42;color:#56626e}
+.help-keycombo{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;color:#77828d;font-size:10px}
+.help-keycombo kbd{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:23px;padding:0 7px;border:1px solid #cfd6dc;border-bottom-color:#bcc5cd;border-radius:4px;background:#fafbfc;color:#34404b;font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;box-shadow:0 1px 0 rgba(16,24,40,.04)}
+.help-key-or{font-size:9.5px;color:#8b959e}
+.help-terms .help-reference-row{grid-template-columns:165px minmax(0,1fr)}
 kbd{display:inline-block;min-width:20px;padding:1px 5px;border:1px solid #cfd6dc;border-bottom-color:#b8c1c9;border-radius:3px;background:#fafbfb;color:#34404b;font:600 10px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-align:center;box-shadow:0 1px 0 rgba(15,23,32,.04)}
 .help-no-results{padding:32px 0;font-size:12px;color:#7a8590}
 .help-dialog-foot{justify-content:flex-end}
@@ -332,6 +336,7 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] .diagram-relation-label .dia
   .help-layout{grid-template-columns:1fr}
   .help-nav{display:none}
   .help-content{padding:0 14px 20px}
+  .help-shortcuts>div{grid-template-columns:1fr;gap:5px}
 }
 @media (max-width:620px){
   dialog{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}
