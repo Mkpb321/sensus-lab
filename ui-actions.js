@@ -500,9 +500,10 @@ function relationSuggestionSignalPattern(label){
   const pieces=raw.split(/\s*…\s*/u).filter(Boolean);
   const body=pieces.map(phrasePart).join("[\\s\\S]{0,100}?");
   // Vorschläge zählen nur dann, wenn die Konjunktion das erste lexikalische Wort
-  // der maßgeblichen Proposition bildet. Führende Anführungs-/Klammerzeichen sind
-  // erlaubt; ein Signalwort später im Satz wird bewusst ignoriert.
-  try{return new RegExp(`^[\\s“”„\"'’‘([{—–-]*(${body})(?=$|[^\\p{L}\\p{N}])`,"iu");}catch(_){return null;}
+  // der maßgeblichen Proposition bildet. Sämtliche führenden Nicht-Wortzeichen
+  // (Leerraum, Komma, Semikolon, Doppelpunkt, Anführungszeichen, Klammern usw.)
+  // werden ignoriert; nach einem bereits gelesenen Wort zählt das Signal nicht.
+  try{return new RegExp(`^[^\\p{L}\\p{N}]*(${body})(?=$|[^\\p{L}\\p{N}])`,"iu");}catch(_){return null;}
 }
 function relationSuggestionOccurrenceAtStart(text,label){
   const pattern=relationSuggestionSignalPattern(label);
@@ -533,7 +534,10 @@ function relationSuggestionAxisPropositionId(nodeId,memo=new Map(),stack=new Set
   // aus Nebenästen oder späteren internen Koordinationsgliedern nicht nach außen
   // als Beziehungssignal hochgereicht.
   const primary=(node.primaryChildIds||[]).filter(id=>(node.children||[]).includes(id));
-  const candidates=(primary.length?primary:(node.relationshipId==null?[]:(node.children||[])))
+  // Eine offene Untergruppe hat noch keine definierte Hauptachse. In diesem Fall
+  // wird als neutraler Fallback ihre erste Proposition in Textreihenfolge benutzt,
+  // statt den Unterbaum vollständig von Vorschlägen auszuschließen.
+  const candidates=(primary.length?primary:(node.children||[]))
     .slice()
     .sort((a,b)=>{
       const sa=nodeSpan(a),sb=nodeSpan(b);
@@ -594,26 +598,17 @@ function relationshipSuggestionsForNode(node){
 
   for(const hit of detected){
     const entry=hit.entry;
-    const ambiguity=Math.max(1,entry.relations.length);
-    // Die Intensität beschreibt weiterhin nur die Eindeutigkeit/Häufung der
-    // Konjunktionszuordnung in derselben Tabelle wie der manuelle Filter.
-    const contribution=1/ambiguity;
+    // Keine Gewichtung: Jede Beziehung, die der bestehende Konjunktionsfilter
+    // für das erkannte Startsignal nennt, wird gleichwertig als Möglichkeit markiert.
     for(const relationId of entry.relations){
       if(!RELATIONSHIPS[relationId]) continue;
-      const current=suggestions.get(relationId)||{score:0,signals:new Set(),sources:new Set()};
-      current.score+=contribution;
+      const current=suggestions.get(relationId)||{signals:new Set(),sources:new Set()};
       current.signals.add(entry.label);
       current.sources.add(hit.sourceLabel);
       suggestions.set(relationId,current);
     }
   }
 
-  const maxScore=Math.max(0,...[...suggestions.values()].map(item=>item.score));
-  for(const item of suggestions.values()){
-    const normalized=maxScore>0?item.score/maxScore:0;
-    item.colorStrength=0.055+normalized*0.19;
-    item.hoverColorStrength=Math.min(.30,item.colorStrength+.04);
-  }
   return suggestions;
 }
 function relationshipEntriesForDialog(){
@@ -659,10 +654,9 @@ function renderRelationshipDialog(){
       const relStrongColor=relationshipStrongColor(rel,id);
       const suggestionSignals=suggestion?[...suggestion.signals].slice(0,3):[];
       const suggestionSources=suggestion?[...suggestion.sources]:[];
-      const suggestionLabel=suggestionSignals.length?`Vorschlag · ${suggestionSignals.join(" · ")}`:"";
-      const suggestionTitle=suggestion?`Konjunktionsvorschlag: ${suggestionSignals.join(", ")}${suggestionSources.length?` (${suggestionSources.join(", ")})`:""}`:"";
-      const suggestionStyle=suggestion?`;--suggestion-alpha:${suggestion.colorStrength.toFixed(3)};--suggestion-hover-alpha:${suggestion.hoverColorStrength.toFixed(3)}`:"";
-      html.push(`<button type="button" class="rel-card${selected}${suggested}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}"${suggestionTitle?` title="${escapeHtml(suggestionTitle)}"`:""} style="--rel-color:${relColor};--rel-strong:${relStrongColor}${suggestionStyle}">
+      const suggestionLabel=suggestionSignals.length?`Möglich · ${suggestionSignals.join(" · ")}`:"";
+      const suggestionTitle=suggestion?`Mögliche Beziehung durch Startkonjunktion: ${suggestionSignals.join(", ")}${suggestionSources.length?` (${suggestionSources.join(", ")})`:""}`:"";
+      html.push(`<button type="button" class="rel-card${selected}${suggested}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}"${suggestionTitle?` title="${escapeHtml(suggestionTitle)}"`:""} style="--rel-color:${relColor};--rel-strong:${relStrongColor}">
         <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
         <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}${suggestionLabel?` <span class="rel-suggestion">${escapeHtml(suggestionLabel)}</span>`:""}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
         <span class="cardinality">${escapeHtml(cardinalityText(rel))}</span>
