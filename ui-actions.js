@@ -65,8 +65,15 @@ function computeAdaptiveBracketGeometry(data){
   const cumulative=Array(maxDepth+1).fill(0);
   for(let d=1;d<=maxDepth;d++) cumulative[d]=cumulative[d-1]+laneWidths[d];
   const outerHalf=relationThicknessByDepth[maxDepth]/2;
-  const leftGutter=Math.ceil(Math.max(10,outerHalf+5));
-  const rightGutter=2;
+  // Die Mindestbreite berücksichtigt nicht nur sichtbare Linien/Labels, sondern
+  // auch den 16-px-Hit-Stroke sowie ggf. die 14-px-Verbindungsanker. So kann die
+  // Bracket-Spalte bis an ihr echtes Minimum verkleinert werden, ohne dass durch
+  // SVG-Overflow ein horizontaler Scrollbalken entsteht.
+  const connectionAnchorsActive=state.settings.mode==="bearbeiten" && activeTool==="verbinden";
+  const maxRelationHalf=Math.max(0,...relationThicknessByDepth)/2;
+  const anchorLeftNeed=connectionAnchorsActive?Math.max(30,maxRelationHalf+22):0;
+  const leftGutter=Math.ceil(Math.max(10,outerHalf+5,anchorLeftNeed));
+  const rightGutter=9;
   const needed=leftGutter+rightGutter+cumulative[maxDepth]+3;
 
   return {
@@ -890,8 +897,7 @@ function setBibleArcing(enabled){
   announce(next?"Bibelarcing wird rechts vom Text angezeigt.":"Bibelarcing ist ausgeblendet.");
 }
 function bibleArcSplitBounds(){
-  const rect=els.centerAnalysisBody?.getBoundingClientRect();
-  const width=Math.max(1,rect?.width||0);
+  const width=Math.max(1,els.centerColumn?.clientWidth||els.centerAnalysisBody?.clientWidth||0);
   // Der Textbereich darf stark schrumpfen, braucht aber noch eine kleine sinnvolle
   // Arbeitsbreite. Die Arc-Seite stoppt wie bei den Brackets erst dann, wenn die
   // aktuell benötigte Arc-Geometrie sonst nicht mehr vollständig hineinpassen würde.
@@ -914,12 +920,17 @@ function applyBibleArcSplit(){
   if(!enabled) return;
   const project=activeProject();
   const split=clampBibleArcSplit(project?.bibleArcSplit);
-  els.centerColumn.style.setProperty("--biblearc-split",`${(split*100).toFixed(2)}%`);
+  const width=Math.max(1,els.centerColumn.clientWidth||1);
+  // Ganze CSS-Pixel verhindern, dass eine nominell 1 px breite Linie beim Ziehen
+  // auf einer Subpixel-Grenze über zwei Pixel antialiasiert und dadurch dicker wirkt.
+  const splitPx=Math.max(0,Math.min(width,Math.round(split*width)));
+  const renderedSplit=splitPx/width;
+  els.centerColumn.style.setProperty("--biblearc-split",`${splitPx}px`);
   if(els.bibleArcDivider){
     const {min,max}=bibleArcSplitBounds();
     els.bibleArcDivider.setAttribute("aria-valuemin",String(Math.round(min*100)));
     els.bibleArcDivider.setAttribute("aria-valuemax",String(Math.round(max*100)));
-    els.bibleArcDivider.setAttribute("aria-valuenow",String(Math.round(split*100)));
+    els.bibleArcDivider.setAttribute("aria-valuenow",String(Math.round(renderedSplit*100)));
   }
 }
 function setBibleArcSplit(split,{persist=false}={}){
@@ -935,14 +946,13 @@ function setBibleArcSplit(split,{persist=false}={}){
   }
 }
 function workspaceSplitBounds(){
-  const rect=els.canvasGrid?.getBoundingClientRect();
-  const width=Math.max(1,rect?.width||0);
+  const width=Math.max(1,els.canvasGrid?.clientWidth||0);
   const graphNeeded=Math.max(42,Number(els.bracketSvg?.dataset.minWidth)||42);
   // Propositionstext darf stark umbrechen; nur eine kleine arbeitsfähige Restbreite
   // bleibt reserviert. Die Graph-Seite stoppt dagegen erst an ihrer real benötigten
   // Geometriebreite statt an einem pauschalen Prozentwert.
   const textNeeded=Math.min(180,Math.max(120,width*.14));
-  const min=Math.max(.03,Math.min(.82,(graphNeeded+4)/width));
+  const min=Math.max(.03,Math.min(.82,(graphNeeded+6)/width));
   const max=Math.min(.97,Math.max(min,1-(textNeeded+2)/width));
   return {min,max};
 }
@@ -955,12 +965,15 @@ function applyWorkspaceSplit(){
   if(!els.canvasGrid) return;
   const project=activeProject();
   const split=clampWorkspaceSplit(project?.workspaceSplit);
-  els.canvasGrid.style.setProperty("--workspace-split",`${(split*100).toFixed(2)}%`);
+  const width=Math.max(1,els.canvasGrid.clientWidth||1);
+  const splitPx=Math.max(0,Math.min(width,Math.round(split*width)));
+  const renderedSplit=splitPx/width;
+  els.canvasGrid.style.setProperty("--workspace-split",`${splitPx}px`);
   if(els.workspaceDivider){
     const {min,max}=workspaceSplitBounds();
     els.workspaceDivider.setAttribute("aria-valuemin",String(Math.round(min*100)));
     els.workspaceDivider.setAttribute("aria-valuemax",String(Math.round(max*100)));
-    els.workspaceDivider.setAttribute("aria-valuenow",String(Math.round(split*100)));
+    els.workspaceDivider.setAttribute("aria-valuenow",String(Math.round(renderedSplit*100)));
   }
 }
 function setWorkspaceSplit(split,{persist=false}={}){

@@ -617,9 +617,12 @@ els.projectList.addEventListener("click",e=>{
 
 let workspaceDividerDrag=null;
 function workspaceSplitFromClientX(clientX){
-  const rect=els.canvasGrid?.getBoundingClientRect();
-  if(!rect || rect.width<=0) return null;
-  return clampWorkspaceSplit((clientX-rect.left)/rect.width);
+  const el=els.canvasGrid;
+  const rect=el?.getBoundingClientRect();
+  const width=el?.clientWidth||0;
+  if(!rect || width<=0) return null;
+  const contentLeft=rect.left+(el.clientLeft||0);
+  return clampWorkspaceSplit((clientX-contentLeft)/width);
 }
 if(els.workspaceDivider){
   els.workspaceDivider.addEventListener("pointerdown",e=>{
@@ -659,9 +662,12 @@ if(els.workspaceDivider){
 
 let bibleArcDividerDrag=null;
 function bibleArcSplitFromClientX(clientX){
-  const rect=els.centerAnalysisBody?.getBoundingClientRect();
-  if(!rect || rect.width<=0) return null;
-  return clampBibleArcSplit((clientX-rect.left)/rect.width);
+  const el=els.centerColumn;
+  const rect=el?.getBoundingClientRect();
+  const width=el?.clientWidth||0;
+  if(!rect || width<=0) return null;
+  const contentLeft=rect.left+(el.clientLeft||0);
+  return clampBibleArcSplit((clientX-contentLeft)/width);
 }
 if(els.bibleArcDivider){
   els.bibleArcDivider.addEventListener("pointerdown",e=>{
