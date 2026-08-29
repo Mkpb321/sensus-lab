@@ -617,11 +617,13 @@ function relationshipSuggestionsForNode(node){
   }
   if(childTexts.some(item=>/:\s*$/u.test(item.text.trim()))) add("aussage_erklaerung",4,"Doppelpunkt");
 
-  // Nur belastbare Kandidaten zeigen. Ab 10 Punkten wird die Hervorhebung als
-  // stark gekennzeichnet; darunter bleibt sie ein plausibler Vorschlag.
+  // Nur belastbare Kandidaten zeigen. Die sichtbare Stärke wird anschließend
+  // stufenlos aus dem Regel-Score abgeleitet statt in nur zwei Klassen geteilt.
   for(const [id,item] of [...suggestions]){
     if(item.score<6){suggestions.delete(id);continue;}
-    item.strength=item.score>=10?"strong":"plausible";
+    const normalized=Math.max(0,Math.min(1,(item.score-6)/16));
+    item.colorStrength=0.055+normalized*0.225;
+    item.hoverColorStrength=Math.min(.34,item.colorStrength+.045);
   }
   return suggestions;
 }
@@ -663,14 +665,15 @@ function renderRelationshipDialog(){
       const ok=cardinalityOk(rel,node.children.length);
       const suggestion=ok?suggestions.get(id):null;
       const selected=chosenRelationshipId===id?" selected":"";
-      const suggested=suggestion?` suggested suggestion-${suggestion.strength||"plausible"}`:"";
+      const suggested=suggestion?" suggested":"";
       const relColor=relationshipColor(rel,id);
       const relStrongColor=relationshipStrongColor(rel,id);
       const suggestionSignals=suggestion?[...suggestion.signals].slice(0,3):[];
       const suggestionSources=suggestion?[...suggestion.sources]:[];
-      const suggestionLabel=suggestionSignals.length?`${suggestion?.strength==="strong"?"Stark":"Vorschlag"} · ${suggestionSignals.join(" · ")}`:"";
-      const suggestionTitle=suggestion?`${suggestion.strength==="strong"?"Starker":"Plausibler"} regelbasierter Vorschlag: ${suggestionSignals.join(", ")}${suggestionSources.length?` (${suggestionSources.join(", ")})`:""}`:"";
-      html.push(`<button type="button" class="rel-card${selected}${suggested}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}"${suggestionTitle?` title="${escapeHtml(suggestionTitle)}"`:""} style="--rel-color:${relColor};--rel-strong:${relStrongColor}">
+      const suggestionLabel=suggestionSignals.length?`Vorschlag · ${suggestionSignals.join(" · ")}`:"";
+      const suggestionTitle=suggestion?`Regelbasierter Vorschlag: ${suggestionSignals.join(", ")}${suggestionSources.length?` (${suggestionSources.join(", ")})`:""}`:"";
+      const suggestionStyle=suggestion?`;--suggestion-alpha:${suggestion.colorStrength.toFixed(3)};--suggestion-hover-alpha:${suggestion.hoverColorStrength.toFixed(3)}`:"";
+      html.push(`<button type="button" class="rel-card${selected}${suggested}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}"${suggestionTitle?` title="${escapeHtml(suggestionTitle)}"`:""} style="--rel-color:${relColor};--rel-strong:${relStrongColor}${suggestionStyle}">
         <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
         <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}${suggestionLabel?` <span class="rel-suggestion">${escapeHtml(suggestionLabel)}</span>`:""}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
         <span class="cardinality">${escapeHtml(cardinalityText(rel))}</span>
