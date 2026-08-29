@@ -717,12 +717,17 @@ function chooseRelationshipForDialog(id){
   renderRelationshipDetails();
   return true;
 }
-function renderRelationshipDetails(){
+function renderRelationshipDetails(previewRelationshipId=null){
   const node=getNode(activeRelationId);
   if(!node || node.kind!=="relation") return;
   const current=RELATIONSHIPS[node.relationshipId];
-  const rel=RELATIONSHIPS[chosenRelationshipId];
-  const handlungErgebnisSetting=rel && chosenRelationshipId==="handlung_ergebnis" ? `
+  const detailRelationshipId=previewRelationshipId && RELATIONSHIPS[previewRelationshipId]
+    ? previewRelationshipId
+    : chosenRelationshipId;
+  const rel=RELATIONSHIPS[detailRelationshipId];
+  // Mouseover ist reine Vorschau. Interaktive Beziehungseinstellungen werden nur
+  // für die tatsächlich gewählte Beziehung angeboten, nicht für eine Hover-Vorschau.
+  const handlungErgebnisSetting=rel && detailRelationshipId===chosenRelationshipId && chosenRelationshipId==="handlung_ergebnis" ? `
         <dt>Hauptpunkt</dt><dd>
           <div class="rel-setting">
             <div class="rel-setting-options">
@@ -732,13 +737,14 @@ function renderRelationshipDetails(){
             <div class="rel-setting-help">Bestimmt, welcher Teil der Hauptpunkt ist – also an welchem Teil der Anker sitzt und die Linie weitergeführt wird.</div>
           </div>
         </dd>` : "";
+  els.relationshipDetails.dataset.previewRelId=previewRelationshipId||"";
   els.relationshipDetails.innerHTML=`
     <div class="rel-current"><strong>Gruppe:</strong> ${escapeHtml(nodeLabel(node.id))}<br>
       ${current?`Aktuell: ${escapeHtml(current.label)}`:"Aktuell: offen"}<br>
       <span class="small-note">${escapeHtml(relationRoleSummary(node))}</span>
     </div>
     ${rel?`<h3>${escapeHtml(rel.label)}${rel.biblearcLabel?` <span class="rel-original">(${escapeHtml(rel.biblearcLabel)})</span>`:""}</h3>
-      <div class="rel-meta"><span class="rel-color-chip" style="--chip-color:${relationshipColor(rel,chosenRelationshipId)}"></span>${escapeHtml(CATEGORY_LABELS[rel.category])} · ${escapeHtml(cardinalityText(rel))}</div>
+      <div class="rel-meta"><span class="rel-color-chip" style="--chip-color:${relationshipColor(rel,detailRelationshipId)}"></span>${escapeHtml(CATEGORY_LABELS[rel.category])} · ${escapeHtml(cardinalityText(rel))}</div>
       <dl>
         <dt>Definition</dt><dd>${escapeHtml(rel.definition)}</dd>
         <dt>Alltagsbeispiel</dt><dd class="rel-example">${escapeHtml(EVERYDAY_EXAMPLES[chosenRelationshipId]||"—")}</dd>

@@ -780,6 +780,17 @@ els.conjunctionLookupSelect.addEventListener("change",e=>{
   renderRelationshipDialog();
 });
 els.dialogExtendedToggle.addEventListener("change",e=>setExtended(e.target.checked));
+els.relationshipList.addEventListener("pointermove",e=>{
+  const card=e.target.closest("[data-rel-id]");
+  const previewId=card && !card.disabled ? card.dataset.relId : null;
+  const currentPreview=els.relationshipDetails.dataset.previewRelId||null;
+  if(currentPreview===previewId) return;
+  renderRelationshipDetails(previewId);
+});
+els.relationshipList.addEventListener("pointerleave",()=>{
+  if(!(els.relationshipDetails.dataset.previewRelId||"")) return;
+  renderRelationshipDetails();
+});
 els.relationshipList.addEventListener("click",e=>{
   const card=e.target.closest("[data-rel-id]");
   if(!card || card.disabled) return;
