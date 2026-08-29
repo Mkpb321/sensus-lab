@@ -180,7 +180,8 @@ dialog::backdrop{background:rgba(22,30,38,.43)}
 .dialog-foot .left-actions{margin-right:auto;display:flex;gap:5px;flex-wrap:nowrap;white-space:nowrap}
 textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line-strong);border-radius:5px;padding:9px 10px;line-height:1.5;color:var(--ink);background:#fff}
 .summary-input{min-height:78px}
-.summary-input + .field-label,.text-input + .field-label{margin-top:14px}
+.notes-input{min-height:92px}
+.summary-input + .field-label,.notes-input + .field-label,.text-input + .field-label{margin-top:14px}
 .field-label{display:block;font-weight:620;font-size:11.5px;margin-bottom:5px;color:#4b5661}
 .field-label .mini{font-size:10.5px;font-weight:400;color:var(--muted-2)}
 .text-input{width:100%;min-height:34px;border:1px solid var(--line-strong);border-radius:5px;padding:6px 9px;color:var(--ink);background:#fff}

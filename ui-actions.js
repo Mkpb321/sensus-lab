@@ -458,6 +458,7 @@ function openTextDialog(){
   els.textDialogTitle.textContent=state.rawText?"Text bearbeiten":"Text einfügen";
   els.textTitleInput.value=state.title||"";
   els.mainPointSummaryInput.value=state.mainPointSummary||"";
+  els.notesInput.value=state.notes||"";
   els.rawTextInput.value=state.rawText||"";
   els.applyTextButton.textContent=state.rawText?"Text übernehmen":"Analyse starten";
   els.applyTextButton.disabled=!els.rawTextInput.value.trim();
@@ -470,21 +471,31 @@ function openTextDialog(){
 function applyTextFromDialog(){
   const title=String(els.textTitleInput.value||"").trim();
   const mainPointSummary=String(els.mainPointSummaryInput.value||"").trim();
+  const notes=String(els.notesInput.value||"").trim();
   const raw=normalizeRawText(els.rawTextInput.value);
   if(!raw.trim()){announce("Bitte zuerst eigenen Text einfügen.");return;}
   const textChanged=raw!==state.rawText;
   const titleChanged=title!==(state.title||"");
   const summaryChanged=mainPointSummary!==(state.mainPointSummary||"");
-  if(!textChanged && !titleChanged && !summaryChanged){closeDialog(els.textDialog);return;}
+  const notesChanged=notes!==(state.notes||"");
+  if(!textChanged && !titleChanged && !summaryChanged && !notesChanged){closeDialog(els.textDialog);return;}
   if(textChanged){
     const hasAnalysisWork=state.propositions.length>1 || hasRelations();
     if(hasAnalysisWork && !confirm("Das Ändern des Textes setzt die Segmentierung auf eine Proposition zurück und löscht vorhandene Beziehungen. Fortfahren?")) return;
     selectionStartId=null;
     selectedRelationId=null;
     activeTool="teilen";
-    performAction(state.rawText?"Text geändert":"Text übernommen",()=>initializeText(raw,title,mainPointSummary));
+    performAction(state.rawText?"Text geändert":"Text übernommen",()=>initializeText(raw,title,mainPointSummary,notes));
   }else{
-    performAction(titleChanged && summaryChanged?"Titel und Hauptaussage geändert":titleChanged?"Titel geändert":"Hauptaussage geändert",()=>{state.title=title;state.mainPointSummary=mainPointSummary;});
+    const changedLabels=[];
+    if(titleChanged) changedLabels.push("Titel");
+    if(summaryChanged) changedLabels.push("Hauptaussage");
+    if(notesChanged) changedLabels.push("Notizen");
+    performAction(`${changedLabels.join(", ")} geändert`,()=>{
+      state.title=title;
+      state.mainPointSummary=mainPointSummary;
+      state.notes=notes;
+    });
   }
   closeDialog(els.textDialog);
 }

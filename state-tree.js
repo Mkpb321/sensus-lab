@@ -37,9 +37,10 @@ function rebuildPropositions(options={}){
   state.nodesById={...relationNodes,...propNodes};
   return newProps;
 }
-function initializeText(raw,title=state.title||"",mainPointSummary=state.mainPointSummary||""){
+function initializeText(raw,title=state.title||"",mainPointSummary=state.mainPointSummary||"",notes=state.notes||""){
   state.title=String(title||"").trim();
   state.mainPointSummary=String(mainPointSummary||"").trim();
+  state.notes=String(notes||"").trim();
   state.rawText=raw;
   state.tokens=tokenize(raw);
   const first=firstContentToken(state.tokens);
@@ -59,6 +60,7 @@ function resetRelationsKeepSegmentation(){
 function assertSafeStateShape(s){
   if(typeof s.title!=="string") throw new Error("Ungültiger Zustand: Titel muss Text sein.");
   if(typeof s.mainPointSummary!=="string") throw new Error("Ungültiger Zustand: Hauptaussage muss Text sein.");
+  if(typeof s.notes!=="string") throw new Error("Ungültiger Zustand: Notizen müssen Text sein.");
   if(typeof s.rawText!=="string") throw new Error("Ungültiger Zustand: rawText muss Text sein.");
   if(!Array.isArray(s.tokens) || s.tokens.some(t=>typeof t!=="string")) throw new Error("Ungültiger Zustand: Tokenliste fehlt oder ist beschädigt.");
   if(s.tokens.join("")!==s.rawText) throw new Error("Ungültiger Zustand: Tokenisierung passt nicht zum Text.");
@@ -158,6 +160,7 @@ function hydrateState(raw){
   s.settings={...defaultSettings(),...(s.settings||{})};
   s.title=typeof s.title==="string"?s.title:"";
   s.mainPointSummary=typeof s.mainPointSummary==="string"?s.mainPointSummary:"";
+  s.notes=typeof s.notes==="string"?s.notes:"";
   s.rawText=typeof s.rawText==="string"?s.rawText:"";
   s.tokens=Array.isArray(s.tokens)?s.tokens:tokenize(s.rawText);
   s.cuts=Array.isArray(s.cuts)?s.cuts:[];

@@ -166,6 +166,8 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
       <input class="text-input" id="textTitleInput" type="text" maxlength="180" placeholder="z. B. Röm 1,2–5" autocomplete="off">
       <label class="field-label" for="mainPointSummaryInput">Hauptaussage des Textes <span class="mini">(optional)</span></label>
       <textarea class="summary-input" id="mainPointSummaryInput" maxlength="1200" placeholder="Die zentrale Aussage des Textes in eigenen Worten zusammenfassen …"></textarea>
+      <label class="field-label" for="notesInput">Notizen <span class="mini">(optional)</span></label>
+      <textarea class="notes-input" id="notesInput" maxlength="8000" placeholder="Eigene Notizen zur Analyse …"></textarea>
       <label class="field-label" for="rawTextInput">Eigener Text</label>
       <textarea id="rawTextInput" placeholder="Hier eigenen Text einfügen …"></textarea>
     </div>
@@ -240,7 +242,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
             <h3>Arbeitsablauf</h3>
             <p class="help-intro">Die Hilfe setzt die Bracketing-Methode voraus und beschreibt die Bedienung von Sensus Lab.</p>
             <ol class="help-steps">
-              <li><strong>Text</strong> öffnen und Text, optional Titel und Hauptaussage eintragen.</li>
+              <li><strong>Text</strong> öffnen und Text, optional Titel, Hauptaussage und Notizen eintragen.</li>
               <li><strong>Teilen</strong>: Propositionen manuell setzen oder <strong>Auto teilen</strong> als Ausgangspunkt verwenden.</li>
               <li><strong>Verbinden</strong>: ersten Anker und danach einen gültigen zweiten Anker derselben Strukturebene wählen.</li>
               <li>Für die neue Klammer eine <strong>Beziehung</strong> zuweisen oder sie vorläufig offen lassen.</li>
@@ -316,7 +318,8 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
           <section class="help-topic" id="help-segmentation" data-help-keywords="text proposition segmentierung teilen zusammenführen merge auto konjunktion punkt titel hauptaussage">
             <h3>Text &amp; Teilen</h3>
             <div class="help-reference">
-              <div class="help-reference-row"><strong>Text</strong><span>Öffnet Text, Titel und optionale Hauptaussage. Nur Titel/Hauptaussage zu ändern lässt die Struktur bestehen; eine Änderung des eigentlichen Textes setzt Segmentierung und Beziehungen nach Bestätigung zurück.</span></div>
+              <div class="help-reference-row"><strong>Text</strong><span>Öffnet eigenen Text, Titel, Hauptaussage und Notizen. Änderungen an Titel, Hauptaussage oder Notizen lassen die Struktur bestehen; nur eine Änderung des eigentlichen Textes setzt Segmentierung und Beziehungen nach Bestätigung zurück.</span></div>
+              <div class="help-reference-row"><strong>Notizen</strong><span>Freies projektbezogenes Notizfeld zur Analyse. Notizen werden gespeichert und im JSON mitgeführt, erscheinen aber bewusst nicht im Bildexport.</span></div>
               <div class="help-reference-row"><strong>Teilen</strong><span>Im Bearbeiten-Modus vor ein Wort klicken, das eine neue Proposition beginnen soll.</span></div>
               <div class="help-reference-row"><strong>Zusammenführen</strong><span>Das × an einer Proposition-Grenze entfernt genau diese Teilung. Bestehende Beziehungen werden nach Bestätigung verworfen.</span></div>
               <div class="help-reference-row"><strong>Auto teilen</strong><span>Ergänzt gefundene Teilungspunkte, entfernt vorhandene manuelle Teilungen nicht und läuft als eine einzige Undo-Aktion.</span></div>

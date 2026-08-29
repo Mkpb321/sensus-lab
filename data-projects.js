@@ -176,7 +176,7 @@ const els = {
   canvasGrid:$(".canvas-grid"), workspaceDivider:$("#workspaceDivider"),
   bracketEmpty:$("#bracketEmpty"), treeSummary:$("#treeSummary"),
   liveRegion:$("#liveRegion"), textDialog:$("#textDialog"), textForm:$("#textForm"), textDialogTitle:$("#textDialogTitle"),
-  textTitleInput:$("#textTitleInput"), mainPointSummaryInput:$("#mainPointSummaryInput"), rawTextInput:$("#rawTextInput"), applyTextButton:$("#applyTextButton"), relationshipDialog:$("#relationshipDialog"),
+  textTitleInput:$("#textTitleInput"), mainPointSummaryInput:$("#mainPointSummaryInput"), notesInput:$("#notesInput"), rawTextInput:$("#rawTextInput"), applyTextButton:$("#applyTextButton"), relationshipDialog:$("#relationshipDialog"),
   relationshipDialogTitle:$("#relationshipDialogTitle"), relationshipSearch:$("#relationshipSearch"), conjunctionLookupSelect:$("#conjunctionLookupSelect"), conjunctionFilterInfo:$("#conjunctionFilterInfo"),
   dialogExtendedToggle:$("#dialogExtendedToggle"), relationshipList:$("#relationshipList"),
   relationshipDetails:$("#relationshipDetails"), directionFlipButton:$("#directionFlipButton"),
@@ -192,7 +192,7 @@ function makeId(prefix){
 }
 function defaultSettings(){ return {includeExtended:false,mode:"bearbeiten"}; }
 function createEmptyState(){
-  return {schemaVersion:1,title:"",mainPointSummary:"",rawText:"",tokens:[],cuts:[],propositions:[],rootIds:[],nodesById:{},settings:defaultSettings(),updatedAt:new Date().toISOString()};
+  return {schemaVersion:1,title:"",mainPointSummary:"",notes:"",rawText:"",tokens:[],cuts:[],propositions:[],rootIds:[],nodesById:{},settings:defaultSettings(),updatedAt:new Date().toISOString()};
 }
 let state = createEmptyState();
 let history = [];
