@@ -23,7 +23,7 @@
   --target:32px;
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;min-width:1180px}
+html,body{height:100%;margin:0;min-width:0}
 html{background:var(--page)}
 body{
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
@@ -40,22 +40,24 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 
 /* Header: one compact command bar, one terse status line. */
 .app-header{background:var(--surface);border-bottom:1px solid var(--line);z-index:20}
-.topbar{height:48px;padding:0 52px 0 12px;display:flex;align-items:center;gap:6px;background:var(--surface);white-space:nowrap;position:relative}
-.brand{display:flex;align-items:center;margin-right:8px;min-width:max-content}
+.topbar{height:48px;padding:0 46px 0 clamp(6px,1vw,12px);display:flex;align-items:center;gap:clamp(2px,.45vw,6px);background:var(--surface);white-space:nowrap;position:relative;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.brand{display:flex;align-items:center;margin-right:clamp(2px,.55vw,8px);min-width:max-content}
+.topbar::-webkit-scrollbar{display:none}
+
 .brand strong{font-size:14px;font-weight:720;letter-spacing:-.01em;color:var(--ink-strong)}
 .topbar-spacer{flex:1}
-.toolbar-separator{width:1px;height:20px;background:var(--line);margin:0 4px}
+.toolbar-separator{width:1px;height:20px;background:var(--line);margin:0 clamp(1px,.3vw,4px)}
 .toolbar-group{display:flex;align-items:center;gap:2px}
 .toolbar-button,.seg-button{
   min-height:30px;height:30px;border:1px solid transparent;border-radius:5px;background:transparent;color:#3f4a56;
-  padding:0 9px;font-size:12px;font-weight:560;box-shadow:none;
+  padding:0 clamp(5px,.65vw,9px);font-size:12px;font-weight:560;box-shadow:none;
 }
 .toolbar-button:hover,.seg-button:hover{background:var(--surface-subtle);border-color:var(--line)}
 .text-action{border-color:var(--line);background:var(--surface)}
 .split-auto-button{border-color:var(--line);background:var(--surface);padding:0 8px}
 .split-auto-button:hover{background:var(--surface-subtle)}
 .mode-group,.tool-group{padding:2px;background:#f1f3f5;border:1px solid #e5e8eb;border-radius:6px}
-.mode-group .seg-button,.tool-group .seg-button{height:26px;min-height:26px;border:0;padding:0 9px}
+.mode-group .seg-button,.tool-group .seg-button{height:26px;min-height:26px;border:0;padding:0 clamp(5px,.65vw,9px)}
 .seg-button[aria-pressed="true"]{background:var(--surface);color:var(--ink-strong);font-weight:680;box-shadow:0 1px 2px rgba(16,24,40,.08)}
 .icon-button{width:30px;padding:0;font-size:18px;line-height:1;font-weight:400;color:#5f6b77}
 .project-menu-wrap{position:absolute;right:12px;top:9px;display:flex;align-items:center;z-index:90}
@@ -86,7 +88,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .validation-strip{display:none!important}
 
 /* Workspace: one continuous analysis surface, no cards. */
-.workspace-scroll{min-height:0;overflow:auto;padding:12px 14px 18px}
+.workspace-scroll{min-height:0;overflow:auto;padding:clamp(6px,1vw,12px) clamp(6px,1.15vw,14px) 18px}
 .document-heading{margin:0 0 8px;padding:0 1px;font-size:17px;font-weight:680;line-height:1.25;letter-spacing:-.01em;color:var(--ink-strong)}
 .document-heading[hidden]{display:none}
 .unit-bar{display:none!important}
@@ -166,16 +168,16 @@ body.resizing-workspace,body.resizing-biblearc{cursor:col-resize;user-select:non
 .danger-button:hover{background:#fff5f4}
 
 /* Dialogs are the only layered containers. */
-dialog{border:0;border-radius:9px;padding:0;max-width:920px;width:920px;box-shadow:0 24px 70px rgba(15,23,32,.25);color:var(--ink)}
+dialog{border:0;border-radius:9px;padding:0;width:min(920px,calc(100vw - 24px));max-width:calc(100vw - 24px);box-shadow:0 24px 70px rgba(15,23,32,.25);color:var(--ink)}
 dialog::backdrop{background:rgba(22,30,38,.43)}
 .dialog-shell{display:grid;grid-template-rows:auto minmax(0,1fr) auto;max-height:min(88vh,780px);background:#fff;border-radius:9px;overflow:hidden}
 .dialog-head{height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);background:#fff}
 .dialog-head h2{font-size:14px;margin:0;flex:1;font-weight:680;color:var(--ink-strong)}
 .close-button{width:30px;height:30px;padding:0;border:0;background:transparent;color:#6f7a85;font-size:19px;font-weight:400}
 .close-button:hover{background:#f2f4f5;color:#2e3944}
-.dialog-body{padding:14px;overflow:auto}
-.dialog-foot{min-height:48px;padding:8px 14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:6px;justify-content:flex-end;flex-wrap:wrap;background:#fafbfb}
-.dialog-foot .left-actions{margin-right:auto;display:flex;gap:5px;flex-wrap:wrap}
+.dialog-body{padding:14px;overflow:auto;min-width:0}
+.dialog-foot{min-height:48px;padding:8px 14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:6px;justify-content:flex-end;flex-wrap:nowrap;background:#fafbfb;overflow-x:auto}
+.dialog-foot .left-actions{margin-right:auto;display:flex;gap:5px;flex-wrap:nowrap;white-space:nowrap}
 textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line-strong);border-radius:5px;padding:9px 10px;line-height:1.5;color:var(--ink);background:#fff}
 .summary-input{min-height:78px}
 .summary-input + .field-label,.text-input + .field-label{margin-top:14px}
@@ -185,9 +187,9 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .form-help{display:none}
 
 /* Relationship picker: dense master/detail list instead of relationship cards. */
-.relationship-layout{display:grid;grid-template-columns:minmax(360px,1.08fr) minmax(300px,.92fr);gap:0;min-height:460px;margin:-14px}
+.relationship-layout{display:grid;grid-template-columns:minmax(270px,1.08fr) minmax(240px,.92fr);gap:0;min-width:510px;min-height:460px;margin:-14px}
 .relationship-list-pane{min-width:0;padding:0 0 14px;border-right:1px solid var(--line);overflow:hidden}
-.relationship-controls{display:grid;grid-template-columns:minmax(150px,1fr) minmax(160px,210px) auto;gap:6px;align-items:center;padding:12px 12px 9px;border-bottom:1px solid var(--line);background:#fff}
+.relationship-controls{display:grid;grid-template-columns:minmax(110px,1fr) minmax(120px,190px) auto;gap:clamp(3px,.5vw,6px);align-items:center;padding:12px 12px 9px;border-bottom:1px solid var(--line);background:#fff}
 .relationship-controls select,.relationship-controls input[type="search"]{min-height:32px;height:32px;border:1px solid var(--line-strong);border-radius:4px;padding:5px 8px;background:#fff;color:var(--ink);font:inherit;font-size:12px;line-height:1.2;box-shadow:none;outline:none}
 .relationship-controls select{padding-right:26px}.relationship-controls input[type="search"]{-webkit-appearance:none;appearance:none}.relationship-controls input[type="search"]::-webkit-search-cancel-button{opacity:.55}
 .check-inline{display:flex;align-items:center;gap:5px;font-size:11px;color:#596572;white-space:nowrap}
@@ -230,7 +232,7 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .small-note{font-size:10.5px;color:#7b8590}
 
 /* Settings: scalable row list. */
-#settingsDialog{width:460px;max-width:460px}
+#settingsDialog{width:min(460px,calc(100vw - 24px));max-width:calc(100vw - 24px)}
 .settings-list{border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;background:#fff;overflow:hidden}
 .settings-row{min-height:42px;padding:7px 2px;display:flex;align-items:center;justify-content:space-between;gap:18px;cursor:pointer;background:#fff;border-bottom:1px solid #edf0f2}
 .settings-row:last-child{border-bottom:0}
@@ -245,7 +247,7 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .settings-toggle input:focus-visible + .settings-toggle-track{outline:2px solid rgba(36,95,158,.28);outline-offset:2px}
 
 /* Projects: table-like rows, no item cards. */
-#projectsDialog{width:680px;max-width:680px}
+#projectsDialog{width:min(680px,calc(100vw - 24px));max-width:calc(100vw - 24px)}
 .project-manager-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
 .project-manager-current{min-width:0;font-size:11px;color:#7a8590;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .project-new-button{flex:0 0 auto;border:1px solid var(--line-strong);background:#fff;color:#34404b}
@@ -267,7 +269,7 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .project-item-state{font-size:9.5px;font-weight:650;color:var(--accent);background:transparent;border-radius:0;padding:0 5px;margin-left:0;text-transform:uppercase;letter-spacing:.04em}
 
 /* Help: searchable operator reference for users who already know bracketing. */
-#helpDialog{width:1020px;max-width:1020px}
+#helpDialog{width:min(1020px,calc(100vw - 24px));max-width:calc(100vw - 24px)}
 .help-dialog-shell{grid-template-rows:auto auto minmax(0,1fr) auto;max-height:min(90vh,840px)}
 .help-search-bar{min-height:48px;padding:8px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);background:#fff}
 .help-search-bar input[type="search"]{width:min(520px,100%);height:32px;min-height:32px;border:1px solid var(--line-strong);border-radius:4px;padding:5px 9px;background:#fff;color:var(--ink);font:inherit;font-size:12px;line-height:1.2;box-shadow:none;outline:none;-webkit-appearance:none;appearance:none}
@@ -275,7 +277,7 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .help-search-bar input[type="search"]::-webkit-search-cancel-button{opacity:.55}
 .help-search-status{margin-left:auto;font-size:10.5px;color:var(--muted-2);white-space:nowrap}
 .help-dialog-body{padding:0;overflow:hidden}
-.help-layout{height:100%;min-height:0;display:grid;grid-template-columns:178px minmax(0,1fr)}
+.help-layout{height:100%;min-height:0;display:grid;grid-template-columns:clamp(138px,18vw,178px) minmax(0,1fr)}
 .help-nav{padding:10px 0;border-right:1px solid var(--line);overflow:auto;background:#fafbfb}
 .help-nav a{display:block;padding:7px 12px;border-left:2px solid transparent;color:#53606c;text-decoration:none;font-size:11.5px;font-weight:560;line-height:1.25}
 .help-nav a:hover,.help-nav a:focus-visible{background:#f0f3f5;color:var(--ink-strong);border-left-color:#9db3c7;outline:0}
@@ -289,7 +291,7 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .help-steps li{counter-increment:help-step;position:relative;padding:5px 0 5px 28px;font-size:11.5px;line-height:1.48;color:#34404b}
 .help-steps li::before{content:counter(help-step);position:absolute;left:0;top:5px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border:1px solid #cfd6dc;border-radius:50%;font-size:9.5px;font-weight:700;color:#64717d;background:#fff}
 .help-reference{border-top:1px solid #e7eaed}
-.help-reference-row{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;padding:7px 0;border-bottom:1px solid #edf0f2;font-size:11.5px;line-height:1.46}
+.help-reference-row{display:grid;grid-template-columns:clamp(118px,16vw,150px) minmax(0,1fr);gap:clamp(8px,1.2vw,14px);padding:7px 0;border-bottom:1px solid #edf0f2;font-size:11.5px;line-height:1.46}
 .help-reference-row strong{font-weight:650;color:#35414c}
 .help-reference-row span{color:#56626e}
 .help-reference.compact{border-top:0}
@@ -304,18 +306,18 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .help-detail-body{padding:0 0 10px;max-width:780px}
 .help-detail-body p:last-child{margin-bottom:0}
 .help-shortcuts{border-top:1px solid #e7eaed}
-.help-shortcuts>div{display:grid;grid-template-columns:minmax(210px,250px) minmax(0,1fr);gap:16px;align-items:center;padding:7px 0;border-bottom:1px solid #edf0f2;font-size:11.5px;line-height:1.42;color:#56626e}
+.help-shortcuts>div{display:grid;grid-template-columns:minmax(180px,clamp(180px,25vw,250px)) minmax(0,1fr);gap:clamp(8px,1.4vw,16px);align-items:center;padding:7px 0;border-bottom:1px solid #edf0f2;font-size:11.5px;line-height:1.42;color:#56626e}
 .help-keycombo{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;color:#77828d;font-size:10px}
 .help-keycombo kbd{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:23px;padding:0 7px;border:1px solid #cfd6dc;border-bottom-color:#bcc5cd;border-radius:4px;background:#fafbfc;color:#34404b;font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;box-shadow:0 1px 0 rgba(16,24,40,.04)}
 .help-key-or{font-size:9.5px;color:#8b959e}
-.help-terms .help-reference-row{grid-template-columns:165px minmax(0,1fr)}
+.help-terms .help-reference-row{grid-template-columns:clamp(125px,17vw,165px) minmax(0,1fr)}
 kbd{display:inline-block;min-width:20px;padding:1px 5px;border:1px solid #cfd6dc;border-bottom-color:#b8c1c9;border-radius:3px;background:#fafbfb;color:#34404b;font:600 10px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-align:center;box-shadow:0 1px 0 rgba(15,23,32,.04)}
 .help-no-results{padding:32px 0;font-size:12px;color:#7a8590}
 
 .help-search-active .help-layout{grid-template-columns:1fr}
 .help-search-active .help-content{padding-top:0}
 .help-search-results{border-top:0}
-.help-search-result{width:100%;min-height:0;display:grid;grid-template-columns:145px minmax(0,1fr);gap:16px;align-items:start;text-align:left;padding:10px 0;border:0;border-bottom:1px solid #edf0f2;border-radius:0;background:transparent;color:inherit;cursor:pointer}
+.help-search-result{width:100%;min-height:0;display:grid;grid-template-columns:clamp(110px,15vw,145px) minmax(0,1fr);gap:clamp(8px,1.4vw,16px);align-items:start;text-align:left;padding:10px 0;border:0;border-bottom:1px solid #edf0f2;border-radius:0;background:transparent;color:inherit;cursor:pointer}
 .help-search-result:hover,.help-search-result:focus-visible{background:#f8fafb;outline:0}
 .help-search-result-topic{font-size:10.5px;font-weight:650;color:#7a8590;padding-left:2px}
 .help-search-result-text{font-size:11.5px;line-height:1.48;color:#3f4b56}
@@ -353,7 +355,7 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] .diagram-relation-label .dia
 
 
 /* Relationship dialog header: search belongs directly to the dialog title, outside scrolling content. */
-#relationshipDialog .dialog-body{padding:0;overflow:hidden}
+#relationshipDialog .dialog-body{padding:0;overflow-x:auto;overflow-y:hidden}
 #relationshipDialog .relationship-layout{margin:0}
 #relationshipDialog .relationship-list-pane{padding-top:0}
 #relationshipDialog .relationship-controls{position:sticky;top:0;z-index:2}
@@ -362,7 +364,7 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] .diagram-relation-label .dia
 
 /* Long relationship catalogs use independent master/detail scrolling. */
 .app-header{position:sticky;top:0}
-#relationshipDialog .dialog-body{overflow:hidden}
+#relationshipDialog .dialog-body{overflow-x:auto;overflow-y:hidden}
 #relationshipDialog .relationship-layout{height:min(68vh,620px)}
 #relationshipDialog .relationship-list-pane{overflow:auto}
 #relationshipDialog .relationship-controls{position:sticky;top:0;z-index:3;background:#fff}
