@@ -8,6 +8,7 @@ Fragezeichen sind auch ein indikator
 
 vielleicht bei solchen die horizontale Beschriftungen haben braucht man das vertikale label garnicht bei schlauer Benennung, so macht es biblearc. bei biblearc haben manche sogar nur ein horizontales lable z.b. bei vergleich. "There is no significance to this. It merely follows from the relationship names."
 
+schmaler machen
 
 
 das andere free mini kurs machen und ev daraus andere Ansicht machen wo man auch bearbeitet
@@ -15,16 +16,23 @@ das andere free mini kurs machen und ev daraus andere Ansicht machen wo man auch
 
 nochmal bei allen checken ob der main point richtig ist, wenn ich Probeabo habe
 
+Abkürzungen wie in dem farbigen menü genau gleich also nur einmal im code. und im generierten bild dann jeweils eine Legende der benutzten abkürzungen
 
-, aber ein ausführliches durchsuchbares hilfe punkt im burger menu der alles erklährt, das mit der bedienung zu tun hat nicht die technische umsetzung. 
 
-arcing hinzufügen?
+ankerpunkte die nicht mehr auswählbar sind für neue connections sollen auch nicht angezeigt werden
 
-englisch hinzufügen?
+
 
 Kurs Notizen
 Rethorische fragen nicht  Q/A sondern als Statements behandeln. diese haben keine Antwort. Auch Serien von Fragen ohne Antworten sind ein Hinweis.
 
 Aussage Erklährung auch bei Ankündigung direkter rede oder eines Zitates
 
-wenn die Begründung nach der aussage kommt ist es Begründung, umgekehrt ist es folgerung
+wenn die Begründung nach der aussage kommt ist es Begründung, umgekehrt ist es Folgerung
+
+
+
+Abgrenzung Folgerung vs. Handlung–Ergebnis: (auch für Einräumung vs. Situation–Reaktion)
+Frage: Beziehen sich beide Teile auf einen konkreten Zeitpunkt oder Zeitraum?
+Ja: Handlung–Ergebnis
+Nein: eher Folgerung/logische Argumentation

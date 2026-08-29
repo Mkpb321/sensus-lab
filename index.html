@@ -86,6 +86,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
 
     <section class="column center-column" aria-label="Propositionen">
       <div class="column-title"><span>Propositionen</span><span class="mini" id="centerModeLabel">Bearbeiten · Teilen</span></div>
+      <div class="biblearc-divider" id="bibleArcDivider" hidden role="separator" aria-orientation="vertical" aria-label="Breite von Propositionen und Bibelarcing ändern" aria-valuemin="20" aria-valuemax="95" tabindex="0"></div>
       <div class="center-analysis-body" id="centerAnalysisBody">
         <div class="prop-list" id="propList"></div>
         <div class="biblearc-pane" id="bibleArcPane" hidden aria-label="Automatisch abgeleitete Arcing-Darstellung">
@@ -274,6 +275,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
               <div class="help-reference-row"><strong>Graph</strong><span>Die linke Strukturzeichnung aus Klammern, Beziehungskürzeln, Rollenlabels und Linien.</span></div>
               <div class="help-reference-row"><strong>Bibelarcing</strong><span>Optionale, rein visuelle Arc-Darstellung rechts vom Text. Sie wird automatisch aus demselben Strukturbaum wie die Brackets berechnet und ist nicht separat editierbar.</span></div>
               <div class="help-reference-row"><strong>Trennlinie</strong><span>Die verschiebbare vertikale Linie zwischen Graph und Propositionstext. Ihre Position wird pro Projekt gespeichert.</span></div>
+              <div class="help-reference-row"><strong>Bibelarcing-Trennlinie</strong><span>Die vertikale Linie zwischen Propositionstext und eingeblendeten Arcs. Sie lässt sich unabhängig verschieben; ihre Position wird ebenfalls pro Projekt gespeichert.</span></div>
               <div class="help-reference-row"><strong>Beziehungsgruppe</strong><span>Farblich zusammengefasste Klasse von Beziehungstypen im Dialog „Beziehung wählen/ändern“, z. B. beiordnend oder unterordnend.</span></div>
               <div class="help-reference-row"><strong>Bearbeiten / Ansicht</strong><span>Bearbeiten aktiviert Strukturinteraktionen; Ansicht zeigt dieselbe Analyse ohne Bearbeitungswerkzeuge.</span></div>
               <div class="help-reference-row"><strong>Teilen / Verbinden</strong><span>Die beiden Bearbeitungswerkzeuge: Propositionen segmentieren bzw. Einheiten zu Klammern gruppieren.</span></div>
@@ -381,7 +383,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
               <div class="help-reference-row"><strong>Trennlinie</strong><span>Zwischen Struktur und Propositionen ziehen, um die Breite zu ändern. Die Position wird pro Projekt gespeichert. Mit fokussierter Trennlinie ändern ←/→ die Breite ebenfalls.</span></div>
               <div class="help-reference-row"><strong>Linien am Hauptpunkt</strong><span>Ein: Elternanschlüsse folgen dem Hauptpunkt. Aus: Anschlüsse werden geometrisch zentriert. Rein visuell.</span></div>
               <div class="help-reference-row"><strong>Hauptlinien dicker</strong><span>Ein: Hauptteile werden durch die dickere horizontale Linie markiert. Aus: die Linie bleibt normal und der Hauptpunkt wird als ★ im horizontalen Rollenlabel angezeigt. Rein visuell.</span></div>
-              <div class="help-reference-row"><strong>Bibelarcing</strong><span>Blendet rechts vom Text Arcs ein, die ausschließlich aus der vorhandenen Bracket-Struktur berechnet werden. Die Arcs besitzen keine eigenen Bearbeitungsdaten und erscheinen nicht im Bildexport.</span></div>
+              <div class="help-reference-row"><strong>Bibelarcing</strong><span>Blendet rechts vom Text Arcs ein, die ausschließlich aus der vorhandenen Bracket-Struktur berechnet werden. Die Arcs besitzen keine eigenen Bearbeitungsdaten und erscheinen nicht im Bildexport. Die Trennlinie zwischen Text und Arcs kann unabhängig verschoben werden.</span></div>
             </div>
             <details class="help-detail" data-help-keywords="kürzel farben vertikal horizontal tooltip biblearc">
               <summary>Labels, Farben und Tooltips</summary>
@@ -396,7 +398,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
             <div class="help-reference">
               <div class="help-reference-row"><strong>Automatisch speichern</strong><span>Änderungen werden lokal im Browser gespeichert. Der Speicherstatus steht rechts in der Statusleiste.</span></div>
               <div class="help-reference-row"><strong>Projekte</strong><span>Im Burger-Menü Projekte anlegen, öffnen, umbenennen oder löschen. Der Projekttitel ist zugleich der Texttitel.</span></div>
-              <div class="help-reference-row"><strong>Pro Projekt</strong><span>Das zuletzt verwendete Werkzeug „Teilen/Verbinden“ und die Position der Trennlinie werden für jedes Projekt separat wiederhergestellt.</span></div>
+              <div class="help-reference-row"><strong>Pro Projekt</strong><span>Das zuletzt verwendete Werkzeug „Teilen/Verbinden“ sowie die Positionen der Struktur-/Text-Trennlinie und der Bibelarcing-Trennlinie werden für jedes Projekt separat wiederhergestellt.</span></div>
               <div class="help-reference-row"><strong>Globale Darstellung</strong><span>Die Einstellungen für Linienanschluss, Hauptlinien-Stärke und Bibelarcing gelten als lokale App-Darstellung und verändern die Analysedaten nicht.</span></div>
               <div class="help-reference-row"><strong>Analyse zurücksetzen</strong><span>Leert Text, Struktur und Verlauf des aktuellen Projekts nach Bestätigung. Andere Projekte bleiben unverändert; der Reset selbst ist nicht per Undo rückgängig zu machen.</span></div>
             </div>
@@ -465,8 +467,8 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
               <div><span class="help-keycombo"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd></span><span>Zwischen fokussierbaren Verbindungsankern wechseln.</span></div>
               <div><span class="help-keycombo"><kbd>Home</kbd><span class="help-key-or">/</span><kbd>End</kbd></span><span>Bei einem fokussierten Anker zum ersten bzw. letzten verfügbaren Anker springen.</span></div>
               <div><span class="help-keycombo"><kbd>↑</kbd><span class="help-key-or">/</span><kbd>↓</kbd></span><span>Im Beziehungsdialog zwischen verfügbaren Beziehungstypen wechseln; <kbd>Home</kbd>/<kbd>End</kbd> springt an Anfang/Ende.</span></div>
-              <div><span class="help-keycombo"><kbd>←</kbd><span class="help-key-or">/</span><kbd>→</kbd></span><span>Bei fokussierter Trennlinie die Struktur-/Textbreite fein ändern.</span></div>
-              <div><span class="help-keycombo"><kbd>Shift</kbd><span>+</span><kbd>←</kbd><span class="help-key-or">/</span><kbd>→</kbd></span><span>Trennlinie in größeren Schritten verschieben; <kbd>Home</kbd>/<kbd>End</kbd> setzt sie an die zulässigen Grenzen.</span></div>
+              <div><span class="help-keycombo"><kbd>←</kbd><span class="help-key-or">/</span><kbd>→</kbd></span><span>Die jeweils fokussierte Struktur-/Text- oder Bibelarcing-Trennlinie fein verschieben.</span></div>
+              <div><span class="help-keycombo"><kbd>Shift</kbd><span>+</span><kbd>←</kbd><span class="help-key-or">/</span><kbd>→</kbd></span><span>Die fokussierte Trennlinie in größeren Schritten verschieben; <kbd>Home</kbd>/<kbd>End</kbd> setzt sie an die zulässigen Grenzen.</span></div>
               <div><span class="help-keycombo"><kbd>Tab</kbd><span class="help-key-or">/</span><kbd>Shift</kbd><span>+</span><kbd>Tab</kbd></span><span>Zwischen Bedienelementen wechseln. In Dialogen bleibt der Fokus innerhalb des Dialogs.</span></div>
               <div><span class="help-keycombo"><kbd>Enter</kbd><span class="help-key-or">/</span><kbd>Leertaste</kbd></span><span>Fokussierte Buttons, Anker und Beziehungseinträge aktivieren.</span></div>
             </div>

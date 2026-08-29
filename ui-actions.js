@@ -300,7 +300,7 @@ function bibleArcLabelSpecs(node,rel,spanMemo,anchorMap){
   // setzt BL wie bei einer koordinierenden Verbindung in die Mitte der Gruppe.
   if(node.relationshipId==="beidseitige_begruendung"){
     const span=bibleArcNodeSpan(node.id,anchorMap,spanMemo);
-    if(span) specs.push({text:code,x:1.5+Math.max(28,bibleArcWidth(span)*.28),y:span.center,color});
+    if(span) specs.push({text:code,x:1.5+bibleArcWidth(span),y:span.center,color});
     return specs;
   }
 
@@ -312,7 +312,7 @@ function bibleArcLabelSpecs(node,rel,spanMemo,anchorMap){
       const span=childSpans[childIndex];
       if(childIndex<0||!span) return;
       const width=bibleArcWidth(span);
-      specs.push({text:codeParts[roleIndex],x:1.5+Math.max(20,width*.37),y:span.center,color});
+      specs.push({text:codeParts[roleIndex],x:1.5+width,y:span.center,color});
     });
     return specs;
   }
@@ -325,28 +325,32 @@ function bibleArcLabelSpecs(node,rel,spanMemo,anchorMap){
     const span=childSpans[childIndex];
     if(childIndex>=0&&span){
       const width=bibleArcWidth(span);
-      specs.push({text:code,x:1.5+Math.max(20,width*.37),y:span.center,color});
+      specs.push({text:code,x:1.5+width,y:span.center,color});
       return specs;
     }
   }
 
   // Defensive Darstellung für unbekannte/importierte Beziehungstypen.
   const span=bibleArcNodeSpan(node.id,anchorMap,spanMemo);
-  if(span) specs.push({text:code,x:1.5+Math.max(24,bibleArcWidth(span)*.32),y:span.center,color});
+  if(span) specs.push({text:code,x:1.5+bibleArcWidth(span),y:span.center,color});
   return specs;
 }
 function renderBibelArcs(anchorMap,height){
   const pane=els.bibleArcPane,svg=els.bibleArcSvg;
   if(!pane||!svg) return;
   const enabled=uiSettings.bibleArcing===true && !!state.rawText && state.propositions.length>0;
+  if(els.centerColumn) els.centerColumn.classList.toggle("biblearc-enabled",enabled);
+  if(els.bibleArcDivider) els.bibleArcDivider.hidden=!enabled;
   pane.hidden=!enabled;
   if(!enabled){
     svg.innerHTML="";
     svg.removeAttribute("width");
     svg.removeAttribute("height");
-    pane.style.width="";
+    svg.style.width="";
+    svg.style.height="";
     return;
   }
+  applyBibleArcSplit();
 
   const spanMemo=new Map();
   const nodes=[];
@@ -363,11 +367,6 @@ function renderBibelArcs(anchorMap,height){
   const baseX=1.5;
   const maxArcWidth=Math.max(34,...nodes.map(item=>bibleArcWidth(item.span)));
   const svgWidth=Math.ceil(maxArcWidth+24);
-  const centerWidth=Math.max(1,els.centerAnalysisBody?.clientWidth||els.propList.clientWidth||1);
-  const preferredVisible=Math.max(140,Math.min(420,centerWidth*.40));
-  const paneWidth=Math.max(72,Math.min(svgWidth,preferredVisible));
-  pane.style.width=`${Math.round(paneWidth)}px`;
-  pane.style.flexBasis=`${Math.round(paneWidth)}px`;
 
   svg.setAttribute("viewBox",`0 0 ${svgWidth} ${height}`);
   svg.setAttribute("width",String(svgWidth));
@@ -392,8 +391,18 @@ function renderBibelArcs(anchorMap,height){
   svg.innerHTML=`<g class="biblearc-curves">${curves.join("")}</g><g class="biblearc-labels">${labels.join("")}</g>`;
 }
 
+function propositionContentHeight(){
+  // Nicht propList.scrollHeight verwenden: Die Grid-Zeile kann durch das Arc-SVG
+  // gestreckt werden und würde dessen Höhe beim nächsten Rendern erneut messen.
+  // Die tatsächliche Unterkante der letzten Proposition ist dagegen unabhängig
+  // von der Höhe des danebenliegenden SVG und verhindert so Rückkopplungswachstum.
+  const rows=Array.from(els.propList?.children||[]).filter(el=>el.classList?.contains("prop-wrap"));
+  const last=rows[rows.length-1];
+  if(!last) return 260;
+  return Math.max(260,Math.ceil(last.offsetTop+last.offsetHeight));
+}
 function measureAndRenderSvgs(){
-  const height=Math.max(260,els.propList.scrollHeight);
+  const height=propositionContentHeight();
   const anchors=getAnchorMap();
   renderBracketSvg(anchors,height);
   renderBibelArcs(anchors,height);
@@ -872,6 +881,50 @@ function setBibleArcing(enabled){
   storeUiSettings();
   render();
   announce(next?"Bibelarcing wird rechts vom Text angezeigt.":"Bibelarcing ist ausgeblendet.");
+}
+function bibleArcSplitBounds(){
+  const rect=els.centerAnalysisBody?.getBoundingClientRect();
+  const width=Math.max(1,rect?.width||0);
+  // Text braucht nur eine kleine arbeitsfähige Mindestbreite; die Arc-Seite kann
+  // horizontal scrollen und muss deshalb nur eine schmale sichtbare Restbreite behalten.
+  const textNeeded=Math.min(180,Math.max(110,width*.18));
+  const arcNeeded=Math.min(92,Math.max(56,width*.10));
+  const min=Math.max(.12,Math.min(.78,(textNeeded+1)/width));
+  const max=Math.min(.94,Math.max(min,1-(arcNeeded+1)/width));
+  return {min,max};
+}
+function clampBibleArcSplit(split){
+  const n=normalizeProjectBibleArcSplit(split);
+  const {min,max}=bibleArcSplitBounds();
+  return Math.min(max,Math.max(min,n));
+}
+function applyBibleArcSplit(){
+  if(!els.centerColumn) return;
+  const enabled=uiSettings.bibleArcing===true && !!state.rawText && state.propositions.length>0;
+  els.centerColumn.classList.toggle("biblearc-enabled",enabled);
+  if(els.bibleArcDivider) els.bibleArcDivider.hidden=!enabled;
+  if(!enabled) return;
+  const project=activeProject();
+  const split=clampBibleArcSplit(project?.bibleArcSplit);
+  els.centerColumn.style.setProperty("--biblearc-split",`${(split*100).toFixed(2)}%`);
+  if(els.bibleArcDivider){
+    const {min,max}=bibleArcSplitBounds();
+    els.bibleArcDivider.setAttribute("aria-valuemin",String(Math.round(min*100)));
+    els.bibleArcDivider.setAttribute("aria-valuemax",String(Math.round(max*100)));
+    els.bibleArcDivider.setAttribute("aria-valuenow",String(Math.round(split*100)));
+  }
+}
+function setBibleArcSplit(split,{persist=false}={}){
+  const project=activeProject();
+  if(!project || !els.centerColumn) return;
+  project.bibleArcSplit=clampBibleArcSplit(split);
+  applyBibleArcSplit();
+  requestAnimationFrame(measureAndRenderSvgs);
+  if(persist){
+    project.updatedAt=new Date().toISOString();
+    try{ storeProjectsNow(); saveStateText="Lokal gespeichert"; }catch(_){ saveStateText="Nur für diese Sitzung gespeichert"; }
+    renderStatus();
+  }
 }
 function workspaceSplitBounds(){
   const rect=els.canvasGrid?.getBoundingClientRect();

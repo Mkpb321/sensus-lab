@@ -172,7 +172,7 @@ const els = {
   settingsDialog:$("#settingsDialog"), lineAttachmentToggle:$("#lineAttachmentToggle"), primaryLineWeightToggle:$("#primaryLineWeightToggle"), bibleArcingToggle:$("#bibleArcingToggle"),
   projectMenuCurrent:$("#projectMenuCurrent"), newProjectButton:$("#newProjectButton"), projectList:$("#projectList"),
   unitBar:$("#unitBar"), unitButtons:$("#unitButtons"),
-  unitHint:$("#unitHint"), propList:$("#propList"), documentHeading:$("#documentHeading"), centerModeLabel:$("#centerModeLabel"), bracketSvg:$("#bracketSvg"), centerAnalysisBody:$("#centerAnalysisBody"), bibleArcPane:$("#bibleArcPane"), bibleArcSvg:$("#bibleArcSvg"),
+  unitHint:$("#unitHint"), propList:$("#propList"), documentHeading:$("#documentHeading"), centerModeLabel:$("#centerModeLabel"), bracketSvg:$("#bracketSvg"), centerColumn:$(".center-column"), centerAnalysisBody:$("#centerAnalysisBody"), bibleArcPane:$("#bibleArcPane"), bibleArcSvg:$("#bibleArcSvg"), bibleArcDivider:$("#bibleArcDivider"),
   canvasGrid:$(".canvas-grid"), workspaceDivider:$("#workspaceDivider"),
   bracketEmpty:$("#bracketEmpty"), treeSummary:$("#treeSummary"),
   liveRegion:$("#liveRegion"), textDialog:$("#textDialog"), textForm:$("#textForm"), textDialogTitle:$("#textDialogTitle"),
@@ -234,9 +234,13 @@ function normalizeProjectWorkspaceSplit(value){
   const n=Number(value);
   return Number.isFinite(n)?Math.min(.95,Math.max(.05,n)):.42;
 }
+function normalizeProjectBibleArcSplit(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.min(.94,Math.max(.20,n)):.72;
+}
 function createProject(documentState=createEmptyState()){
   const now=new Date().toISOString();
-  return {id:makeId("project"),createdAt:now,updatedAt:now,activeTool:"teilen",workspaceSplit:.42,document:cloneDocument(documentState)};
+  return {id:makeId("project"),createdAt:now,updatedAt:now,activeTool:"teilen",workspaceSplit:.42,bibleArcSplit:.72,document:cloneDocument(documentState)};
 }
 function activeProject(){ return projects.find(p=>p.id===activeProjectId)||null; }
 function projectDisplayName(project){
@@ -407,6 +411,7 @@ function loadProjects(){
         updatedAt:typeof p.updatedAt==="string"?p.updatedAt:new Date().toISOString(),
         activeTool:normalizeProjectTool(p.activeTool),
         workspaceSplit:normalizeProjectWorkspaceSplit(p.workspaceSplit),
+        bibleArcSplit:normalizeProjectBibleArcSplit(p.bibleArcSplit),
         document:p.document
       }));
     }

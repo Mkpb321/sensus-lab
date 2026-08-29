@@ -166,6 +166,7 @@ function render(){
   els.textButton.title=state.rawText?"Text bearbeiten":"Text einfügen";
   const currentProject=activeProject();
   applyWorkspaceSplit();
+  applyBibleArcSplit();
   if(currentProject){
     els.projectMenuButton.setAttribute("aria-label",`Menü öffnen. Projekt: ${projectDisplayName(currentProject)}`);
     if(els.projectsDialog?.open) renderProjectManager();

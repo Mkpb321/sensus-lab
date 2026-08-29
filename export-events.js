@@ -657,6 +657,48 @@ if(els.workspaceDivider){
   });
 }
 
+let bibleArcDividerDrag=null;
+function bibleArcSplitFromClientX(clientX){
+  const rect=els.centerAnalysisBody?.getBoundingClientRect();
+  if(!rect || rect.width<=0) return null;
+  return clampBibleArcSplit((clientX-rect.left)/rect.width);
+}
+if(els.bibleArcDivider){
+  els.bibleArcDivider.addEventListener("pointerdown",e=>{
+    if(e.button!==0 || uiSettings.bibleArcing!==true) return;
+    bibleArcDividerDrag={pointerId:e.pointerId};
+    els.bibleArcDivider.setPointerCapture?.(e.pointerId);
+    els.bibleArcDivider.classList.add("dragging");
+    document.body.classList.add("resizing-biblearc");
+    e.preventDefault();
+  });
+  els.bibleArcDivider.addEventListener("pointermove",e=>{
+    if(!bibleArcDividerDrag || bibleArcDividerDrag.pointerId!==e.pointerId) return;
+    const split=bibleArcSplitFromClientX(e.clientX);
+    if(split!=null) setBibleArcSplit(split);
+  });
+  const finishBibleArcDividerDrag=e=>{
+    if(!bibleArcDividerDrag || (e.pointerId!=null && bibleArcDividerDrag.pointerId!==e.pointerId)) return;
+    bibleArcDividerDrag=null;
+    els.bibleArcDivider.classList.remove("dragging");
+    document.body.classList.remove("resizing-biblearc");
+    const project=activeProject();
+    if(project) setBibleArcSplit(project.bibleArcSplit,{persist:true});
+  };
+  els.bibleArcDivider.addEventListener("pointerup",finishBibleArcDividerDrag);
+  els.bibleArcDivider.addEventListener("pointercancel",finishBibleArcDividerDrag);
+  els.bibleArcDivider.addEventListener("keydown",e=>{
+    if(e.key!=="ArrowLeft" && e.key!=="ArrowRight" && e.key!=="Home" && e.key!=="End") return;
+    const project=activeProject();
+    const current=clampBibleArcSplit(project?.bibleArcSplit);
+    const {min,max}=bibleArcSplitBounds();
+    const step=e.shiftKey ? .06 : .025;
+    const next=e.key==="Home"?min:e.key==="End"?max:current+(e.key==="ArrowRight"?step:-step);
+    setBibleArcSplit(next,{persist:true});
+    e.preventDefault();
+  });
+}
+
 // Diagramm-Tooltip: bewusst unabhängig von SVG-<title>, damit er in allen Browsern
 // zuverlässig sowohl auf horizontalen als auch vertikalen Kästchen funktioniert.
 const diagramTooltip=(()=>{
@@ -903,6 +945,7 @@ window.addEventListener("beforeunload",()=>{
 });
 window.addEventListener("resize",()=>{
   applyWorkspaceSplit();
+  applyBibleArcSplit();
   requestAnimationFrame(measureAndRenderSvgs);
 });
 if("ResizeObserver" in window){
