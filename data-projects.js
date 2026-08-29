@@ -236,11 +236,15 @@ function normalizeProjectWorkspaceSplit(value){
 }
 function normalizeProjectBibleArcSplit(value){
   const n=Number(value);
-  return Number.isFinite(n)?Math.min(.94,Math.max(.20,n)):.72;
+  return Number.isFinite(n)?Math.min(.995,Math.max(.005,n)):.72;
+}
+function normalizeProjectBibleArcWidth(value){
+  const n=Number(value);
+  return Number.isFinite(n) && n>0 ? Math.min(2400,Math.max(6,n)) : null;
 }
 function createProject(documentState=createEmptyState()){
   const now=new Date().toISOString();
-  return {id:makeId("project"),createdAt:now,updatedAt:now,activeTool:"teilen",workspaceSplit:.42,bibleArcSplit:.72,document:cloneDocument(documentState)};
+  return {id:makeId("project"),createdAt:now,updatedAt:now,activeTool:"teilen",workspaceSplit:.42,bibleArcSplit:.72,bibleArcWidth:null,document:cloneDocument(documentState)};
 }
 function activeProject(){ return projects.find(p=>p.id===activeProjectId)||null; }
 function projectDisplayName(project){
@@ -412,6 +416,7 @@ function loadProjects(){
         activeTool:normalizeProjectTool(p.activeTool),
         workspaceSplit:normalizeProjectWorkspaceSplit(p.workspaceSplit),
         bibleArcSplit:normalizeProjectBibleArcSplit(p.bibleArcSplit),
+        bibleArcWidth:normalizeProjectBibleArcWidth(p.bibleArcWidth),
         document:p.document
       }));
     }

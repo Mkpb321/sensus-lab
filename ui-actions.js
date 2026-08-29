@@ -920,16 +920,37 @@ function setBibleArcing(enabled){
   render();
   announce(next?"Bibelarcing wird rechts vom Text angezeigt.":"Bibelarcing ist ausgeblendet.");
 }
-function bibleArcSplitBounds(){
+function bibleArcWidthBounds(){
   const width=Math.max(1,els.centerColumn?.clientWidth||els.centerAnalysisBody?.clientWidth||0);
-  // Auch die Arc-Spalte darf bewusst schmaler als die Arc-Grafik werden; bei
-  // Überbreite übernimmt biblearc-pane den horizontalen Scroll. Nur der Text
-  // behält links eine kleine arbeitsfähige Mindestbreite.
+  // Die Arc-Seite darf bis auf eine schmale sichtbare Kante verkleinert werden und
+  // scrollt dann horizontal. Links bleibt nur eine kleine arbeitsfähige Textbreite.
   const textNeeded=Math.min(180,Math.max(110,width*.18));
   const arcEdge=Math.min(14,Math.max(6,width*.01));
-  const min=Math.max(.12,Math.min(.82,(textNeeded+1)/width));
-  const max=Math.min(.995,Math.max(min,1-arcEdge/width));
-  return {min,max};
+  return {min:arcEdge,max:Math.max(arcEdge,width-textNeeded-1),width};
+}
+function clampBibleArcWidth(value){
+  const {min,max}=bibleArcWidthBounds();
+  const n=normalizeProjectBibleArcWidth(value);
+  return Math.min(max,Math.max(min,n==null?min:n));
+}
+function projectBibleArcWidth(project=activeProject()){
+  if(!project) return bibleArcWidthBounds().min;
+  const existing=normalizeProjectBibleArcWidth(project.bibleArcWidth);
+  if(existing!=null) return clampBibleArcWidth(existing);
+  // Migration älterer Projekte: die bisherige prozentuale Position wird einmalig
+  // in eine feste Breite vom rechten Rand umgerechnet. Danach bleibt die Arc-Linie
+  // unabhängig von Änderungen der Brackets-Spalte an derselben Bildschirmposition.
+  const {width}=bibleArcWidthBounds();
+  const legacy=normalizeProjectBibleArcSplit(project.bibleArcSplit);
+  const migrated=clampBibleArcWidth(Math.round(width*(1-legacy)));
+  project.bibleArcWidth=migrated;
+  return migrated;
+}
+function bibleArcSplitBounds(){
+  // Für bestehende Aufrufer/ARIA weiterhin die sichtbare Dividerposition als Anteil
+  // der mittleren Spalte bereitstellen.
+  const {min:arcMin,max:arcMax,width}=bibleArcWidthBounds();
+  return {min:1-arcMax/width,max:1-arcMin/width};
 }
 function clampBibleArcSplit(split){
   const n=normalizeProjectBibleArcSplit(split);
@@ -943,13 +964,11 @@ function applyBibleArcSplit(){
   if(els.bibleArcDivider) els.bibleArcDivider.hidden=!enabled;
   if(!enabled) return;
   const project=activeProject();
-  const split=clampBibleArcSplit(project?.bibleArcSplit);
-  const width=Math.max(1,els.centerColumn.clientWidth||1);
-  // Ganze CSS-Pixel verhindern, dass eine nominell 1 px breite Linie beim Ziehen
-  // auf einer Subpixel-Grenze über zwei Pixel antialiasiert und dadurch dicker wirkt.
-  const splitPx=Math.max(0,Math.min(width,Math.round(split*width)));
-  const renderedSplit=splitPx/width;
-  els.centerColumn.style.setProperty("--biblearc-split",`${splitPx}px`);
+  const {width}=bibleArcWidthBounds();
+  const arcWidth=Math.round(projectBibleArcWidth(project));
+  project.bibleArcWidth=arcWidth;
+  const renderedSplit=(width-arcWidth)/width;
+  els.centerColumn.style.setProperty("--biblearc-width",`${arcWidth}px`);
   if(els.bibleArcDivider){
     const {min,max}=bibleArcSplitBounds();
     els.bibleArcDivider.setAttribute("aria-valuemin",String(Math.round(min*100)));
@@ -957,10 +976,10 @@ function applyBibleArcSplit(){
     els.bibleArcDivider.setAttribute("aria-valuenow",String(Math.round(renderedSplit*100)));
   }
 }
-function setBibleArcSplit(split,{persist=false}={}){
+function setBibleArcWidth(value,{persist=false}={}){
   const project=activeProject();
   if(!project || !els.centerColumn) return;
-  project.bibleArcSplit=clampBibleArcSplit(split);
+  project.bibleArcWidth=clampBibleArcWidth(value);
   applyBibleArcSplit();
   requestAnimationFrame(measureAndRenderSvgs);
   if(persist){
@@ -969,14 +988,21 @@ function setBibleArcSplit(split,{persist=false}={}){
     renderStatus();
   }
 }
+function setBibleArcSplit(split,{persist=false}={}){
+  const {width}=bibleArcWidthBounds();
+  const normalized=clampBibleArcSplit(split);
+  setBibleArcWidth(width*(1-normalized),{persist});
+}
 function workspaceSplitBounds(){
   const width=Math.max(1,els.canvasGrid?.clientWidth||0);
   // Die Brackets-Spalte darf bewusst schmaler als ihr Inhalt werden. Die SVG
   // behält ihre echte Breite und wird dann innerhalb der Spalte horizontal scrollbar.
   const bracketEdge=Math.min(14,Math.max(6,width*.01));
   const textNeeded=Math.min(180,Math.max(120,width*.14));
+  const arcWidth=(uiSettings.bibleArcing===true)?Math.max(0,normalizeProjectBibleArcWidth(activeProject()?.bibleArcWidth)||0):0;
+  const centerNeeded=textNeeded+arcWidth;
   const min=Math.max(.005,bracketEdge/width);
-  const max=Math.min(.97,Math.max(min,1-(textNeeded+2)/width));
+  const max=Math.min(.97,Math.max(min,1-(centerNeeded+2)/width));
   return {min,max};
 }
 function clampWorkspaceSplit(split){

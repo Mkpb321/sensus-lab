@@ -661,13 +661,13 @@ if(els.workspaceDivider){
 }
 
 let bibleArcDividerDrag=null;
-function bibleArcSplitFromClientX(clientX){
+function bibleArcWidthFromClientX(clientX){
   const el=els.centerColumn;
   const rect=el?.getBoundingClientRect();
   const width=el?.clientWidth||0;
   if(!rect || width<=0) return null;
-  const contentLeft=rect.left+(el.clientLeft||0);
-  return clampBibleArcSplit((clientX-contentLeft)/width);
+  const contentRight=rect.left+(el.clientLeft||0)+width;
+  return clampBibleArcWidth(contentRight-clientX);
 }
 if(els.bibleArcDivider){
   els.bibleArcDivider.addEventListener("pointerdown",e=>{
@@ -680,8 +680,8 @@ if(els.bibleArcDivider){
   });
   els.bibleArcDivider.addEventListener("pointermove",e=>{
     if(!bibleArcDividerDrag || bibleArcDividerDrag.pointerId!==e.pointerId) return;
-    const split=bibleArcSplitFromClientX(e.clientX);
-    if(split!=null) setBibleArcSplit(split);
+    const arcWidth=bibleArcWidthFromClientX(e.clientX);
+    if(arcWidth!=null) setBibleArcWidth(arcWidth);
   });
   const finishBibleArcDividerDrag=e=>{
     if(!bibleArcDividerDrag || (e.pointerId!=null && bibleArcDividerDrag.pointerId!==e.pointerId)) return;
@@ -689,18 +689,19 @@ if(els.bibleArcDivider){
     els.bibleArcDivider.classList.remove("dragging");
     document.body.classList.remove("resizing-biblearc");
     const project=activeProject();
-    if(project) setBibleArcSplit(project.bibleArcSplit,{persist:true});
+    if(project) setBibleArcWidth(projectBibleArcWidth(project),{persist:true});
   };
   els.bibleArcDivider.addEventListener("pointerup",finishBibleArcDividerDrag);
   els.bibleArcDivider.addEventListener("pointercancel",finishBibleArcDividerDrag);
   els.bibleArcDivider.addEventListener("keydown",e=>{
     if(e.key!=="ArrowLeft" && e.key!=="ArrowRight" && e.key!=="Home" && e.key!=="End") return;
     const project=activeProject();
-    const current=clampBibleArcSplit(project?.bibleArcSplit);
-    const {min,max}=bibleArcSplitBounds();
-    const step=e.shiftKey ? .06 : .025;
-    const next=e.key==="Home"?min:e.key==="End"?max:current+(e.key==="ArrowRight"?step:-step);
-    setBibleArcSplit(next,{persist:true});
+    const current=projectBibleArcWidth(project);
+    const {min,max}=bibleArcWidthBounds();
+    const step=e.shiftKey ? 48 : 16;
+    // Divider nach rechts = Arc-Spalte schmaler; nach links = breiter.
+    const next=e.key==="Home"?max:e.key==="End"?min:current+(e.key==="ArrowLeft"?step:-step);
+    setBibleArcWidth(next,{persist:true});
     e.preventDefault();
   });
 }
