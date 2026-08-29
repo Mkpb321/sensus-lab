@@ -492,138 +492,86 @@ function applyTextFromDialog(){
 function selectedConjunctionEntry(){
   return selectedConjunctionLookup ? CONJUNCTION_LOOKUP.find(item=>item.label===selectedConjunctionLookup)||null : null;
 }
-function relationSuggestionSignalPattern(label,{startOnly=false}={}){
+function relationSuggestionSignalPattern(label){
   const raw=String(label||"").trim().toLocaleLowerCase("de");
   if(!raw) return null;
   const esc=value=>value.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
   const phrasePart=value=>value.trim().split(/\s+/u).filter(Boolean).map(esc).join("\\s+");
   const pieces=raw.split(/\s*…\s*/u).filter(Boolean);
   const body=pieces.map(phrasePart).join("[\\s\\S]{0,100}?");
-  const prefix=startOnly?"^[\\s„“‚‘\"'«»‹›()—–-]*":"(?:^|[^\\p{L}\\p{N}])";
-  const suffix="(?=$|[^\\p{L}\\p{N}])";
-  try{return new RegExp(prefix+body+suffix,"iu");}catch(_){return null;}
+  try{return new RegExp(`(?:^|[^\\p{L}\\p{N}])(${body})(?=$|[^\\p{L}\\p{N}])`,"giu");}catch(_){return null;}
 }
-function relationSuggestionMatch(text,label,startOnly=false){
-  const pattern=relationSuggestionSignalPattern(label,{startOnly});
-  return !!(pattern && pattern.test(String(text||"")));
-}
-function relationSuggestionNormalizedText(text){
-  return String(text||"")
-    .toLocaleLowerCase("de")
-    .replace(/[„“‚‘"'«»‹›]/gu," ")
-    .replace(/[–—]/gu,"-")
-    .replace(/\s+/gu," ")
-    .trim();
+function relationSuggestionOccurrences(text,label){
+  const pattern=relationSuggestionSignalPattern(label);
+  if(!pattern) return [];
+  const source=String(text||"");
+  const hits=[];
+  let match;
+  while((match=pattern.exec(source))){
+    const matched=match[1]||match[0];
+    const offset=match[0].indexOf(matched);
+    const start=match.index+Math.max(0,offset);
+    hits.push({start,end:start+matched.length});
+    if(match.index===pattern.lastIndex) pattern.lastIndex++;
+  }
+  return hits;
 }
 function relationshipSuggestionsForNode(node){
   const suggestions=new Map();
   if(!node || node.kind!=="relation") return suggestions;
+
+  // Die automatische Hervorhebung verwendet ausschließlich dieselbe Zuordnung
+  // wie der manuelle Konjunktionsfilter. Keine Satzzeichen-, Semantik-, Rollen-,
+  // Richtungs- oder Nutzerhistorik-Regeln werden zusätzlich ausgewertet.
   const childTexts=(node.children||[]).map(childId=>({
     childId,
-    text:String(nodeText(childId)||""),
-    normalized:relationSuggestionNormalizedText(nodeText(childId))
+    text:String(nodeText(childId)||"")
   }));
-  const combined=childTexts.map(item=>item.normalized).join(" \n ");
-  const weakSignals=new Set(["und","so","dass","wenn","wie","vor","durch","aber","doch","oder","als","während","wo","denn"]);
+  const detected=[];
 
-  const add=(relationId,score,evidence,source="")=>{
-    if(!RELATIONSHIPS[relationId] || !(score>0)) return;
-    const current=suggestions.get(relationId)||{score:0,signals:new Set(),sources:new Set()};
-    current.score+=score;
-    if(evidence) current.signals.add(evidence);
-    if(source) current.sources.add(source);
-    suggestions.set(relationId,current);
-  };
-  const anyChild=(regex)=>childTexts.some(item=>regex.test(item.normalized));
-  const childSource=(regex)=>{
-    const item=childTexts.find(entry=>regex.test(entry.normalized));
-    return item?nodeLabel(item.childId):"";
-  };
-  const addRule=(relationId,score,evidence,regex,{scope="combined"}={})=>{
-    let hit=false,source="";
-    if(scope==="child"){
-      hit=anyChild(regex);
-      if(hit) source=childSource(regex);
-    }else hit=regex.test(combined);
-    if(hit) add(relationId,score,evidence,source);
-  };
-
-  // 1) Hinterlegte Konjunktionssignale bleiben die breite Basis. Sehr mehrdeutige
-  // Einzelwörter werden bewusst abgewertet; ein Propositionsanfang und ein
-  // vollständiges Mehrwortsignal sind deutlich aussagekräftiger.
   for(const {childId,text} of childTexts){
     if(!text.trim()) continue;
+    const occurrences=[];
     for(const entry of CONJUNCTION_LOOKUP){
-      const atStart=relationSuggestionMatch(text,entry.label,true);
-      const anywhere=atStart || relationSuggestionMatch(text,entry.label,false);
-      if(!anywhere) continue;
-      const isCompound=/\s|…/u.test(entry.label);
-      const ambiguous=Math.max(0,entry.relations.length-1);
-      let weight=atStart?6:(isCompound?4:1);
-      if(entry.relations.length===1) weight+=1;
-      weight-=Math.min(2,ambiguous);
-      if(weakSignals.has(entry.label)) weight=Math.min(weight,atStart?3:1);
-      for(const relationId of entry.relations) add(relationId,weight,entry.label,nodeLabel(childId));
+      for(const hit of relationSuggestionOccurrences(text,entry.label)){
+        occurrences.push({entry,childId,...hit,length:hit.end-hit.start});
+      }
+    }
+
+    // Bei überlappenden Treffern gilt das längere konkrete Konjunktionsgefüge.
+    // Beispiel: „und dann“ soll nicht zusätzlich wie getrenntes „und“ behandelt werden.
+    occurrences.sort((a,b)=>b.length-a.length || a.start-b.start);
+    const accepted=[];
+    for(const hit of occurrences){
+      const overlapsLonger=accepted.some(other=>
+        hit.start>=other.start && hit.end<=other.end && other.length>hit.length
+      );
+      if(!overlapsLonger) accepted.push(hit);
+    }
+    detected.push(...accepted);
+  }
+
+  for(const hit of detected){
+    const entry=hit.entry;
+    const ambiguity=Math.max(1,entry.relations.length);
+    // Intensität basiert nur auf der Konjunktionstabelle: Je eindeutiger die dortige
+    // Zuordnung und je mehr unabhängige Treffer dieselbe Beziehung stützen, desto kräftiger.
+    const contribution=1/ambiguity;
+    for(const relationId of entry.relations){
+      if(!RELATIONSHIPS[relationId]) continue;
+      const current=suggestions.get(relationId)||{score:0,signals:new Set(),sources:new Set()};
+      current.score+=contribution;
+      current.signals.add(entry.label);
+      current.sources.add(nodeLabel(hit.childId));
+      suggestions.set(relationId,current);
     }
   }
 
-  // 2) Vollständige korrelative und grammatische Muster. Diese Regeln prüfen nur
-  // die Textform, nie semantische Richtung, Rollenreihenfolge oder Nutzerhistorie.
-  addRule("bedingung_folge",11,"wenn … dann",/\bwenn\b[\s\S]{0,220}?\bdann\b/u);
-  addRule("bedingung_folge",10,"falls/sofern … dann",/\b(?:falls|sofern)\b[\s\S]{0,220}?\bdann\b/u);
-  addRule("bedingung_folge",9,"es sei denn",/\bes sei denn\b/u);
-
-  addRule("verneinung_bejahung",12,"nicht … sondern",/\bnicht\b[\s\S]{0,220}?\bsondern\b/u);
-  addRule("verneinung_bejahung",12,"nicht nur … sondern auch",/\bnicht nur\b[\s\S]{0,260}?\bsondern auch\b/u);
-  addRule("alternative",11,"entweder … oder",/\bentweder\b[\s\S]{0,220}?\boder\b/u);
-  addRule("sowohl_als_auch",12,"sowohl … als auch",/\bsowohl\b[\s\S]{0,220}?\bals auch\b/u);
-  addRule("sowohl_als_auch",10,"weder … noch",/\bweder\b[\s\S]{0,220}?\bnoch\b/u);
-
-  addRule("handlung_zweck",11,"um … zu",/\bum\b[\s\S]{0,180}?\bzu\b/u,{scope:"child"});
-  addRule("handlung_zweck",9,"damit",/^(?:damit|damit nicht)\b/u,{scope:"child"});
-  addRule("handlung_zweck",10,"auf dass",/\bauf dass\b/u,{scope:"child"});
-  addRule("handlung_ergebnis",11,"sodass / so dass",/\b(?:sodass|so dass)\b/u,{scope:"child"});
-  addRule("handlung_ergebnis",10,"mit dem Ergebnis, dass",/\bmit dem ergebnis\s*,?\s*dass\b/u,{scope:"child"});
-
-  addRule("einraeumung",11,"obwohl/obgleich … dennoch",/\b(?:obwohl|obgleich|wenngleich)\b[\s\S]{0,260}?\b(?:dennoch|trotzdem|gleichwohl|doch|jedoch)\b/u);
-  addRule("einraeumung",8,"obwohl / obgleich",/^(?:obwohl|obgleich|wenngleich|auch wenn|selbst wenn)\b/u,{scope:"child"});
-  addRule("situation_reaktion",7,"und doch / aber trotzdem",/\b(?:und doch|aber trotzdem|und trotzdem)\b/u);
-
-  addRule("steigerung",11,"zuerst … dann … schließlich",/\bzuerst\b[\s\S]{0,300}?\bdann\b[\s\S]{0,300}?\bschlie(?:ß|ss)lich\b/u);
-  addRule("steigerung",8,"mehr noch / darüber hinaus",/\b(?:mehr noch|darüber hinaus)\b/u,{scope:"child"});
-  addRule("reihe",8,"außerdem / zudem / ferner",/^(?:außerdem|zudem|ferner)\b/u,{scope:"child"});
-
-  addRule("aussage_erklaerung",10,"das heißt / mit anderen Worten",/\b(?:das heißt|das heisst|mit anderen worten|genauer gesagt|und zwar|das bedeutet)\b/u,{scope:"child"});
-  addRule("aussage_erklaerung",8,"nämlich",/^nämlich\b/u,{scope:"child"});
-  addRule("allgemein_spezifisch",11,"zum Beispiel / beispielsweise",/\b(?:zum beispiel|beispielsweise|wie etwa|insbesondere)\b/u,{scope:"child"});
-  addRule("tatsache_deutung",10,"was bedeutet / damit ist gemeint",/\b(?:was bedeutet|damit ist gemeint|gedeutet als)\b/u,{scope:"child"});
-  addRule("ankuendigung_erfuellung",11,"wie angekündigt / erfüllte sich",/\b(?:wie angekündigt|daraufhin erfüllte sich|damit erfüllte sich)\b/u,{scope:"child"});
-
-  addRule("handlung_art_weise",10,"indem / dadurch, dass",/^(?:indem|dadurch\s*,?\s*dass|mittels)\b/u,{scope:"child"});
-  addRule("vergleich",10,"so wie / ebenso wie / als ob",/\b(?:so wie|ebenso wie|genauso wie|als ob|wie auch)\b/u,{scope:"child"});
-  addRule("zeit",9,"nachdem / bevor / sobald / seit",/^(?:nachdem|bevor|sobald|seit|bis|immer wenn)\b/u,{scope:"child"});
-  addRule("ort",9,"wo / wohin / woher",/^(?:wo|wohin|woher|wo immer|überall\s*,?\s*wo)\b/u,{scope:"child"});
-  addRule("begruendung",9,"weil / da / zumal",/^(?:weil|da|zumal|aufgrund dessen)\b/u,{scope:"child"});
-  addRule("folgerung",10,"deshalb / daher / folglich",/^(?:deshalb|daher|darum|folglich|somit|demnach|infolgedessen|dementsprechend)\b/u,{scope:"child"});
-
-  // 3) Interpunktion liefert nur dort Evidenz, wo sie eine klare formale Funktion
-  // hat. Ein Fragezeichen allein bleibt bewusst nur ein plausibler Hinweis.
-  const questionChildren=childTexts.filter(item=>/\?/u.test(item.text));
-  const nonQuestionChildren=childTexts.filter(item=>!/\?/u.test(item.text) && item.text.trim());
-  if(questionChildren.length && nonQuestionChildren.length){
-    add("frage_antwort",7,"Fragezeichen + weitere Einheit",questionChildren.map(item=>nodeLabel(item.childId)).join(", "));
-    if(questionChildren.some(item=>/^(?:wer|was|wie|warum|wo|wann|weshalb|wieso)\b/u.test(item.normalized)))
-      add("frage_antwort",3,"Fragewort + ?");
-  }
-  if(childTexts.some(item=>/:\s*$/u.test(item.text.trim()))) add("aussage_erklaerung",4,"Doppelpunkt");
-
-  // Nur belastbare Kandidaten zeigen. Die sichtbare Stärke wird anschließend
-  // stufenlos aus dem Regel-Score abgeleitet statt in nur zwei Klassen geteilt.
-  for(const [id,item] of [...suggestions]){
-    if(item.score<6){suggestions.delete(id);continue;}
-    const normalized=Math.max(0,Math.min(1,(item.score-6)/16));
-    item.colorStrength=0.055+normalized*0.225;
-    item.hoverColorStrength=Math.min(.34,item.colorStrength+.045);
+  const maxScore=Math.max(0,...[...suggestions.values()].map(item=>item.score));
+  for(const item of suggestions.values()){
+    const normalized=maxScore>0?item.score/maxScore:0;
+    item.colorStrength=0.055+normalized*0.19;
+    item.hoverColorStrength=Math.min(.30,item.colorStrength+.04);
   }
   return suggestions;
 }
@@ -671,7 +619,7 @@ function renderRelationshipDialog(){
       const suggestionSignals=suggestion?[...suggestion.signals].slice(0,3):[];
       const suggestionSources=suggestion?[...suggestion.sources]:[];
       const suggestionLabel=suggestionSignals.length?`Vorschlag · ${suggestionSignals.join(" · ")}`:"";
-      const suggestionTitle=suggestion?`Regelbasierter Vorschlag: ${suggestionSignals.join(", ")}${suggestionSources.length?` (${suggestionSources.join(", ")})`:""}`:"";
+      const suggestionTitle=suggestion?`Konjunktionsvorschlag: ${suggestionSignals.join(", ")}${suggestionSources.length?` (${suggestionSources.join(", ")})`:""}`:"";
       const suggestionStyle=suggestion?`;--suggestion-alpha:${suggestion.colorStrength.toFixed(3)};--suggestion-hover-alpha:${suggestion.hoverColorStrength.toFixed(3)}`:"";
       html.push(`<button type="button" class="rel-card${selected}${suggested}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}"${suggestionTitle?` title="${escapeHtml(suggestionTitle)}"`:""} style="--rel-color:${relColor};--rel-strong:${relStrongColor}${suggestionStyle}">
         <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
