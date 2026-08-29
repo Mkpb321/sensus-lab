@@ -499,54 +499,95 @@ function relationSuggestionSignalPattern(label){
   const phrasePart=value=>value.trim().split(/\s+/u).filter(Boolean).map(esc).join("\\s+");
   const pieces=raw.split(/\s*…\s*/u).filter(Boolean);
   const body=pieces.map(phrasePart).join("[\\s\\S]{0,100}?");
-  try{return new RegExp(`(?:^|[^\\p{L}\\p{N}])(${body})(?=$|[^\\p{L}\\p{N}])`,"giu");}catch(_){return null;}
+  // Vorschläge zählen nur dann, wenn die Konjunktion das erste lexikalische Wort
+  // der maßgeblichen Proposition bildet. Führende Anführungs-/Klammerzeichen sind
+  // erlaubt; ein Signalwort später im Satz wird bewusst ignoriert.
+  try{return new RegExp(`^[\\s“”„\"'’‘([{—–-]*(${body})(?=$|[^\\p{L}\\p{N}])`,"iu");}catch(_){return null;}
 }
-function relationSuggestionOccurrences(text,label){
+function relationSuggestionOccurrenceAtStart(text,label){
   const pattern=relationSuggestionSignalPattern(label);
-  if(!pattern) return [];
+  if(!pattern) return null;
   const source=String(text||"");
-  const hits=[];
-  let match;
-  while((match=pattern.exec(source))){
-    const matched=match[1]||match[0];
-    const offset=match[0].indexOf(matched);
-    const start=match.index+Math.max(0,offset);
-    hits.push({start,end:start+matched.length});
-    if(match.index===pattern.lastIndex) pattern.lastIndex++;
+  const match=pattern.exec(source);
+  if(!match) return null;
+  const matched=match[1]||match[0];
+  const offset=match[0].indexOf(matched);
+  const start=match.index+Math.max(0,offset);
+  return {start,end:start+matched.length};
+}
+function relationSuggestionAxisPropositionId(nodeId,memo=new Map(),stack=new Set()){
+  if(memo.has(nodeId)) return memo.get(nodeId);
+  if(stack.has(nodeId)) return null;
+  const node=getNode(nodeId);
+  if(!node) return null;
+  if(node.kind==="proposition"){
+    memo.set(nodeId,node.id);
+    return node.id;
   }
-  return hits;
+
+  stack.add(nodeId);
+  // Bei einem bestehenden Unterbaum folgt die Signalerkennung ausschließlich
+  // seiner Hauptachse. Mehrere Hauptteile (z. B. koordinierende Beziehungen)
+  // werden in Textreihenfolge betrachtet; für den Teilbaum ist die erste dort
+  // erreichbare Hauptachsen-Proposition repräsentativ. So werden Konjunktionen
+  // aus Nebenästen oder späteren internen Koordinationsgliedern nicht nach außen
+  // als Beziehungssignal hochgereicht.
+  const primary=(node.primaryChildIds||[]).filter(id=>(node.children||[]).includes(id));
+  const candidates=(primary.length?primary:(node.relationshipId==null?[]:(node.children||[])))
+    .slice()
+    .sort((a,b)=>{
+      const sa=nodeSpan(a),sb=nodeSpan(b);
+      return (sa.start-sb.start)||(sa.end-sb.end);
+    });
+  let result=null;
+  for(const childId of candidates){
+    result=relationSuggestionAxisPropositionId(childId,memo,stack);
+    if(result) break;
+  }
+  stack.delete(nodeId);
+  memo.set(nodeId,result);
+  return result;
 }
 function relationshipSuggestionsForNode(node){
   const suggestions=new Map();
   if(!node || node.kind!=="relation") return suggestions;
 
-  // Die automatische Hervorhebung verwendet ausschließlich dieselbe Zuordnung
-  // wie der manuelle Konjunktionsfilter. Keine Satzzeichen-, Semantik-, Rollen-,
-  // Richtungs- oder Nutzerhistorik-Regeln werden zusätzlich ausgewertet.
-  const childTexts=(node.children||[]).map(childId=>({
-    childId,
-    text:String(nodeText(childId)||"")
-  }));
+  // Eine einzige Regelquelle: CONJUNCTION_LOOKUP. Ein Treffer zählt nur am
+  // Anfang der maßgeblichen Proposition. Bei Unterbäumen wird diese Proposition
+  // entlang der bereits analysierten Hauptachse bestimmt; Richtung und Rollen
+  // der neu zu wählenden Beziehung werden nicht ausgewertet.
+  const axisMemo=new Map();
+  const childSources=(node.children||[]).map(childId=>{
+    const propId=relationSuggestionAxisPropositionId(childId,axisMemo);
+    if(!propId) return null;
+    return {
+      childId,
+      propId,
+      text:String(nodeText(propId)||""),
+      sourceLabel:childId===propId
+        ? nodeLabel(propId)
+        : `${nodeLabel(propId)} · Hauptachse von ${nodeLabel(childId)}`
+    };
+  }).filter(Boolean);
   const detected=[];
 
-  for(const {childId,text} of childTexts){
-    if(!text.trim()) continue;
+  for(const source of childSources){
+    if(!source.text.trim()) continue;
     const occurrences=[];
     for(const entry of CONJUNCTION_LOOKUP){
-      for(const hit of relationSuggestionOccurrences(text,entry.label)){
-        occurrences.push({entry,childId,...hit,length:hit.end-hit.start});
-      }
+      const hit=relationSuggestionOccurrenceAtStart(source.text,entry.label);
+      if(hit) occurrences.push({entry,...source,...hit,length:hit.end-hit.start});
     }
 
-    // Bei überlappenden Treffern gilt das längere konkrete Konjunktionsgefüge.
-    // Beispiel: „und dann“ soll nicht zusätzlich wie getrenntes „und“ behandelt werden.
-    occurrences.sort((a,b)=>b.length-a.length || a.start-b.start);
+    // Beginnen mehrere Tabellenbegriffe an derselben Stelle, gilt das längere,
+    // konkretere Gefüge: „und dann“ vor „und“, „damit nicht“ vor „damit“ usw.
+    occurrences.sort((a,b)=>b.length-a.length);
     const accepted=[];
     for(const hit of occurrences){
-      const overlapsLonger=accepted.some(other=>
+      const coveredByLonger=accepted.some(other=>
         hit.start>=other.start && hit.end<=other.end && other.length>hit.length
       );
-      if(!overlapsLonger) accepted.push(hit);
+      if(!coveredByLonger) accepted.push(hit);
     }
     detected.push(...accepted);
   }
@@ -554,15 +595,15 @@ function relationshipSuggestionsForNode(node){
   for(const hit of detected){
     const entry=hit.entry;
     const ambiguity=Math.max(1,entry.relations.length);
-    // Intensität basiert nur auf der Konjunktionstabelle: Je eindeutiger die dortige
-    // Zuordnung und je mehr unabhängige Treffer dieselbe Beziehung stützen, desto kräftiger.
+    // Die Intensität beschreibt weiterhin nur die Eindeutigkeit/Häufung der
+    // Konjunktionszuordnung in derselben Tabelle wie der manuelle Filter.
     const contribution=1/ambiguity;
     for(const relationId of entry.relations){
       if(!RELATIONSHIPS[relationId]) continue;
       const current=suggestions.get(relationId)||{score:0,signals:new Set(),sources:new Set()};
       current.score+=contribution;
       current.signals.add(entry.label);
-      current.sources.add(nodeLabel(hit.childId));
+      current.sources.add(hit.sourceLabel);
       suggestions.set(relationId,current);
     }
   }
