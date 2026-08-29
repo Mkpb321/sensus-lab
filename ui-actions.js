@@ -245,13 +245,8 @@ function bibleArcNodeSpan(nodeId,anchorMap,memo=new Map()){
   if(node.kind==="proposition"){
     const anchor=anchorMap.get(nodeId);
     if(!anchor) return null;
-    // Die Arc-Enden stehen bewusst etwas innerhalb der Propositionzeile statt
-    // direkt an ihren oberen/unteren Grenzen. Dadurch bleiben einzelne Arcs
-    // kompakter und benachbarte Bögen optisch klar voneinander getrennt.
-    const rawHeight=Math.max(1,anchor.bottom-anchor.top);
-    const inset=Math.min(7,Math.max(3,rawHeight*.12));
-    const top=anchor.top+inset;
-    const bottom=Math.max(top+1,anchor.bottom-inset);
+    const top=anchor.top;
+    const bottom=anchor.bottom;
     const span={top,bottom,center:(top+bottom)/2,height:Math.max(1,bottom-top)};
     memo.set(nodeId,span);
     return span;
@@ -265,12 +260,15 @@ function bibleArcNodeSpan(nodeId,anchorMap,memo=new Map()){
   return span;
 }
 function bibleArcWidth(span){
-  // Biblearc-Arcs werden annähernd so breit wie der vertikale Bereich, den sie umfassen.
-  // Dadurch werden verschachtelte Gruppen unmittelbar an ihrer geometrischen Größe sichtbar.
-  return Math.max(34,span.height*1.10);
+  // Die Arcs sollen eher wie kompakte Halbkreise wirken und nicht zu weit nach
+  // rechts ausladen. Deshalb richtet sich die Breite ungefähr nach dem Radius
+  // der umschlossenen Höhe statt nach deren voller Höhe.
+  return Math.max(22,span.height*0.58);
 }
 function bibleArcPath(x,span){
   const width=bibleArcWidth(span);
+  // 4/3 approximiert eine halbe Kreisbahn als kubische Bézier-Kurve. Mit der
+  // kompakteren width entsteht ein engerer, Biblearc-ähnlicher Bogen.
   const control=width*4/3;
   const top=span.top+.5,bottom=span.bottom-.5;
   return `M ${x} ${top} C ${x+control} ${top}, ${x+control} ${bottom}, ${x} ${bottom}`;
