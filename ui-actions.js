@@ -351,11 +351,11 @@ function renderBibelArcs(anchorMap,height){
     svg.innerHTML="";
     svg.removeAttribute("width");
     svg.removeAttribute("height");
+    delete svg.dataset.minWidth;
     svg.style.width="";
     svg.style.height="";
     return;
   }
-  applyBibleArcSplit();
 
   const spanMemo=new Map();
   const nodes=[];
@@ -372,6 +372,8 @@ function renderBibelArcs(anchorMap,height){
   const baseX=1.5;
   const maxArcWidth=Math.max(34,...nodes.map(item=>bibleArcWidth(item.span)));
   const svgWidth=Math.ceil(maxArcWidth+24);
+  svg.dataset.minWidth=String(svgWidth);
+  applyBibleArcSplit();
 
   svg.setAttribute("viewBox",`0 0 ${svgWidth} ${height}`);
   svg.setAttribute("width",String(svgWidth));
@@ -890,12 +892,13 @@ function setBibleArcing(enabled){
 function bibleArcSplitBounds(){
   const rect=els.centerAnalysisBody?.getBoundingClientRect();
   const width=Math.max(1,rect?.width||0);
-  // Text braucht nur eine kleine arbeitsfähige Mindestbreite; die Arc-Seite kann
-  // horizontal scrollen und muss deshalb nur eine schmale sichtbare Restbreite behalten.
+  // Der Textbereich darf stark schrumpfen, braucht aber noch eine kleine sinnvolle
+  // Arbeitsbreite. Die Arc-Seite stoppt wie bei den Brackets erst dann, wenn die
+  // aktuell benötigte Arc-Geometrie sonst nicht mehr vollständig hineinpassen würde.
   const textNeeded=Math.min(180,Math.max(110,width*.18));
-  const arcNeeded=Math.min(92,Math.max(56,width*.10));
-  const min=Math.max(.12,Math.min(.78,(textNeeded+1)/width));
-  const max=Math.min(.94,Math.max(min,1-(arcNeeded+1)/width));
+  const arcNeeded=Math.max(24,Number(els.bibleArcSvg?.dataset.minWidth)||24);
+  const min=Math.max(.12,Math.min(.82,(textNeeded+1)/width));
+  const max=Math.min(.94,Math.max(min,1-(arcNeeded+2)/width));
   return {min,max};
 }
 function clampBibleArcSplit(split){
