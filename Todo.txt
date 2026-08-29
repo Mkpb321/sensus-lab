@@ -2,6 +2,8 @@ nicht responsive machen
 
 irgendwie bedienbar bei der mobile version?
 
+releations vorschlagen verfeinern
+
 automatischer aufteuler bei allen Satzzeichen und Konjunktionen
 aus dem pdf könnte man sogar relations vorschlagen per moseover oder so
 klick der Konjunktionen highlitet in farben die immer gleich sind. das wird später auch für andere Tools sinvoll. eigene art farbe z.b. pastel und jedes wort anders oder unterstrichen unterwellt irgendwas, nur schriftfarbe oder so

@@ -654,8 +654,8 @@ function renderRelationshipDialog(){
       const relStrongColor=relationshipStrongColor(rel,id);
       const suggestionSignals=suggestion?[...suggestion.signals].slice(0,3):[];
       const suggestionSources=suggestion?[...suggestion.sources]:[];
-      const suggestionLabel=suggestionSignals.length?`Möglich · ${suggestionSignals.join(" · ")}`:"";
-      const suggestionTitle=suggestion?`Mögliche Beziehung durch Startkonjunktion: ${suggestionSignals.join(", ")}${suggestionSources.length?` (${suggestionSources.join(", ")})`:""}`:"";
+      const suggestionLabel=suggestionSignals.length?suggestionSignals.join(" · "):"";
+      const suggestionTitle=suggestion?`Startkonjunktion: ${suggestionSignals.join(", ")}${suggestionSources.length?` (${suggestionSources.join(", ")})`:""}`:"";
       html.push(`<button type="button" class="rel-card${selected}${suggested}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}"${suggestionTitle?` title="${escapeHtml(suggestionTitle)}"`:""} style="--rel-color:${relColor};--rel-strong:${relStrongColor}">
         <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
         <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}${suggestionLabel?` <span class="rel-suggestion">${escapeHtml(suggestionLabel)}</span>`:""}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
