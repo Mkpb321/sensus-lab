@@ -291,7 +291,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
                   <div class="help-reference-row"><strong>Auto teilen</strong><span>Heuristische Segmentierungshilfe: ergänzt Teilungsgrenzen vor erkannten Konjunktionen und nach Satzpunkten.</span></div>
                   <div class="help-reference-row"><strong>Beziehung wählen/ändern</strong><span>Dialog zum Klassifizieren einer Klammer bzw. zum Ändern ihres vorhandenen Beziehungstyps.</span></div>
                   <div class="help-reference-row"><strong>Konjunktionsfilter</strong><span>Grenzt die Beziehungsliste anhand eines ausgewählten Verbindungsworts ein; er trifft keine semantische Entscheidung.</span></div>
-                  <div class="help-reference-row"><strong>Beziehungsvorschlag</strong><span>Dezent hervorgehobener Beziehungstyp, dessen hinterlegte Konjunktions-/Textsignale in den beteiligten Einheiten erkannt wurden. Ein Vorschlag wird nie automatisch übernommen.</span></div>
+                  <div class="help-reference-row"><strong>Beziehungsvorschlag</strong><span>Regelbasiert hervorgehobener Beziehungstyp, für den formale Textsignale erkannt wurden. Vollständige Muster werden stärker bewertet als mehrdeutige Einzelwörter. Vorschläge werden nie automatisch übernommen.</span></div>
                   <div class="help-reference-row"><strong>Erweiterte Beziehungen</strong><span>Blendet die optionalen zusätzlichen Beziehungstypen in der Beziehungsauswahl ein.</span></div>
                   <div class="help-reference-row"><strong>Richtung umkehren</strong><span>Berechnet Rollen und Hauptpunkt einer gerichteten Beziehung so neu, als wären die beiden Seiten in umgekehrter Reihenfolge gewählt worden.</span></div>
                   <div class="help-reference-row"><strong>Offen lassen</strong><span>Schließt den Beziehungsdialog, ohne der neu gebildeten Klammer einen Beziehungstyp zuzuweisen.</span></div>
@@ -366,8 +366,8 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
             <details class="help-detail" data-help-keywords="vorschlag wahrscheinlich konjunktion signal signalwort heuristik text anfang mehrdeutig">
               <summary>Wie Beziehungsvorschläge entstehen</summary>
               <div class="help-detail-body">
-                <p>Die Software prüft die beteiligten Einheiten auf die in der Konjunktionshilfe hinterlegten Textsignale. Ein Signal am Anfang einer Einheit wird stärker gewichtet als dasselbe Wort irgendwo im laufenden Text; Mehrwortsignale erhalten ebenfalls höheres Gewicht.</p>
-                <p>Mehrdeutige Signale markieren bewusst mehrere Kandidaten. „und“, „aber“ oder „wenn“ sind daher keine automatische Entscheidung. Die Hervorhebung ist nur eine Priorisierungshilfe; Kardinalität, Richtung, Inhalt und die fachliche Prüffrage bleiben maßgeblich.</p>
+                <p>Die Software verwendet ausschließlich feste Regeln. Sie bewertet hinterlegte Signalwörter, ihre Position sowie vollständige Muster wie „wenn … dann“, „nicht … sondern“, „entweder … oder“, „sowohl … als auch“, „um … zu“, Erklärungsmarker, Zeit-/Ortsmarker und Fragezeichen mit weiterer Einheit. Vollständige oder eindeutige Muster werden stärker hervorgehoben als einzelne mehrdeutige Wörter.</p>
+                <p>„und“, „aber“, „wenn“, „wie“, „dass“ und ähnliche Mehrdeutigkeiten reichen allein bewusst meist nicht für einen starken Vorschlag. Die Logik nutzt keine KI, lernt nicht aus Nutzerentscheidungen und berücksichtigt weder Richtungsumkehr noch Rollenreihenfolge. Sie priorisiert nur Beziehungstypen; die fachliche Entscheidung bleibt beim Nutzer.</p>
               </div>
             </details>
             <details class="help-detail" data-help-keywords="handlung ergebnis hauptpunkt radio rollen">
