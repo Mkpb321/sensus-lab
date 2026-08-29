@@ -245,7 +245,14 @@ function bibleArcNodeSpan(nodeId,anchorMap,memo=new Map()){
   if(node.kind==="proposition"){
     const anchor=anchorMap.get(nodeId);
     if(!anchor) return null;
-    const span={top:anchor.top,bottom:anchor.bottom,center:anchor.center,height:Math.max(1,anchor.bottom-anchor.top)};
+    // Die Arc-Enden stehen bewusst etwas innerhalb der Propositionzeile statt
+    // direkt an ihren oberen/unteren Grenzen. Dadurch bleiben einzelne Arcs
+    // kompakter und benachbarte Bögen optisch klar voneinander getrennt.
+    const rawHeight=Math.max(1,anchor.bottom-anchor.top);
+    const inset=Math.min(7,Math.max(3,rawHeight*.12));
+    const top=anchor.top+inset;
+    const bottom=Math.max(top+1,anchor.bottom-inset);
+    const span={top,bottom,center:(top+bottom)/2,height:Math.max(1,bottom-top)};
     memo.set(nodeId,span);
     return span;
   }
