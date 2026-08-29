@@ -291,6 +291,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
                   <div class="help-reference-row"><strong>Auto teilen</strong><span>Heuristische Segmentierungshilfe: ergänzt Teilungsgrenzen vor erkannten Konjunktionen und nach Satzpunkten.</span></div>
                   <div class="help-reference-row"><strong>Beziehung wählen/ändern</strong><span>Dialog zum Klassifizieren einer Klammer bzw. zum Ändern ihres vorhandenen Beziehungstyps.</span></div>
                   <div class="help-reference-row"><strong>Konjunktionsfilter</strong><span>Grenzt die Beziehungsliste anhand eines ausgewählten Verbindungsworts ein; er trifft keine semantische Entscheidung.</span></div>
+                  <div class="help-reference-row"><strong>Beziehungsvorschlag</strong><span>Dezent hervorgehobener Beziehungstyp, dessen hinterlegte Konjunktions-/Textsignale in den beteiligten Einheiten erkannt wurden. Ein Vorschlag wird nie automatisch übernommen.</span></div>
                   <div class="help-reference-row"><strong>Erweiterte Beziehungen</strong><span>Blendet die optionalen zusätzlichen Beziehungstypen in der Beziehungsauswahl ein.</span></div>
                   <div class="help-reference-row"><strong>Richtung umkehren</strong><span>Berechnet Rollen und Hauptpunkt einer gerichteten Beziehung so neu, als wären die beiden Seiten in umgekehrter Reihenfolge gewählt worden.</span></div>
                   <div class="help-reference-row"><strong>Offen lassen</strong><span>Schließt den Beziehungsdialog, ohne der neu gebildeten Klammer einen Beziehungstyp zuzuweisen.</span></div>
@@ -357,10 +358,18 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
             <div class="help-reference">
               <div class="help-reference-row"><strong>Suche</strong><span>Filtert nach deutschem/englischem Namen, Kürzel, Definition, Prüffrage und Signalwörtern.</span></div>
               <div class="help-reference-row"><strong>Konjunktion</strong><span>Filtert die Liste auf Beziehungstypen, die für das gewählte Signalwort hinterlegt sind. Das ist eine Suchhilfe, keine automatische Klassifikation.</span></div>
+              <div class="help-reference-row"><strong>Vorschläge</strong><span>Erkannte Konjunktionen/Textsignale heben passende Beziehungstypen dezent hervor. Die Liste wird dadurch nicht eingeschränkt und keine Beziehung automatisch gewählt.</span></div>
               <div class="help-reference-row"><strong>Erweiterte Beziehungen</strong><span>Blendet die zusätzlichen Biblearc-Beziehungstypen in die Auswahl ein.</span></div>
               <div class="help-reference-row"><strong>Übernehmen</strong><span>Einfachklick wählt einen Typ; „Übernehmen“ speichert ihn. Doppelklick auf einen Beziehungstyp wählt und übernimmt sofort.</span></div>
               <div class="help-reference-row"><strong>Richtung umkehren</strong><span>Bei gerichteten binären Beziehungen werden Rollen und Hauptpunkt so neu berechnet, als wären die beiden Einheiten ursprünglich in umgekehrter Reihenfolge gewählt worden.</span></div>
             </div>
+            <details class="help-detail" data-help-keywords="vorschlag wahrscheinlich konjunktion signal signalwort heuristik text anfang mehrdeutig">
+              <summary>Wie Beziehungsvorschläge entstehen</summary>
+              <div class="help-detail-body">
+                <p>Die Software prüft die beteiligten Einheiten auf die in der Konjunktionshilfe hinterlegten Textsignale. Ein Signal am Anfang einer Einheit wird stärker gewichtet als dasselbe Wort irgendwo im laufenden Text; Mehrwortsignale erhalten ebenfalls höheres Gewicht.</p>
+                <p>Mehrdeutige Signale markieren bewusst mehrere Kandidaten. „und“, „aber“ oder „wenn“ sind daher keine automatische Entscheidung. Die Hervorhebung ist nur eine Priorisierungshilfe; Kardinalität, Richtung, Inhalt und die fachliche Prüffrage bleiben maßgeblich.</p>
+              </div>
+            </details>
             <details class="help-detail" data-help-keywords="handlung ergebnis hauptpunkt radio rollen">
               <summary>Sonderfall Handlung–Ergebnis</summary>
               <div class="help-detail-body">

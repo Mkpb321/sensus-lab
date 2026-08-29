@@ -200,12 +200,15 @@ textarea{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line
 .rel-list{display:grid;gap:0}
 .rel-card{min-height:40px;width:100%;text-align:left;border:0;border-left:3px solid var(--rel-color,#cbd2d8);border-bottom:1px solid #ebedef;background:#fff;border-radius:0;padding:7px 10px 7px 9px;display:grid;grid-template-columns:68px minmax(0,1fr) auto;column-gap:12px;align-items:center}
 .rel-card:hover:not(:disabled){background:#f6f8f9}
+.rel-card.suggested:not(.selected):not(:disabled){background:#fff9ec}
+.rel-card.suggested:not(.selected):not(:disabled):hover{background:#fff4db}
 .rel-card.selected{background:var(--accent-soft);box-shadow:inset 2px 0 0 var(--accent);border-left-color:var(--accent)}
 .rel-card:disabled{background:#fafafa}
 .rel-card:disabled .rel-name{color:#a2a9b0;text-decoration:none}
 .rel-code{display:block;min-width:0;padding:2px 0 2px 7px;border:0;border-left:3px solid var(--rel-strong,#45515d);border-radius:0;background:transparent;color:var(--rel-strong,#45515d);font-weight:850;font-size:12.5px;line-height:1.05;letter-spacing:-.015em;white-space:nowrap}
 .rel-card-copy{min-width:0}
 .rel-name{display:block;font-weight:620;font-size:12px;line-height:1.25;color:#27333f}
+.rel-suggestion{margin-left:7px;font-size:9.5px;line-height:1.2;font-weight:650;color:#8a641d;white-space:nowrap}
 .rel-original{font-size:.86em;font-weight:400;color:#7a8590;letter-spacing:0}
 .rel-desc{display:none}
 .rel-card .cardinality{font-size:9.5px;color:#8a949e;white-space:nowrap;font-weight:500}

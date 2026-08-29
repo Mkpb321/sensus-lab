@@ -492,6 +492,54 @@ function applyTextFromDialog(){
 function selectedConjunctionEntry(){
   return selectedConjunctionLookup ? CONJUNCTION_LOOKUP.find(item=>item.label===selectedConjunctionLookup)||null : null;
 }
+function relationSuggestionSignalPattern(label,{startOnly=false}={}){
+  const raw=String(label||"").trim().toLocaleLowerCase("de");
+  if(!raw) return null;
+  const esc=value=>value.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  const phrasePart=value=>value.trim().split(/\s+/u).filter(Boolean).map(esc).join("\\s+");
+  const pieces=raw.split(/\s*…\s*/u).filter(Boolean);
+  const body=pieces.map(phrasePart).join("[\\s\\S]{0,100}?");
+  const prefix=startOnly?"^[\\s„“‚‘\"'«»‹›()—–-]*":"(?:^|[^\\p{L}\\p{N}])";
+  const suffix="(?=$|[^\\p{L}\\p{N}])";
+  try{return new RegExp(prefix+body+suffix,"iu");}catch(_){return null;}
+}
+function relationSuggestionMatch(text,label,startOnly=false){
+  const pattern=relationSuggestionSignalPattern(label,{startOnly});
+  return !!(pattern && pattern.test(String(text||"")));
+}
+function relationshipSuggestionsForNode(node){
+  const suggestions=new Map();
+  if(!node || node.kind!=="relation") return suggestions;
+  const childTexts=(node.children||[]).map(childId=>({childId,text:nodeText(childId)}));
+  for(const {childId,text} of childTexts){
+    if(!String(text||"").trim()) continue;
+    for(const entry of CONJUNCTION_LOOKUP){
+      const atStart=relationSuggestionMatch(text,entry.label,true);
+      const anywhere=atStart || relationSuggestionMatch(text,entry.label,false);
+      if(!anywhere) continue;
+      const isCompound=/\s|…/u.test(entry.label);
+      // Satz-/Propositionsanfänge sind für die Beziehung zwischen den direkten
+      // Kindern deutlich aussagekräftiger als ein Vorkommen irgendwo im Text.
+      // Mehrwortsignale erhalten ebenfalls mehr Gewicht; gewöhnliche Einzelwörter
+      // mitten in einer Einheit reichen allein bewusst nicht für eine Markierung.
+      let weight=atStart?6:(isCompound?4:1);
+      if(entry.relations.length===1) weight+=1;
+      for(const relationId of entry.relations){
+        const current=suggestions.get(relationId)||{score:0,signals:new Set(),sources:new Set()};
+        current.score+=weight;
+        current.signals.add(entry.label);
+        current.sources.add(nodeLabel(childId));
+        suggestions.set(relationId,current);
+      }
+    }
+  }
+  // Nur hinreichend belastbare Treffer anzeigen. Mehrdeutige Konjunktionen dürfen
+  // mehrere Beziehungen markieren; das ist Absicht und keine automatische Wahl.
+  for(const [id,item] of [...suggestions]){
+    if(item.score<5) suggestions.delete(id);
+  }
+  return suggestions;
+}
 function relationshipEntriesForDialog(){
   const node=getNode(activeRelationId);
   if(!node || node.kind!=="relation") return [];
@@ -515,6 +563,7 @@ function renderRelationshipDialog(){
   els.dialogExtendedToggle.checked=!!state.settings.includeExtended;
   renderConjunctionFilter();
   const entries=relationshipEntriesForDialog();
+  const suggestions=relationshipSuggestionsForNode(node);
   const order=["koordination","eigenstaendige_stuetze","erlaeuternde_stuetze","gegensaetzliche_stuetze","erweitert"];
   const grouped=new Map(order.map(c=>[c,[]]));
   for(const entry of entries) grouped.get(entry[1].category)?.push(entry);
@@ -527,12 +576,18 @@ function renderRelationshipDialog(){
     html.push(`<div class="rel-category" style="--category-color:${categoryColor}"><span class="rel-category-main">${escapeHtml(categoryMain)}</span>${categoryDetail?` <span class="rel-category-detail">(${escapeHtml(categoryDetail)})</span>`:""}</div><div class="rel-list">`);
     for(const [id,rel] of rows){
       const ok=cardinalityOk(rel,node.children.length);
+      const suggestion=ok?suggestions.get(id):null;
       const selected=chosenRelationshipId===id?" selected":"";
+      const suggested=suggestion?" suggested":"";
       const relColor=relationshipColor(rel,id);
       const relStrongColor=relationshipStrongColor(rel,id);
-      html.push(`<button type="button" class="rel-card${selected}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}" style="--rel-color:${relColor};--rel-strong:${relStrongColor}">
+      const suggestionSignals=suggestion?[...suggestion.signals].slice(0,3):[];
+      const suggestionSources=suggestion?[...suggestion.sources]:[];
+      const suggestionLabel=suggestionSignals.length?`Vorschlag · ${suggestionSignals.join(" · ")}`:"";
+      const suggestionTitle=suggestion?`Vorschlag aufgrund erkannter Textsignale: ${suggestionSignals.join(", ")}${suggestionSources.length?` (${suggestionSources.join(", ")})`:""}`:"";
+      html.push(`<button type="button" class="rel-card${selected}${suggested}" data-rel-id="${id}" ${ok?"":"disabled"} aria-pressed="${chosenRelationshipId===id}"${suggestionTitle?` title="${escapeHtml(suggestionTitle)}"`:""} style="--rel-color:${relColor};--rel-strong:${relStrongColor}">
         <span class="rel-code">${escapeHtml(rel.uiCode)}</span>
-        <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
+        <span class="rel-card-copy"><span class="rel-name">${escapeHtml(rel.label)}${suggestionLabel?` <span class="rel-suggestion">${escapeHtml(suggestionLabel)}</span>`:""}</span><span class="rel-desc">${escapeHtml(rel.definition)}</span></span>
         <span class="cardinality">${escapeHtml(cardinalityText(rel))}</span>
       </button>`);
     }
