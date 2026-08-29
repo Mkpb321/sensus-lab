@@ -245,6 +245,28 @@ function renderBracketSvg(anchorMap,height){
   if(!data.length) els.bracketEmpty.textContent=state.propositions.length<2?"Keine Struktur":"Keine Verbindungen";
 }
 
+function bibleArcSharedAnchorMap(anchorMap){
+  const out=new Map();
+  const items=(state.propositions||[])
+    .map(p=>({id:p.id,anchor:anchorMap.get(p.id)}))
+    .filter(item=>item.anchor);
+  if(!items.length) return out;
+
+  // Benachbarte Propositionen teilen für Arcing exakt denselben Grenzpunkt.
+  // Damit treffen das Ende des oberen und der Beginn des unteren Arcs wirklich
+  // in EINEM Punkt zusammen – unabhängig von 1px-Separators im Textlayout.
+  const boundaries=[];
+  for(let i=0;i<items.length-1;i++){
+    const a=items[i].anchor,b=items[i+1].anchor;
+    boundaries[i]=(a.bottom+b.top)/2;
+  }
+  items.forEach((item,i)=>{
+    const top=i===0?item.anchor.top:boundaries[i-1];
+    const bottom=i===items.length-1?item.anchor.bottom:boundaries[i];
+    out.set(item.id,{top,bottom,center:(top+bottom)/2});
+  });
+  return out;
+}
 function bibleArcNodeSpan(nodeId,anchorMap,memo=new Map()){
   if(memo.has(nodeId)) return memo.get(nodeId);
   const node=getNode(nodeId);
@@ -274,10 +296,11 @@ function bibleArcWidth(span){
 }
 function bibleArcPath(x,span){
   const width=bibleArcWidth(span);
-  // 4/3 approximiert eine halbe Kreisbahn als kubische Bézier-Kurve. Mit der
-  // kompakteren width entsteht ein engerer, Biblearc-ähnlicher Bogen.
+  // 4/3 approximiert eine halbe Kreisbahn als kubische Bézier-Kurve. Top und
+  // Bottom werden absichtlich NICHT eingerückt: gemeinsame Arc-Grenzen müssen
+  // exakt denselben SVG-Punkt verwenden, damit die Bögen sichtbar zusammenlaufen.
   const control=width*4/3;
-  const top=span.top+.5,bottom=span.bottom-.5;
+  const top=span.top,bottom=span.bottom;
   return `M ${x} ${top} C ${x+control} ${top}, ${x+control} ${bottom}, ${x} ${bottom}`;
 }
 function bibleArcSingleLabelRole(relationshipId){
@@ -364,14 +387,15 @@ function renderBibelArcs(anchorMap,height){
     return;
   }
 
+  const arcAnchorMap=bibleArcSharedAnchorMap(anchorMap);
   const spanMemo=new Map();
   const nodes=[];
   for(const p of state.propositions){
-    const span=bibleArcNodeSpan(p.id,anchorMap,spanMemo);
+    const span=bibleArcNodeSpan(p.id,arcAnchorMap,spanMemo);
     if(span) nodes.push({id:p.id,node:p,span,kind:"proposition"});
   }
   for(const node of relationNodes()){
-    const span=bibleArcNodeSpan(node.id,anchorMap,spanMemo);
+    const span=bibleArcNodeSpan(node.id,arcAnchorMap,spanMemo);
     if(span) nodes.push({id:node.id,node,span,kind:"relation"});
   }
   nodes.sort((a,b)=>a.span.height-b.span.height || a.span.top-b.span.top);
@@ -398,7 +422,7 @@ function renderBibelArcs(anchorMap,height){
     curves.push(`<path class="${cls}" d="${bibleArcPath(baseX,item.span)}"/>`);
     if(item.kind!=="relation" || node.relationshipId==null) continue;
     const rel=RELATIONSHIPS[node.relationshipId];
-    for(const spec of bibleArcLabelSpecs(node,rel,spanMemo,anchorMap)){
+    for(const spec of bibleArcLabelSpecs(node,rel,spanMemo,arcAnchorMap)){
       labels.push(`<text class="biblearc-label" x="${spec.x}" y="${spec.y}" fill="${spec.color}">${safeSvgText(spec.text)}</text>`);
     }
   }
@@ -898,13 +922,13 @@ function setBibleArcing(enabled){
 }
 function bibleArcSplitBounds(){
   const width=Math.max(1,els.centerColumn?.clientWidth||els.centerAnalysisBody?.clientWidth||0);
-  // Der Textbereich darf stark schrumpfen, braucht aber noch eine kleine sinnvolle
-  // Arbeitsbreite. Die Arc-Seite stoppt wie bei den Brackets erst dann, wenn die
-  // aktuell benötigte Arc-Geometrie sonst nicht mehr vollständig hineinpassen würde.
+  // Auch die Arc-Spalte darf bewusst schmaler als die Arc-Grafik werden; bei
+  // Überbreite übernimmt biblearc-pane den horizontalen Scroll. Nur der Text
+  // behält links eine kleine arbeitsfähige Mindestbreite.
   const textNeeded=Math.min(180,Math.max(110,width*.18));
-  const arcNeeded=Math.max(24,Number(els.bibleArcSvg?.dataset.minWidth)||24);
+  const arcEdge=Math.min(14,Math.max(6,width*.01));
   const min=Math.max(.12,Math.min(.82,(textNeeded+1)/width));
-  const max=Math.min(.94,Math.max(min,1-(arcNeeded+2)/width));
+  const max=Math.min(.995,Math.max(min,1-arcEdge/width));
   return {min,max};
 }
 function clampBibleArcSplit(split){
@@ -947,12 +971,11 @@ function setBibleArcSplit(split,{persist=false}={}){
 }
 function workspaceSplitBounds(){
   const width=Math.max(1,els.canvasGrid?.clientWidth||0);
-  const graphNeeded=Math.max(42,Number(els.bracketSvg?.dataset.minWidth)||42);
-  // Propositionstext darf stark umbrechen; nur eine kleine arbeitsfähige Restbreite
-  // bleibt reserviert. Die Graph-Seite stoppt dagegen erst an ihrer real benötigten
-  // Geometriebreite statt an einem pauschalen Prozentwert.
+  // Die Brackets-Spalte darf bewusst schmaler als ihr Inhalt werden. Die SVG
+  // behält ihre echte Breite und wird dann innerhalb der Spalte horizontal scrollbar.
+  const bracketEdge=Math.min(14,Math.max(6,width*.01));
   const textNeeded=Math.min(180,Math.max(120,width*.14));
-  const min=Math.max(.03,Math.min(.82,(graphNeeded+6)/width));
+  const min=Math.max(.005,bracketEdge/width);
   const max=Math.min(.97,Math.max(min,1-(textNeeded+2)/width));
   return {min,max};
 }
