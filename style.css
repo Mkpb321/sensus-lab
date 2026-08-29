@@ -110,6 +110,19 @@ body.resizing-workspace{cursor:col-resize;user-select:none}
 #bracketSvg{width:auto;max-width:none}
 .diagram-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#909aa4;font-size:12px;pointer-events:none}
 .prop-list{position:relative;min-height:280px;padding:0;display:flex;flex-direction:column;gap:0;background:#fff}
+
+.center-analysis-body{display:grid;grid-template-columns:minmax(0,1fr) auto;min-width:0;min-height:280px;background:#fff}
+.center-analysis-body>.prop-list{min-width:0}
+.biblearc-pane{min-width:0;overflow-x:auto;overflow-y:hidden;border-left:1px solid var(--line);background:#fff;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#bcc5cd transparent}
+.biblearc-pane[hidden]{display:none!important}
+.biblearc-pane::-webkit-scrollbar{height:7px}
+.biblearc-pane::-webkit-scrollbar-thumb{background:#bcc5cd}
+.biblearc-pane::-webkit-scrollbar-track{background:transparent}
+.biblearc-svg{display:block;min-height:280px;overflow:visible;shape-rendering:geometricPrecision;pointer-events:none}
+.biblearc-curve{fill:none;stroke:#59636d;stroke-width:1.25;vector-effect:non-scaling-stroke}
+.biblearc-curve.proposition{stroke:#737c85;stroke-width:1.05}
+.biblearc-curve.open{stroke:#9aa3ac;stroke-dasharray:5 4}
+.biblearc-label{font-size:11px;font-weight:700;text-anchor:middle;dominant-baseline:middle;alignment-baseline:middle;paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}
 .prop-wrap{position:relative;border-bottom:1px solid #e7ebee}
 .prop-wrap:last-child{border-bottom:0}
 .prop-card{display:grid;grid-template-columns:4px minmax(0,1fr);align-items:center;min-height:52px;border:0;border-radius:0;background:#fff;box-shadow:none;position:relative;transition:background .1s ease}
@@ -381,3 +394,5 @@ body[data-mode="bearbeiten"][data-tool="verbinden"] .diagram-relation-label .dia
   #relationshipDialog .relationship-controls{position:static}
 }
 .help-topic[hidden],.help-nav a[hidden],.help-detail[hidden]{display:none!important}
+
+@media (max-width:760px){.biblearc-pane{max-width:46vw}}

@@ -238,10 +238,165 @@ function renderBracketSvg(anchorMap,height){
   if(!data.length) els.bracketEmpty.textContent=state.propositions.length<2?"Keine Struktur":"Keine Verbindungen";
 }
 
+function bibleArcNodeSpan(nodeId,anchorMap,memo=new Map()){
+  if(memo.has(nodeId)) return memo.get(nodeId);
+  const node=getNode(nodeId);
+  if(!node) return null;
+  if(node.kind==="proposition"){
+    const anchor=anchorMap.get(nodeId);
+    if(!anchor) return null;
+    const span={top:anchor.top,bottom:anchor.bottom,center:anchor.center,height:Math.max(1,anchor.bottom-anchor.top)};
+    memo.set(nodeId,span);
+    return span;
+  }
+  const children=(node.children||[]).map(id=>bibleArcNodeSpan(id,anchorMap,memo)).filter(Boolean);
+  if(!children.length) return null;
+  const top=Math.min(...children.map(x=>x.top));
+  const bottom=Math.max(...children.map(x=>x.bottom));
+  const span={top,bottom,center:(top+bottom)/2,height:Math.max(1,bottom-top)};
+  memo.set(nodeId,span);
+  return span;
+}
+function bibleArcWidth(span){
+  // Biblearc-Arcs werden annähernd so breit wie der vertikale Bereich, den sie umfassen.
+  // Dadurch werden verschachtelte Gruppen unmittelbar an ihrer geometrischen Größe sichtbar.
+  return Math.max(34,span.height*1.10);
+}
+function bibleArcPath(x,span){
+  const width=bibleArcWidth(span);
+  const control=width*4/3;
+  const top=span.top+.5,bottom=span.bottom-.5;
+  return `M ${x} ${top} C ${x+control} ${top}, ${x+control} ${bottom}, ${x} ${bottom}`;
+}
+function bibleArcSingleLabelRole(relationshipId){
+  return ({
+    begruendung:"Grund",
+    folgerung:"Folgerung",
+    zeit:"Zeit",
+    ort:"Ort",
+    vergleich:"Vergleichsbild",
+    einraeumung:"Einräumung"
+  })[relationshipId]||null;
+}
+function bibleArcLabelSpecs(node,rel,spanMemo,anchorMap){
+  if(!rel || !node.relationshipId) return [];
+  const color=relationshipStrongColor(rel,node.relationshipId);
+  const code=relationShortCode(node);
+  const childSpans=(node.children||[]).map(id=>bibleArcNodeSpan(id,anchorMap,spanMemo));
+  const specs=[];
+
+  // Biblearc setzt koordinierende Labels zwischen die jeweils verbundenen Arcs.
+  if(rel.primary==="all"){
+    for(let i=0;i<childSpans.length-1;i++){
+      const a=childSpans[i],b=childSpans[i+1];
+      if(!a||!b) continue;
+      const innerWidth=Math.min(bibleArcWidth(a),bibleArcWidth(b));
+      specs.push({text:code,x:1.5+Math.max(22,Math.min(68,innerWidth*.48)),y:(a.bottom+b.top)/2,color});
+    }
+    return specs;
+  }
+
+  // Bilateral ist der Sonderfall unter den unterordnenden Beziehungen: Biblearc
+  // setzt BL wie bei einer koordinierenden Verbindung in die Mitte der Gruppe.
+  if(node.relationshipId==="beidseitige_begruendung"){
+    const span=bibleArcNodeSpan(node.id,anchorMap,spanMemo);
+    if(span) specs.push({text:code,x:1.5+Math.max(28,bibleArcWidth(span)*.28),y:span.center,color});
+    return specs;
+  }
+
+  const codeParts=String(code||"").split("/").map(x=>x.trim()).filter(Boolean);
+  if(codeParts.length===2 && Array.isArray(rel.roles) && rel.roles.length===2){
+    // Zweiteilige Biblearc-Labels (z. B. Ac/Pur) stehen auf den jeweiligen Seiten.
+    rel.roles.forEach((canonicalRole,roleIndex)=>{
+      const childIndex=(node.roleOrder||[]).indexOf(canonicalRole);
+      const span=childSpans[childIndex];
+      if(childIndex<0||!span) return;
+      const width=bibleArcWidth(span);
+      specs.push({text:codeParts[roleIndex],x:1.5+Math.max(20,width*.37),y:span.center,color});
+    });
+    return specs;
+  }
+
+  // Einteilige unterordnende Labels stehen auf demjenigen Arc, den Biblearc
+  // mit diesem Funktionslabel versieht; der jeweils andere Hauptteil bleibt unbeschriftet.
+  const labelledRole=bibleArcSingleLabelRole(node.relationshipId);
+  if(labelledRole){
+    const childIndex=(node.roleOrder||[]).indexOf(labelledRole);
+    const span=childSpans[childIndex];
+    if(childIndex>=0&&span){
+      const width=bibleArcWidth(span);
+      specs.push({text:code,x:1.5+Math.max(20,width*.37),y:span.center,color});
+      return specs;
+    }
+  }
+
+  // Defensive Darstellung für unbekannte/importierte Beziehungstypen.
+  const span=bibleArcNodeSpan(node.id,anchorMap,spanMemo);
+  if(span) specs.push({text:code,x:1.5+Math.max(24,bibleArcWidth(span)*.32),y:span.center,color});
+  return specs;
+}
+function renderBibelArcs(anchorMap,height){
+  const pane=els.bibleArcPane,svg=els.bibleArcSvg;
+  if(!pane||!svg) return;
+  const enabled=uiSettings.bibleArcing===true && !!state.rawText && state.propositions.length>0;
+  pane.hidden=!enabled;
+  if(!enabled){
+    svg.innerHTML="";
+    svg.removeAttribute("width");
+    svg.removeAttribute("height");
+    pane.style.width="";
+    return;
+  }
+
+  const spanMemo=new Map();
+  const nodes=[];
+  for(const p of state.propositions){
+    const span=bibleArcNodeSpan(p.id,anchorMap,spanMemo);
+    if(span) nodes.push({id:p.id,node:p,span,kind:"proposition"});
+  }
+  for(const node of relationNodes()){
+    const span=bibleArcNodeSpan(node.id,anchorMap,spanMemo);
+    if(span) nodes.push({id:node.id,node,span,kind:"relation"});
+  }
+  nodes.sort((a,b)=>a.span.height-b.span.height || a.span.top-b.span.top);
+
+  const baseX=1.5;
+  const maxArcWidth=Math.max(34,...nodes.map(item=>bibleArcWidth(item.span)));
+  const svgWidth=Math.ceil(maxArcWidth+24);
+  const centerWidth=Math.max(1,els.centerAnalysisBody?.clientWidth||els.propList.clientWidth||1);
+  const preferredVisible=Math.max(140,Math.min(420,centerWidth*.40));
+  const paneWidth=Math.max(72,Math.min(svgWidth,preferredVisible));
+  pane.style.width=`${Math.round(paneWidth)}px`;
+  pane.style.flexBasis=`${Math.round(paneWidth)}px`;
+
+  svg.setAttribute("viewBox",`0 0 ${svgWidth} ${height}`);
+  svg.setAttribute("width",String(svgWidth));
+  svg.setAttribute("height",String(height));
+  svg.style.width=`${svgWidth}px`;
+  svg.style.height=`${height}px`;
+
+  const curves=[];
+  const labels=[];
+  for(const item of nodes){
+    const node=item.node;
+    let cls="biblearc-curve";
+    if(item.kind==="proposition") cls+=" proposition";
+    if(item.kind==="relation" && node.relationshipId==null) cls+=" open";
+    curves.push(`<path class="${cls}" d="${bibleArcPath(baseX,item.span)}"/>`);
+    if(item.kind!=="relation" || node.relationshipId==null) continue;
+    const rel=RELATIONSHIPS[node.relationshipId];
+    for(const spec of bibleArcLabelSpecs(node,rel,spanMemo,anchorMap)){
+      labels.push(`<text class="biblearc-label" x="${spec.x}" y="${spec.y}" fill="${spec.color}">${safeSvgText(spec.text)}</text>`);
+    }
+  }
+  svg.innerHTML=`<g class="biblearc-curves">${curves.join("")}</g><g class="biblearc-labels">${labels.join("")}</g>`;
+}
+
 function measureAndRenderSvgs(){
   const height=Math.max(260,els.propList.scrollHeight);
   const anchors=getAnchorMap();
   renderBracketSvg(anchors,height);
+  renderBibelArcs(anchors,height);
 }
 
 function showDialog(dialog){
@@ -689,6 +844,7 @@ function openSettingsDialog(){
   closeProjectMenu();
   els.lineAttachmentToggle.checked=uiSettings.lineAttachment!=="center";
   els.primaryLineWeightToggle.checked=uiSettings.emphasizePrimaryLines!==false;
+  els.bibleArcingToggle.checked=uiSettings.bibleArcing===true;
   showDialog(els.settingsDialog);
 }
 function setLineAttachmentMode(mode){
@@ -708,6 +864,14 @@ function setPrimaryLineEmphasis(enabled){
   storeUiSettings();
   render();
   announce(next?"Hauptlinien werden stärker hervorgehoben.":"Hauptlinien verwenden normale Linienstärke.");
+}
+function setBibleArcing(enabled){
+  const next=!!enabled;
+  if(uiSettings.bibleArcing===next) return;
+  uiSettings.bibleArcing=next;
+  storeUiSettings();
+  render();
+  announce(next?"Bibelarcing wird rechts vom Text angezeigt.":"Bibelarcing ist ausgeblendet.");
 }
 function workspaceSplitBounds(){
   const rect=els.canvasGrid?.getBoundingClientRect();

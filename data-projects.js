@@ -169,10 +169,10 @@ const els = {
   statusDetailsButton:$("#statusDetailsButton"), exportButton:$("#exportButton"), jsonExportButton:$("#jsonExportButton"), importButton:$("#importButton"), importInput:$("#importInput"),
   projectMenuWrap:$("#projectMenuWrap"), projectMenuButton:$("#projectMenuButton"), projectMenu:$("#projectMenu"),
   projectManagerButton:$("#projectManagerButton"), settingsMenuButton:$("#settingsMenuButton"), projectsDialog:$("#projectsDialog"),
-  settingsDialog:$("#settingsDialog"), lineAttachmentToggle:$("#lineAttachmentToggle"), primaryLineWeightToggle:$("#primaryLineWeightToggle"),
+  settingsDialog:$("#settingsDialog"), lineAttachmentToggle:$("#lineAttachmentToggle"), primaryLineWeightToggle:$("#primaryLineWeightToggle"), bibleArcingToggle:$("#bibleArcingToggle"),
   projectMenuCurrent:$("#projectMenuCurrent"), newProjectButton:$("#newProjectButton"), projectList:$("#projectList"),
   unitBar:$("#unitBar"), unitButtons:$("#unitButtons"),
-  unitHint:$("#unitHint"), propList:$("#propList"), documentHeading:$("#documentHeading"), centerModeLabel:$("#centerModeLabel"), bracketSvg:$("#bracketSvg"),
+  unitHint:$("#unitHint"), propList:$("#propList"), documentHeading:$("#documentHeading"), centerModeLabel:$("#centerModeLabel"), bracketSvg:$("#bracketSvg"), centerAnalysisBody:$("#centerAnalysisBody"), bibleArcPane:$("#bibleArcPane"), bibleArcSvg:$("#bibleArcSvg"),
   canvasGrid:$(".canvas-grid"), workspaceDivider:$("#workspaceDivider"),
   bracketEmpty:$("#bracketEmpty"), treeSummary:$("#treeSummary"),
   liveRegion:$("#liveRegion"), textDialog:$("#textDialog"), textForm:$("#textForm"), textDialogTitle:$("#textDialogTitle"),
@@ -210,19 +210,21 @@ let projects = [];
 let activeProjectId = null;
 // App-weite Darstellungspräferenzen liegen bewusst außerhalb des Analysezustands.
 // Dadurch verändern sie weder Analyse-JSON noch die Undo-Historie.
-let uiSettings = {lineAttachment:"primary",emphasizePrimaryLines:true};
+let uiSettings = {lineAttachment:"primary",emphasizePrimaryLines:true,bibleArcing:false};
 function loadUiSettings(){
   try{
     const raw=localStorage.getItem(UI_SETTINGS_STORAGE_KEY);
     const parsed=raw?JSON.parse(raw):null;
     uiSettings.lineAttachment=parsed?.lineAttachment==="center"?"center":"primary";
     uiSettings.emphasizePrimaryLines=parsed?.emphasizePrimaryLines!==false;
-  }catch(_){ uiSettings.lineAttachment="primary"; uiSettings.emphasizePrimaryLines=true; }
+    uiSettings.bibleArcing=parsed?.bibleArcing===true;
+  }catch(_){ uiSettings.lineAttachment="primary"; uiSettings.emphasizePrimaryLines=true; uiSettings.bibleArcing=false; }
 }
 function storeUiSettings(){
   try{ localStorage.setItem(UI_SETTINGS_STORAGE_KEY,JSON.stringify({
     lineAttachment:uiSettings.lineAttachment,
-    emphasizePrimaryLines:uiSettings.emphasizePrimaryLines!==false
+    emphasizePrimaryLines:uiSettings.emphasizePrimaryLines!==false,
+    bibleArcing:uiSettings.bibleArcing===true
   })); }catch(_){ }
 }
 

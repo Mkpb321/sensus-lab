@@ -602,6 +602,9 @@ els.lineAttachmentToggle.addEventListener("change",e=>{
 els.primaryLineWeightToggle.addEventListener("change",e=>{
   setPrimaryLineEmphasis(e.target.checked);
 });
+els.bibleArcingToggle.addEventListener("change",e=>{
+  setBibleArcing(e.target.checked);
+});
 els.newProjectButton.addEventListener("click",()=>createNewProject());
 els.projectList.addEventListener("click",e=>{
   const rename=e.target.closest("[data-project-rename]");

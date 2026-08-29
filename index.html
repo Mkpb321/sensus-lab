@@ -86,7 +86,12 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
 
     <section class="column center-column" aria-label="Propositionen">
       <div class="column-title"><span>Propositionen</span><span class="mini" id="centerModeLabel">Bearbeiten · Teilen</span></div>
-      <div class="prop-list" id="propList"></div>
+      <div class="center-analysis-body" id="centerAnalysisBody">
+        <div class="prop-list" id="propList"></div>
+        <div class="biblearc-pane" id="bibleArcPane" hidden aria-label="Automatisch abgeleitete Arcing-Darstellung">
+          <svg id="bibleArcSvg" class="biblearc-svg" aria-hidden="true"></svg>
+        </div>
+      </div>
     </section>
   </div>
   <div id="treeSummary" class="sr-only" aria-live="polite"></div>
@@ -130,6 +135,13 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
           <span class="settings-row-label">Hauptlinien dicker</span>
           <span class="settings-toggle">
             <input id="primaryLineWeightToggle" type="checkbox" role="switch" aria-label="Horizontale Linien von Hauptpunkten doppelt so dick darstellen">
+            <span class="settings-toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
+        <label class="settings-row" title="Zeigt rechts vom Text eine nicht editierbare, automatisch aus der Bracket-Struktur abgeleitete Arcing-Darstellung">
+          <span class="settings-row-label">Bibelarcing</span>
+          <span class="settings-toggle">
+            <input id="bibleArcingToggle" type="checkbox" role="switch" aria-label="Bibelarcing rechts vom Text anzeigen">
             <span class="settings-toggle-track" aria-hidden="true"></span>
           </span>
         </label>
@@ -260,6 +272,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
               <div class="help-reference-row"><strong>Wurzel</strong><span>Eine oberste Struktureinheit ohne Elternklammer. Eine abgeschlossene Gesamtanalyse besitzt genau eine Wurzel.</span></div>
               <div class="help-reference-row"><strong>Offene Gruppe</strong><span>Eine bereits gebildete Klammer, der noch kein Beziehungstyp zugewiesen wurde. Sie gilt bis zur Zuweisung als unvollständig.</span></div>
               <div class="help-reference-row"><strong>Graph</strong><span>Die linke Strukturzeichnung aus Klammern, Beziehungskürzeln, Rollenlabels und Linien.</span></div>
+              <div class="help-reference-row"><strong>Bibelarcing</strong><span>Optionale, rein visuelle Arc-Darstellung rechts vom Text. Sie wird automatisch aus demselben Strukturbaum wie die Brackets berechnet und ist nicht separat editierbar.</span></div>
               <div class="help-reference-row"><strong>Trennlinie</strong><span>Die verschiebbare vertikale Linie zwischen Graph und Propositionstext. Ihre Position wird pro Projekt gespeichert.</span></div>
               <div class="help-reference-row"><strong>Beziehungsgruppe</strong><span>Farblich zusammengefasste Klasse von Beziehungstypen im Dialog „Beziehung wählen/ändern“, z. B. beiordnend oder unterordnend.</span></div>
               <div class="help-reference-row"><strong>Bearbeiten / Ansicht</strong><span>Bearbeiten aktiviert Strukturinteraktionen; Ansicht zeigt dieselbe Analyse ohne Bearbeitungswerkzeuge.</span></div>
@@ -361,13 +374,14 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
             </details>
           </section>
 
-          <section class="help-topic" id="help-display" data-help-keywords="ansicht bearbeiten darstellung trennlinie breite graph propositionen hauptlinie stern zentriert hauptpunkt einstellungen">
+          <section class="help-topic" id="help-display" data-help-keywords="ansicht bearbeiten darstellung trennlinie breite graph propositionen hauptlinie stern zentriert hauptpunkt einstellungen bibelarcing arc arcs">
             <h3>Darstellung &amp; Arbeitsfläche</h3>
             <div class="help-reference">
               <div class="help-reference-row"><strong>Bearbeiten / Ansicht</strong><span>Bearbeiten aktiviert Strukturwerkzeuge. Ansicht entfernt Bearbeitungsinteraktionen und dient der ruhigen Kontrolle.</span></div>
               <div class="help-reference-row"><strong>Trennlinie</strong><span>Zwischen Struktur und Propositionen ziehen, um die Breite zu ändern. Die Position wird pro Projekt gespeichert. Mit fokussierter Trennlinie ändern ←/→ die Breite ebenfalls.</span></div>
               <div class="help-reference-row"><strong>Linien am Hauptpunkt</strong><span>Ein: Elternanschlüsse folgen dem Hauptpunkt. Aus: Anschlüsse werden geometrisch zentriert. Rein visuell.</span></div>
               <div class="help-reference-row"><strong>Hauptlinien dicker</strong><span>Ein: Hauptteile werden durch die dickere horizontale Linie markiert. Aus: die Linie bleibt normal und der Hauptpunkt wird als ★ im horizontalen Rollenlabel angezeigt. Rein visuell.</span></div>
+              <div class="help-reference-row"><strong>Bibelarcing</strong><span>Blendet rechts vom Text Arcs ein, die ausschließlich aus der vorhandenen Bracket-Struktur berechnet werden. Die Arcs besitzen keine eigenen Bearbeitungsdaten und erscheinen nicht im Bildexport.</span></div>
             </div>
             <details class="help-detail" data-help-keywords="kürzel farben vertikal horizontal tooltip biblearc">
               <summary>Labels, Farben und Tooltips</summary>
@@ -383,7 +397,7 @@ Hinweis: Sensus Lab interpretiert den Text nicht automatisch. Segmentierung und 
               <div class="help-reference-row"><strong>Automatisch speichern</strong><span>Änderungen werden lokal im Browser gespeichert. Der Speicherstatus steht rechts in der Statusleiste.</span></div>
               <div class="help-reference-row"><strong>Projekte</strong><span>Im Burger-Menü Projekte anlegen, öffnen, umbenennen oder löschen. Der Projekttitel ist zugleich der Texttitel.</span></div>
               <div class="help-reference-row"><strong>Pro Projekt</strong><span>Das zuletzt verwendete Werkzeug „Teilen/Verbinden“ und die Position der Trennlinie werden für jedes Projekt separat wiederhergestellt.</span></div>
-              <div class="help-reference-row"><strong>Globale Darstellung</strong><span>Die Einstellungen für Linienanschluss und Hauptlinien-Stärke gelten als lokale App-Darstellung und verändern die Analysedaten nicht.</span></div>
+              <div class="help-reference-row"><strong>Globale Darstellung</strong><span>Die Einstellungen für Linienanschluss, Hauptlinien-Stärke und Bibelarcing gelten als lokale App-Darstellung und verändern die Analysedaten nicht.</span></div>
               <div class="help-reference-row"><strong>Analyse zurücksetzen</strong><span>Leert Text, Struktur und Verlauf des aktuellen Projekts nach Bestätigung. Andere Projekte bleiben unverändert; der Reset selbst ist nicht per Undo rückgängig zu machen.</span></div>
             </div>
             <details class="help-detail" data-help-keywords="projekt löschen rückgängig localstorage browserdaten">
