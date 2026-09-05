@@ -772,7 +772,13 @@ els.bracketSvg.addEventListener("click",e=>{
   if(handle){ handleUnitClick(handle.dataset.unitId); return; }
 
   const rel=e.target.closest("[data-relation-id]");
-  if(rel) selectRelation(rel.dataset.relationId,{openEditor:false});
+  if(rel){
+    const node=getNode(rel.dataset.relationId);
+    // Offene, frisch gebildete Klammern öffnen beim ersten bewussten Klick
+    // den Beziehungsauswahldialog. Bereits klassifizierte Klammern behalten
+    // das bisherige Verhalten: Klick selektiert, das vertikale Kürzel editiert.
+    selectRelation(rel.dataset.relationId,{openEditor:node?.kind==="relation" && node.relationshipId==null});
+  }
 });
 els.relationshipSearch.addEventListener("input",renderRelationshipDialog);
 els.conjunctionLookupSelect.addEventListener("change",e=>{

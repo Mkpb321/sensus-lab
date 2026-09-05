@@ -1,8 +1,12 @@
 
+
+
 im richtigen biblearc kann man im nachinein noch brachets einfügen, die unter den obersten brackets sind. dann dürfen auch die anker nicht verschwinden, aber vielleicht etwas ausgegraut. kannst du das auch verlässlich einfügen?
 
 wenn ich es erweitere sinds dann mehrere tabs für gleichen text die sich vielleicht beeinflussen
 - das ist eine paralellstelle, darum ist sie wichtig z.b
+- stellenangaben die beim drüberfahren stelle öffnen kann man in notes machen (vieleicht manuell einfügen)
+     - wenn man es wirklich sinvoll ausbauen will braucht es glaub schon den sql bibeltext oder anderes format. dann halt private repo und anderer hoster. cloudflaire oder so, und pw geschützt
 
 dot notes wie bei bible arc
 https://equip.biblearc.com/course/bible-logic/118054

@@ -903,13 +903,15 @@ function handleUnitClick(nodeId){
   }
   const selected=range.selected;
   const parentId=range.parentId;
-  let newId=null;
   // Merkt die zuerst angeklickte Einheit. Bei richtungsabhängigen Typen
   // erhält genau diese Einheit später die erste semantische Rolle des Typs.
   const firstSelectedChildId=selectionStartId;
   selectionStartId=null;
-  performAction("Offene Gruppe angelegt",()=>{ newId=connectOpen(selected,parentId,firstSelectedChildId); });
-  if(newId && getNode(newId)) openRelationshipDialog(newId);
+  const newId=performAction("Offene Gruppe angelegt",()=>connectOpen(selected,parentId,firstSelectedChildId));
+  // Eine neue Verbindung bleibt zunächst bewusst offen. Die fachliche
+  // Klassifikation erfolgt erst, wenn der Nutzer anschließend die offene
+  // Klammer anklickt; beim Setzen der Verbindung öffnet sich kein Dialog.
+  if(newId && getNode(newId)) announce("Offene Gruppe angelegt. Klicke auf die Klammer, um eine Beziehung zu wählen.");
 }
 
 function autoSplitNormalizedWord(token){
